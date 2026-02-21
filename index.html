@@ -1,0 +1,165 @@
+---
+---
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>GAME SELECT</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>
+:root{
+  --bg:#0f0f1a;
+  --neon:#00f0ff;
+  --accent:#ff00c8;
+  --card:#1a1a2e;
+  --text:#e6faff;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family: "Orbitron", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at 30% 30%, #1b1b3a, #0f0f1a 60%);
+  color:var(--text);
+  overflow-x:hidden;
+}
+
+/* 背景グリッド */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+    linear-gradient(rgba(0,255,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,255,.05) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
+}
+
+/* ヘッダー */
+header{
+  text-align:center;
+  padding:2rem 1rem;
+}
+
+h1{
+  margin:0;
+  font-size:2rem;
+  letter-spacing:.15em;
+  color:var(--neon);
+  text-shadow:0 0 10px var(--neon),
+              0 0 20px var(--neon);
+}
+
+/* メイン */
+main{
+  max-width:1100px;
+  margin:2rem auto 4rem;
+  padding:0 1rem;
+}
+
+/* グリッド */
+ul{
+  list-style:none;
+  padding:0;
+  margin:0;
+  display:grid;
+  gap:1.5rem;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+}
+
+/* カード */
+li{
+  background:var(--card);
+  border:1px solid rgba(0,255,255,.3);
+  border-radius:12px;
+  padding:1.5rem;
+  position:relative;
+  overflow:hidden;
+  transition:.25s transform, .25s box-shadow;
+}
+
+li::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(45deg,
+              transparent 30%,
+              rgba(0,255,255,.15),
+              transparent 70%);
+  opacity:0;
+  transition:.3s;
+}
+
+li:hover{
+  transform:translateY(-8px) scale(1.03);
+  box-shadow:0 0 20px rgba(0,255,255,.5);
+}
+
+li:hover::after{
+  opacity:1;
+}
+
+/* リンク */
+a{
+  text-decoration:none;
+  color:var(--text);
+  font-weight:700;
+  font-size:1.1rem;
+  display:block;
+  letter-spacing:.05em;
+}
+
+.stage-label{
+  font-size:.75rem;
+  opacity:.6;
+  margin-bottom:.5rem;
+  color:var(--accent);
+  text-transform:uppercase;
+  letter-spacing:.2em;
+}
+
+/* フッター */
+footer{
+  text-align:center;
+  padding:2rem 1rem;
+  font-size:.8rem;
+  opacity:.5;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🎮 GAME SELECT</h1>
+</header>
+
+<main>
+  <ul>
+  {% assign count = 1 %}
+  {% for file in site.static_files %}
+    {% if file.extname == ".html" and file.path != "/index.html" %}
+      <li>
+        <div class="stage-label">
+          STAGE {{ count }}
+        </div>
+        <a href="{{ file.path | remove_first: '/' | relative_url }}">
+          ▶ {{ file.name | replace: ".html","" }}
+        </a>
+      </li>
+      {% assign count = count | plus: 1 %}
+    {% endif %}
+  {% endfor %}
+  </ul>
+</main>
+
+<footer>
+  SYSTEM READY // SELECT YOUR MISSION
+</footer>
+
+</body>
+</html>
