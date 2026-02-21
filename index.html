@@ -22,9 +22,21 @@ layout: null
 
 body{
   margin:0;
-  font-family: "Orbitron", "Segoe UI", sans-serif;
+  font-family:"Orbitron","Segoe UI",sans-serif;
   background: radial-gradient(circle at 30% 30%, #1b1b3a, #0f0f1a 60%);
   color:var(--text);
+}
+
+/* 背景グリッド */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+    linear-gradient(rgba(0,255,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,255,.05) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
 }
 
 header{
@@ -61,7 +73,7 @@ li{
   border:1px solid rgba(0,255,255,.3);
   border-radius:12px;
   padding:1.5rem;
-  transition:.25s transform, .25s box-shadow;
+  transition:.25s transform,.25s box-shadow;
 }
 
 li:hover{
@@ -83,6 +95,7 @@ a{
   margin-bottom:.5rem;
   color:var(--accent);
   letter-spacing:.2em;
+  text-transform:uppercase;
 }
 
 footer{
@@ -105,7 +118,7 @@ footer{
 
   {% assign count = 1 %}
   {% for page in site.pages %}
-    {% if page.name != "index.html" %}
+    {% if page.name != "index.html" and page.ext == ".html" %}
       <li>
         <div class="stage-label">
           STAGE {{ count }}
