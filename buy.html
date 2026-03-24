@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>ゆいみおの おかいものだいさくせん！</title>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{height:100%;overflow:hidden;touch-action:none}
+body{font-family:'M PLUS Rounded 1c','Hiragino Sans','Noto Sans JP',sans-serif}
+::-webkit-scrollbar{display:none}
+
+@keyframes confFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(105vh) rotate(720deg);opacity:0}}
+@keyframes bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes pulse{0%,100%{box-shadow:0 0 8px rgba(255,215,0,0.2),inset 0 0 12px rgba(255,215,0,0.05)}50%{box-shadow:0 0 24px rgba(255,215,0,0.5),inset 0 0 20px rgba(255,215,0,0.1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes pop{0%{transform:scale(0.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+@keyframes coinDrop{0%{transform:scale(0.5) translateY(-8px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
+@keyframes arrowBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+#app{height:100dvh;display:flex;flex-direction:column;max-width:430px;margin:0 auto;padding-top:env(safe-area-inset-top,0);position:relative;overflow:hidden;transition:background 0.4s}
+#header{padding:8px 14px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.22);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);flex-shrink:0}
+#tabs{display:flex;background:rgba(0,0,0,0.1);flex-shrink:0}
+#tabs button{flex:1;padding:8px 2px;border:none;font-size:10px;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;transition:all 0.2s;background:transparent;font-family:inherit}
+#tabs button.active{background:rgba(255,255,255,0.92);border-radius:12px 12px 0 0;color:#333;transform:translateY(-1px)}
+#scroll{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:8px;padding:8px;-webkit-overflow-scrolling:touch}
+#wallet{background:linear-gradient(180deg,#5d4037,#3e2723);border-top:3px solid #2c1a10;padding:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0));box-shadow:0 -4px 20px rgba(0,0,0,0.3);flex-shrink:0}
+#wallet-items{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;padding:4px 0}
+.wallet-item{display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+.wallet-item .money-wrap{cursor:grab;touch-action:none;transition:opacity 0.2s,transform 0.15s;position:relative}
+.wallet-item .money-wrap.disabled{opacity:0.3;cursor:default}
+.wallet-item .money-wrap.used{opacity:0.15;cursor:default}
+.wallet-item .badge{border-radius:8px;padding:0 5px;font-size:9px;font-weight:900;min-width:18px;text-align:center}
+.shop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.shop-btn{border-radius:14px;padding:8px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all 0.15s;min-height:74px;font-family:inherit;font-weight:700}
+.shop-btn .emoji{font-size:30px;line-height:1}
+.shop-btn .name{font-size:11px}
+.shop-btn .price{font-size:13px;font-weight:900;border-radius:8px;padding:0 8px}
+#pay-area{border-radius:20px;padding:14px 12px;min-height:100px;transition:all 0.3s;position:relative}
+#pay-coins{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;align-items:center}
+.pay-coin{cursor:pointer;animation:coinDrop 0.25s ease;position:relative;display:inline-block}
+.pay-coin .remove-x{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:#ef5350;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:900;box-shadow:0 1px 3px rgba(0,0,0,0.3)}
+#progress-bar{margin-top:10px;background:#e0e0e0;border-radius:8px;height:7px;overflow:hidden}
+#progress-fill{height:100%;border-radius:8px;transition:width 0.3s}
+#pay-btn{width:100%;color:#fff;border:none;border-radius:16px;padding:13px;font-size:17px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.18);letter-spacing:2px;font-family:inherit}
+#result-box{animation:pop 0.35s ease;text-align:center;border-radius:20px;padding:16px;box-shadow:0 4px 18px rgba(0,0,0,0.08)}
+#result-box button{margin-top:12px;background:linear-gradient(180deg,#42a5f5,#1e88e5);color:#fff;border:none;border-radius:14px;padding:10px 28px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,0.12);font-family:inherit}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:9999}
+#drag-ghost{position:fixed;pointer-events:none;z-index:10000}
+.streak-badge{background:rgba(255,80,0,0.18);border-radius:18px;padding:3px 8px;border:1px solid rgba(255,80,0,0.25);animation:bounce 0.8s ease infinite}
+</style>
+
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-size:20px">🛍️</span>
+      <span style="color:#fff;font-size:13px;font-weight:900;text-shadow:0 1px 3px rgba(0,0,0,0.3)">ゆいみおの おかいものだいさくせん！</span>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <div style="background:rgba(255,215,0,0.14);border-radius:18px;padding:3px 10px;display:flex;align-items:center;gap:3px;border:1px solid rgba(255,215,0,0.25)">
+        <span style="font-size:12px">⭐</span>
+        <span id="score-display" style="color:#ffd700;font-weight:900;font-size:14px">0</span>
+      </div>
+      <div id="streak-display" class="streak-badge" style="display:none">
+        <span style="color:#ff6b35;font-weight:900;font-size:12px">🔥<span id="streak-num">0</span></span>
+      </div>
+    </div>
+  </div>
+  <div id="tabs"></div>
+  <div id="scroll"></div>
+  <div id="wallet">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:0 2px">
+      <span style="color:#ffcc80;font-weight:900;font-size:13px">👛 おさいふ</span>
+      <span style="color:rgba(255,255,255,0.35);font-size:9px">おかねを うえに ドラッグ！</span>
+    </div>
+    <div id="wallet-items"></div>
+  </div>
+</div>
+<div id="confetti"></div>
+<div id="drag-ghost"></div>
+
+<script>
+// ====== DATA ======
+const MONEYS = [
+  { value:1000, label:"1000円", type:"bill", size:80 },
+  { value:500, label:"500円", type:"coin", size:52, outerColors:["#E8D882","#D8C870","#C8B860"], innerRingColors:["#D0D0D0","#C0C0C0","#B0B0B0"], rimColor:"#9A8A3A", textColor:"#5A4A0A", edgeType:"reeded", hole:false, year:"令和六年" },
+  { value:100, label:"100円", type:"coin", size:46, outerColors:["#E8E8E8","#DADADA","#CCCCCC"], rimColor:"#AAAAAA", textColor:"#505050", edgeType:"reeded", hole:false, year:"令和六年" },
+  { value:50, label:"50円", type:"coin", size:44, outerColors:["#E0E0E0","#D0D0D0","#C0C0C0"], rimColor:"#A0A0A0", textColor:"#555555", edgeType:"reeded", hole:true, year:"令和六年" },
+  { value:10, label:"10円", type:"coin", size:42, outerColors:["#C47A4A","#AD6835","#965828"], rimColor:"#7A4420", textColor:"#4A2810", edgeType:"reeded", hole:false, year:"令和六年" },
+  { value:5, label:"5円", type:"coin", size:40, outerColors:["#D4A843","#C49B38","#B08A2E"], rimColor:"#8B7320", textColor:"#6B5510", edgeType:"smooth", hole:true, year:"令和六年" },
+  { value:1, label:"1円", type:"coin", size:36, outerColors:["#D8D8D8","#C8C8C8","#B8B8B8"], rimColor:"#A0A0A0", textColor:"#707070", edgeType:"smooth", hole:false, year:"令和六年" },
+];
+const INIT_WALLET = {1000:1,500:1,100:4,50:1,10:4,5:1,1:4};
+const SCENES = [
+  { name:"じどうはんばいき",icon:"🥤",type:"vending",bgTop:"#0f0c29",bgMid:"#302b63",bgBot:"#24243e",
+    items:[{name:"おちゃ",price:128,emoji:"🍵"},{name:"ジュース",price:153,emoji:"🧃"},{name:"コーラ",price:167,emoji:"🥤"},{name:"みず",price:106,emoji:"💧"},{name:"ミルク",price:139,emoji:"🥛"},{name:"コーヒー",price:184,emoji:"☕"}]},
+  { name:"スーパー",icon:"🛒",type:"shop",bgTop:"#e8f5e9",bgMid:"#c8e6c9",bgBot:"#a5d6a7",accent:"#2e7d32",accentLight:"#66bb6a",
+    items:[{name:"りんご",price:148,emoji:"🍎"},{name:"バナナ",price:103,emoji:"🍌"},{name:"にんじん",price:86,emoji:"🥕"},{name:"たまご",price:215,emoji:"🥚"},{name:"パン",price:174,emoji:"🍞"},{name:"トマト",price:127,emoji:"🍅"}]},
+  { name:"おかし",icon:"🍭",type:"shop",bgTop:"#fce4ec",bgMid:"#f8bbd0",bgBot:"#f48fb1",accent:"#c2185b",accentLight:"#e91e63",
+    items:[{name:"チョコ",price:113,emoji:"🍫"},{name:"あめ",price:32,emoji:"🍬"},{name:"クッキー",price:258,emoji:"🍪"},{name:"ケーキ",price:346,emoji:"🍰"},{name:"アイス",price:197,emoji:"🍦"},{name:"ドーナツ",price:163,emoji:"🍩"}]},
+  { name:"おもちゃ",icon:"🧸",type:"shop",bgTop:"#e3f2fd",bgMid:"#bbdefb",bgBot:"#90caf9",accent:"#1565c0",accentLight:"#42a5f5",
+    items:[{name:"ボール",price:308,emoji:"⚽"},{name:"ふうせん",price:53,emoji:"🎈"},{name:"クレヨン",price:456,emoji:"🖍️"},{name:"おりがみ",price:147,emoji:"📄"},{name:"シール",price:98,emoji:"⭐"},{name:"ぬいぐるみ",price:512,emoji:"🧸"}]},
+];
+
+// ====== STATE ======
+let sceneIdx = 0, cart = [], paid = [], wallet = {...INIT_WALLET};
+let result = null, score = 0, streak = 0;
+let dragValue = null, dragX = 0, dragY = 0;
+
+const $ = id => document.getElementById(id);
+const moneyOf = v => MONEYS.find(m => m.value === v);
+const totalPrice = () => cart.reduce((s,i) => s+i.price, 0);
+const totalPaid = () => paid.reduce((s,v) => s+v, 0);
+
+// ====== SVG GENERATORS ======
+function makeBillSVG(scale=1, dragging=false) {
+  const w = Math.round(80*scale), h = Math.round(42*scale);
+  const f = dragging ? "drop-shadow(0 6px 16px rgba(0,0,0,0.5))" : "drop-shadow(0 1px 3px rgba(0,0,0,0.3))";
+  return `<svg width="${w}" height="${h}" viewBox="0 0 80 42" style="filter:${f};display:block">
+  <defs>
+    <linearGradient id="bbg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7BA38C"/><stop offset="25%" stop-color="#6B9B7E"/><stop offset="50%" stop-color="#5A8F70"/><stop offset="75%" stop-color="#6B9B7E"/><stop offset="100%" stop-color="#7BA38C"/></linearGradient>
+    <linearGradient id="bsh" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#fff" stop-opacity="0"/><stop offset="30%" stop-color="#fff" stop-opacity="0.08"/><stop offset="50%" stop-color="#fff" stop-opacity="0.15"/><stop offset="70%" stop-color="#fff" stop-opacity="0.08"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <pattern id="bpat" x="0" y="0" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="0.4" fill="#4A7A5E" opacity="0.3"/></pattern>
+    <filter id="btex"><feTurbulence type="fractalNoise" baseFrequency="2" numOctaves="3" seed="42" result="n"/><feColorMatrix in="n" type="saturate" values="0" result="g"/><feBlend in="SourceGraphic" in2="g" mode="soft-light"/></filter>
+  </defs>
+  <rect x="0.5" y="0.5" width="79" height="41" rx="3" fill="url(#bbg)" stroke="#3A6B4E" stroke-width="1" filter="url(#btex)"/>
+  <rect x="1" y="1" width="78" height="40" rx="2.5" fill="url(#bpat)"/>
+  <rect x="3" y="3" width="74" height="36" rx="1.5" fill="none" stroke="#4A7A5E" stroke-width="0.4" opacity="0.5"/>
+  <rect x="5" y="5" width="70" height="32" rx="1" fill="none" stroke="#4A7A5E" stroke-width="0.3" opacity="0.3"/>
+  <circle cx="14" cy="21" r="7" fill="none" stroke="#3A6B4E" stroke-width="0.4" opacity="0.4"/>
+  <circle cx="14" cy="21" r="5" fill="none" stroke="#3A6B4E" stroke-width="0.3" opacity="0.3"/>
+  <ellipse cx="30" cy="21" rx="9" ry="11" fill="#5A8F70" opacity="0.3" stroke="#3A6B4E" stroke-width="0.4"/>
+  <ellipse cx="30" cy="18" rx="4" ry="4.5" fill="#6B9B7E" opacity="0.4"/>
+  <ellipse cx="30" cy="26" rx="5.5" ry="4" fill="#6B9B7E" opacity="0.3"/>
+  <text x="58" y="15" text-anchor="middle" font-size="7" font-weight="900" fill="#2A5A3E" font-family="'Hiragino Mincho ProN',serif" opacity="0.9">1000</text>
+  <text x="58" y="22" text-anchor="middle" font-size="4.5" fill="#2A5A3E" font-family="'Hiragino Mincho ProN',serif" opacity="0.7">日本銀行券</text>
+  <text x="58" y="28" text-anchor="middle" font-size="9" font-weight="900" fill="#2A5A3E" font-family="'Hiragino Mincho ProN',serif" opacity="0.85">千円</text>
+  <text x="68" y="37" text-anchor="middle" font-size="2.8" fill="#2A5A3E" font-family="monospace" opacity="0.4">AB123456C</text>
+  <text x="10" y="10" text-anchor="middle" font-size="3.5" font-weight="700" fill="#2A5A3E" font-family="monospace" opacity="0.5">1000</text>
+  <rect x="0" y="0" width="80" height="42" rx="3" fill="url(#bsh)"/>
+  <rect x="70" y="8" width="5" height="26" rx="1" fill="none" stroke="#8BC0A0" stroke-width="0.3" opacity="0.5"/>
+  <rect x="70.5" y="9" width="4" height="24" rx="0.5" fill="rgba(139,192,160,0.08)"/>
+  </svg>`;
+}
+
+function makeCoinSVG(coin, scale=1, dragging=false) {
+  const s = Math.round(coin.size*scale);
+  const cx=s/2, cy=s/2, r=s/2-1.5;
+  const uid = 'c'+coin.value+'-'+s;
+  const is500 = coin.value===500;
+  const f = dragging?"drop-shadow(0 8px 18px rgba(0,0,0,0.55))":"drop-shadow(0 1px 2px rgba(0,0,0,0.4))";
+  let svg = `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" style="filter:${f};display:block"><defs>`;
+  svg += `<radialGradient id="${uid}-f" cx="38%" cy="33%" r="70%"><stop offset="0%" stop-color="${coin.outerColors[0]}"/><stop offset="50%" stop-color="${coin.outerColors[1]}"/><stop offset="100%" stop-color="${coin.outerColors[2]}"/></radialGradient>`;
+  svg += `<radialGradient id="${uid}-h" cx="32%" cy="28%" r="38%"><stop offset="0%" stop-color="#fff" stop-opacity="0.5"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient>`;
+  svg += `<radialGradient id="${uid}-r" cx="50%" cy="50%" r="50%"><stop offset="85%" stop-color="transparent"/><stop offset="94%" stop-color="rgba(0,0,0,0.08)"/><stop offset="100%" stop-color="rgba(0,0,0,0.22)"/></radialGradient>`;
+  svg += `<filter id="${uid}-e" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur in="SourceAlpha" stdDeviation="0.6" result="b"/><feSpecularLighting in="b" surfaceScale="5" specularConstant="0.45" specularExponent="30" result="sp"><fePointLight x="${s*0.28}" y="${s*0.18}" z="${s*1.2}"/></feSpecularLighting><feComposite in="sp" in2="SourceAlpha" operator="in" result="si"/><feComposite in="SourceGraphic" in2="si" operator="arithmetic" k1="0" k2="1" k3="0.55" k4="0"/></filter>`;
+  svg += `<filter id="${uid}-t"><feTurbulence type="fractalNoise" baseFrequency="1.8" numOctaves="4" seed="${coin.value*13}" result="n"/><feColorMatrix in="n" type="saturate" values="0" result="g"/><feBlend in="SourceGraphic" in2="g" mode="overlay"/></filter>`;
+  if(is500) svg += `<radialGradient id="${uid}-i" cx="40%" cy="36%" r="58%"><stop offset="0%" stop-color="${coin.innerRingColors[0]}"/><stop offset="55%" stop-color="${coin.innerRingColors[1]}"/><stop offset="100%" stop-color="${coin.innerRingColors[2]}"/></radialGradient>`;
+  svg += `</defs>`;
+  if(coin.edgeType==="reeded") svg += `<circle cx="${cx}" cy="${cy}" r="${r+0.5}" fill="none" stroke="${coin.rimColor}" stroke-width="2" stroke-dasharray="${Math.PI*r/40} ${Math.PI*r/80}" opacity="0.45"/>`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${uid}-f)" stroke="${coin.rimColor}" stroke-width="1" filter="url(#${uid}-t)"/>`;
+  if(is500){
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r*0.6}" fill="url(#${uid}-i)" stroke="${coin.rimColor}" stroke-width="0.5" opacity="0.85"/>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r*0.6}" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="0.4"/>`;
+  }
+  svg += `<circle cx="${cx}" cy="${cy}" r="${r-2}" fill="none" stroke="${coin.rimColor}" stroke-width="0.35" opacity="0.3"/>`;
+  if(coin.hole){
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r*0.2}" fill="#222"/>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r*0.2}" fill="none" stroke="${coin.rimColor}" stroke-width="0.7" opacity="0.6"/>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r*0.17}" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.3"/>`;
+  }
+  if(coin.value===100)[0,60,120,180,240,300].forEach(a=>{
+    const px=cx+Math.cos(a*Math.PI/180)*r*0.6, py=cy+Math.sin(a*Math.PI/180)*r*0.6;
+    svg+=`<ellipse cx="${px}" cy="${py}" rx="${r*0.08}" ry="${r*0.12}" fill="${coin.rimColor}" opacity="0.15" transform="rotate(${a} ${px} ${py})"/>`;
+  });
+  if(coin.value===10) svg+=`<circle cx="${cx}" cy="${cy}" r="${r*0.75}" fill="none" stroke="${coin.rimColor}" stroke-width="0.3" opacity="0.2"/>`;
+  if(coin.value===50)[0,72,144,216,288].forEach(a=>{
+    const px=cx+Math.cos(a*Math.PI/180)*r*0.58, py=cy+Math.sin(a*Math.PI/180)*r*0.58;
+    svg+=`<ellipse cx="${px}" cy="${py}" rx="${r*0.1}" ry="${r*0.06}" fill="${coin.rimColor}" opacity="0.12" transform="rotate(${a+20} ${px} ${py})"/>`;
+  });
+  const ty1 = coin.hole ? cy-r*0.44 : cy-r*0.06;
+  const ty2 = coin.hole ? cy-r*0.44+s*0.16 : cy+r*0.22;
+  const ty3 = coin.hole ? cy+r*0.56 : cy+r*0.56;
+  const fs1 = s*(coin.value>=100?0.24:0.28);
+  svg += `<text x="${cx}" y="${ty1}" text-anchor="middle" dominant-baseline="central" font-size="${fs1}" font-weight="800" fill="${coin.textColor}" opacity="0.88" font-family="'Hiragino Mincho ProN','Noto Serif JP',serif" filter="url(#${uid}-e)">${coin.value}</text>`;
+  svg += `<text x="${cx}" y="${ty2}" text-anchor="middle" dominant-baseline="central" font-size="${s*0.14}" fill="${coin.textColor}" opacity="0.6" font-family="'Hiragino Mincho ProN',serif">円</text>`;
+  svg += `<text x="${cx}" y="${ty3}" text-anchor="middle" dominant-baseline="central" font-size="${s*0.085}" fill="${coin.textColor}" opacity="0.3" font-family="'Hiragino Mincho ProN',serif">${coin.year}</text>`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${uid}-h)"/>`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${uid}-r)"/>`;
+  svg += `<ellipse cx="${cx*0.7}" cy="${cy*0.6}" rx="${r*0.22}" ry="${r*0.1}" fill="#fff" opacity="0.14" transform="rotate(-30 ${cx*0.7} ${cy*0.6})"/>`;
+  svg += `</svg>`;
+  return svg;
+}
+
+function makeMoneySVG(money, scale=1, dragging=false) {
+  return money.type==='bill' ? makeBillSVG(scale, dragging) : makeCoinSVG(money, scale, dragging);
+}
+
+// ====== RENDER ======
+function render() {
+  const scene = SCENES[sceneIdx];
+  const isDark = sceneIdx===0;
+  $('app').style.background = `linear-gradient(180deg,${scene.bgTop},${scene.bgMid},${scene.bgBot})`;
+
+  // Tabs
+  let tabsH = '';
+  SCENES.forEach((s,i) => {
+    const active = i===sceneIdx;
+    const col = active?'#333': isDark?'rgba(255,255,255,0.55)':'rgba(0,0,0,0.35)';
+    tabsH += `<button class="${active?'active':''}" style="color:${col}" onclick="switchScene(${i})"><span style="font-size:16px;line-height:1">${s.icon}</span><span>${s.name}</span></button>`;
+  });
+  $('tabs').innerHTML = tabsH;
+
+  // Scroll content
+  let h = '';
+  // Shop
+  if(scene.type==='vending') h += renderVending(scene);
+  else h += renderShop(scene);
+  // Cart
+  if(cart.length>0 && !result) h += renderCart();
+  // Pay area
+  h += renderPayArea();
+  // Pay button
+  if(cart.length>0 && paid.length>0 && !result) h += renderPayBtn();
+  // Result
+  if(result) h += renderResult();
+  $('scroll').innerHTML = h;
+
+  // Wallet
+  renderWallet();
+
+  // Score
+  $('score-display').textContent = score;
+  if(streak>1){$('streak-display').style.display='';$('streak-num').textContent=streak;}
+  else $('streak-display').style.display='none';
+
+  // Scroll to bottom on result
+  if(result) setTimeout(()=>$('scroll').scrollTo({top:$('scroll').scrollHeight,behavior:'smooth'}),80);
+}
+
+function renderVending(scene) {
+  let h = `<div style="background:linear-gradient(180deg,#d32f2f 0%,#b71c1c 40%,#880e0e 100%);border-radius:20px;padding:12px 10px;box-shadow:0 8px 32px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.12);border:3px solid #7f0000">`;
+  h += `<div style="background:#0a0a1a;border-radius:14px;padding:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;border:2px solid #2a2a3a;box-shadow:inset 0 4px 24px rgba(0,0,0,0.9)">`;
+  scene.items.forEach((item,i) => {
+    const inCart = cart.some(c=>c.name===item.name);
+    const bg = inCart?"linear-gradient(180deg,#43a047,#2e7d32)":"linear-gradient(180deg,#1c1c30,#12122a)";
+    const bdr = inCart?"2px solid #81c784":"2px solid #2a2a40";
+    const tr = inCart?"scale(1.04)":"scale(1)";
+    h += `<button onclick="toggleCart(${i})" style="background:${bg};border:${bdr};border-radius:12px;padding:8px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:all 0.15s;min-height:68px;transform:${tr};font-family:inherit">`;
+    h += `<span style="font-size:28px;line-height:1">${item.emoji}</span>`;
+    h += `<span style="color:#ddd;font-size:10px;font-weight:700">${item.name}</span>`;
+    h += `<span style="color:${inCart?'#fff':'#ffd600'};font-size:12px;font-weight:900;text-shadow:0 0 6px rgba(255,214,0,0.3)">${item.price}円</span>`;
+    if(inCart) h += `<span style="font-size:10px;color:#a5d6a7">✓ せんたく</span>`;
+    h += `</button>`;
+  });
+  h += `</div></div>`;
+  return h;
+}
+
+function renderShop(scene) {
+  const ac = scene.accent||"#333", al = scene.accentLight||ac;
+  let h = `<div style="background:#fff;border-radius:20px;padding:8px;box-shadow:0 4px 20px rgba(0,0,0,0.08);border:2px solid ${ac}18">`;
+  h += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">`;
+  scene.items.forEach((item,i) => {
+    const inCart = cart.some(c=>c.name===item.name);
+    const bg = inCart?`linear-gradient(180deg,${al},${ac})`:"#fafafa";
+    const bdr = inCart?`2px solid ${ac}`:"2px solid #eee";
+    const tr = inCart?"scale(1.04)":"scale(1)";
+    const shd = inCart?`0 4px 14px ${ac}35`:"0 1px 3px rgba(0,0,0,0.04)";
+    h += `<button onclick="toggleCart(${i})" style="background:${bg};border:${bdr};border-radius:14px;padding:8px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all 0.15s;min-height:74px;transform:${tr};box-shadow:${shd};font-family:inherit">`;
+    h += `<span style="font-size:30px;line-height:1">${item.emoji}</span>`;
+    h += `<span style="color:${inCart?'#fff':'#333'};font-size:11px;font-weight:700">${item.name}</span>`;
+    h += `<span style="color:${inCart?'#ffd600':ac};font-size:13px;font-weight:900;background:${inCart?'rgba(0,0,0,0.12)':ac+'0c'};border-radius:8px;padding:0 8px">${item.price}円</span>`;
+    if(inCart) h += `<span style="font-size:9px;color:rgba(255,255,255,0.8)">✓</span>`;
+    h += `</button>`;
+  });
+  h += `</div></div>`;
+  return h;
+}
+
+function renderCart() {
+  let h = `<div style="animation:slideUp 0.2s ease;background:rgba(255,255,255,0.95);border-radius:14px;padding:8px 12px;box-shadow:0 2px 10px rgba(0,0,0,0.06)">`;
+  h += `<div style="font-size:11px;font-weight:800;color:#888;margin-bottom:4px">🛒 カート</div>`;
+  h += `<div style="display:flex;flex-wrap:wrap;gap:4px">`;
+  cart.forEach(item => {
+    h += `<span style="background:#f5f5f5;border-radius:8px;padding:2px 8px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:3px">${item.emoji} ${item.name} <span style="color:#e53935">${item.price}円</span></span>`;
+  });
+  h += `</div></div>`;
+  return h;
+}
+
+function renderPayArea() {
+  const tp = totalPrice(), tpd = totalPaid();
+  const isDrag = dragValue !== null;
+  const bgStyle = result==='perfect'?"linear-gradient(180deg,rgba(76,175,80,0.15),rgba(76,175,80,0.08))"
+    : result==='under'?"linear-gradient(180deg,rgba(229,57,53,0.1),rgba(229,57,53,0.05))"
+    : isDrag?"linear-gradient(180deg,rgba(255,215,0,0.12),rgba(255,240,200,0.15))"
+    : "linear-gradient(180deg,rgba(255,255,255,0.95),rgba(245,245,245,0.95))";
+  const bdr = isDrag?"3px solid #ffd600": paid.length>0?"3px solid #bbb":"3px dashed #ccc";
+  const anim = isDrag?"animation:pulse 1s ease infinite;": result==='under'?"animation:shake 0.35s ease;":"";
+  const shadow = isDrag?"box-shadow:0 0 30px rgba(255,215,0,0.3),inset 0 0 20px rgba(255,215,0,0.08)":"box-shadow:inset 0 2px 8px rgba(0,0,0,0.04)";
+
+  let h = `<div id="pay-area" style="background:${bgStyle};border:${bdr};${anim}${shadow}">`;
+  // header
+  const iconBg = isDrag?"linear-gradient(135deg,#ffd600,#ffab00)":paid.length>0?"linear-gradient(135deg,#4caf50,#388e3c)":"linear-gradient(135deg,#90a4ae,#78909c)";
+  const icon = isDrag?"⬇️":paid.length>0?"💰":"🪙";
+  const label = isDrag?"ここに いれてね！":"おかね とうにゅうぐち";
+  const labelCol = isDrag?"#f57f17":"#666";
+  const paidCol = cart.length===0?'#ccc': tpd===tp?'#4caf50': tpd>tp?'#ff9800': tpd>0?'#2196f3':'#ccc';
+
+  h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">`;
+  h += `<div style="display:flex;align-items:center;gap:6px"><div style="width:28px;height:28px;border-radius:50%;background:${iconBg};display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.15)">${icon}</div><span style="font-size:13px;font-weight:900;color:${labelCol}">${label}</span></div>`;
+  h += `</div>`;
+  if(cart.length>0){
+    h += `<div style="display:flex;align-items:baseline;justify-content:center;gap:6px;margin-bottom:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06)">`;
+    h += `<span style="font-size:32px;font-weight:900;color:${paidCol};letter-spacing:-1px;text-shadow:0 1px 2px rgba(0,0,0,0.08)">${tpd}</span>`;
+    h += `<span style="font-size:14px;font-weight:900;color:${paidCol}">円</span>`;
+    h += `<span style="font-size:16px;color:#bbb;font-weight:700;margin:0 2px">/</span>`;
+    h += `<span style="font-size:12px;color:#999;font-weight:700">ごうけい</span>`;
+    h += `<span style="font-size:26px;font-weight:900;color:#e53935;letter-spacing:-1px">${tp}</span>`;
+    h += `<span style="font-size:12px;font-weight:900;color:#e53935">円</span>`;
+    h += `</div>`;
+  }
+
+  // content
+  if(paid.length===0){
+    h += `<div style="text-align:center;padding:16px 0;display:flex;flex-direction:column;align-items:center;gap:6px">`;
+    if(isDrag){
+      h += `<div style="font-size:40px;animation:arrowBounce 0.6s ease infinite">⬇️</div>`;
+      h += `<div style="color:#f57f17;font-size:16px;font-weight:900">ここに はなしてね！</div>`;
+    } else if(cart.length>0){
+      h += `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#e0e0e0,#bdbdbd);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:inset 0 2px 6px rgba(0,0,0,0.15)">🪙</div>`;
+      h += `<div style="color:#999;font-size:13px;font-weight:700;line-height:1.5">したの おさいふから<br>おかねを ドラッグしてね！</div>`;
+      h += `<div style="font-size:24px;animation:arrowBounce 1s ease infinite;color:#bbb">⬇</div>`;
+    } else {
+      h += `<div style="color:#ccc;font-size:13px;font-weight:700">👆 しょうひんを えらんでね</div>`;
+    }
+    h += `</div>`;
+  } else {
+    h += `<div id="pay-coins">`;
+    paid.forEach((val,i) => {
+      const m = moneyOf(val);
+      if(!m) return;
+      h += `<div class="pay-coin" onclick="removePaid(${i})">${makeMoneySVG(m,1)}`;
+      if(!result) h += `<div class="remove-x">✕</div>`;
+      h += `</div>`;
+    });
+    h += `</div>`;
+  }
+
+  // progress
+  if(cart.length>0 && paid.length>0 && !result){
+    const pct = Math.min(100,(tpd/tp)*100);
+    const pBg = tpd===tp?"linear-gradient(90deg,#4caf50,#388e3c)":tpd>tp?"linear-gradient(90deg,#ff9800,#f57c00)":"linear-gradient(90deg,#2196f3,#1976d2)";
+    h += `<div id="progress-bar"><div id="progress-fill" style="width:${pct}%;background:${pBg}"></div></div>`;
+    h += `<div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-size:9px;color:#aaa">0円</span><span style="font-size:9px;color:#aaa;font-weight:700">${tp}円</span></div>`;
+  }
+  h += `</div>`;
+  return h;
+}
+
+function renderPayBtn() {
+  const tp = totalPrice(), tpd = totalPaid();
+  const bg = tpd>=tp?"linear-gradient(180deg,#4caf50,#388e3c)":"linear-gradient(180deg,#ef5350,#c62828)";
+  const anim = tpd===tp?"animation:bounce 1s ease infinite":"";
+  return `<button id="pay-btn" onclick="handlePay()" style="background:${bg};${anim}">おかいけい！ 🛒</button>`;
+}
+
+function renderResult() {
+  const tp = totalPrice(), tpd = totalPaid();
+  let bg, content='';
+  if(result==='perfect'){
+    bg = "linear-gradient(180deg,#e8f5e9,#c8e6c9)";
+    content = `<div style="font-size:44px">🎉</div><div style="font-size:22px;font-weight:900;color:#2e7d32">ぴったり！すごい！</div><div style="font-size:13px;color:#666;margin-top:2px">+${10+(streak-1)*2} ポイント！</div>`;
+  } else if(result==='over'){
+    bg = "linear-gradient(180deg,#fff3e0,#ffe0b2)";
+    const ch = tpd - tp;
+    let changeH = '<div style="display:flex;justify-content:center;gap:4px;margin-top:8px;flex-wrap:wrap">';
+    getChange(ch).forEach(v => { const m=moneyOf(v); if(m) changeH+=makeMoneySVG(m,0.75); });
+    changeH += '</div>';
+    content = `<div style="font-size:44px">💰</div><div style="font-size:18px;font-weight:900;color:#e65100">おかいあげ！おつりがあるよ</div><div style="font-size:14px;color:#666;margin-top:4px">おつり: <span style="font-weight:900;color:#e53935;font-size:24px">${ch}円</span></div>${changeH}<div style="font-size:10px;color:#aaa;margin-top:6px">ぴったりだと ボーナス +10！</div>`;
+  } else {
+    bg = "linear-gradient(180deg,#ffebee,#ffcdd2)";
+    content = `<div style="font-size:44px">🤔</div><div style="font-size:18px;font-weight:900;color:#c62828">たりないよ！</div><div style="font-size:15px;color:#666;margin-top:2px">あと <span style="font-weight:900;color:#c62828;font-size:24px">${tp-tpd}円</span></div>`;
+  }
+  const btnLabel = result==='under'?"もういちど！ 🔄":"つぎへ！ ✨";
+  return `<div id="result-box" style="background:${bg}">${content}<button onclick="resetGame()">${btnLabel}</button></div>`;
+}
+
+function renderWallet() {
+  let h = '';
+  MONEYS.forEach(money => {
+    const count = wallet[money.value]||0;
+    const used = count<=0;
+    const disabled = !!result || cart.length===0;
+    const op = disabled?'0.3': used?'0.15':'1';
+    const cur = disabled||used?'default':'grab';
+    h += `<div class="wallet-item">`;
+    h += `<div class="money-wrap${disabled?' disabled':''}${used?' used':''}" style="opacity:${op};cursor:${cur}" data-value="${money.value}" ${!disabled&&!used?'data-draggable="1"':''}>`;
+    h += makeMoneySVG(money, 1);
+    if(used) h += `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);border-radius:${money.type==='bill'?'6px':'50%'}"><span style="color:#fff;font-size:12px;font-weight:900">✕</span></div>`;
+    h += `</div>`;
+    h += `<div class="badge" style="background:${count>0?'rgba(255,204,128,0.9)':'rgba(120,120,120,0.6)'};color:${count>0?'#4e342e':'#999'}">×${count}</div>`;
+    h += `</div>`;
+  });
+  $('wallet-items').innerHTML = h;
+}
+
+function getChange(amount) {
+  const vals=[500,100,50,10,5,1], res=[]; let rem=amount;
+  for(const v of vals){while(rem>=v){res.push(v);rem-=v;}} return res;
+}
+
+// ====== ACTIONS ======
+function switchScene(idx) { sceneIdx=idx; cart=[]; paid=[]; wallet={...INIT_WALLET}; result=null; render(); }
+
+function toggleCart(itemIdx) {
+  if(result) return;
+  const scene = SCENES[sceneIdx];
+  const item = scene.items[itemIdx];
+  const idx = cart.findIndex(c=>c.name===item.name);
+  if(idx>=0) cart.splice(idx,1); else cart.push(item);
+  paid=[]; wallet={...INIT_WALLET};
+  render();
+}
+
+function removePaid(index) {
+  if(result) return;
+  const val = paid[index];
+  paid.splice(index,1);
+  wallet[val] = (wallet[val]||0)+1;
+  render();
+}
+
+function handlePay() {
+  if(cart.length===0) return;
+  const tp=totalPrice(), tpd=totalPaid();
+  if(tpd===tp){ result='perfect'; score+=10+streak*2; streak++; showConfetti(); }
+  else if(tpd>tp){ result='over'; score+=5; streak=0; }
+  else { result='under'; streak=0; }
+  render();
+}
+
+function resetGame() { cart=[]; paid=[]; wallet={...INIT_WALLET}; result=null; render(); }
+
+// ====== CONFETTI ======
+function showConfetti() {
+  const el=$('confetti');
+  let h='';
+  const cols=["#ff6b6b","#ffd93d","#6bcb77","#4d96ff","#ff69b4","#ff8c00","#9b59b6"];
+  for(let i=0;i<36;i++){
+    const w=5+Math.random()*6, ht=7+Math.random()*7, br=Math.random()>0.5?'50%':'2px';
+    h+=`<div style="position:absolute;left:${Math.random()*100}%;top:-16px;width:${w}px;height:${ht}px;background:${cols[i%7]};border-radius:${br};animation:confFall ${1.2+Math.random()*1.8}s ease-in ${Math.random()*0.5}s forwards"></div>`;
+  }
+  el.innerHTML=h;
+  setTimeout(()=>el.innerHTML='',3000);
+}
+
+// ====== DRAG & DROP ======
+function startDrag(value, x, y) {
+  dragValue = value;
+  dragX = x; dragY = y;
+  updateGhost();
+  render(); // re-render pay area to show drag state
+}
+
+function moveGhost(x, y) {
+  dragX = x; dragY = y;
+  updateGhost();
+}
+
+function updateGhost() {
+  if(dragValue===null){ $('drag-ghost').innerHTML=''; return; }
+  const m = moneyOf(dragValue);
+  if(!m){ $('drag-ghost').innerHTML=''; return; }
+  const sc = m.type==='bill'?1.3:1.5;
+  const w = m.type==='bill'?80*sc:m.size*sc;
+  const ht = m.type==='bill'?42*sc:m.size*sc;
+  $('drag-ghost').innerHTML = `<div style="position:fixed;left:${dragX-w/2}px;top:${dragY-ht/2}px;pointer-events:none;z-index:10000">${makeMoneySVG(m,sc,true)}</div>`;
+}
+
+function endDrag(x, y) {
+  if(dragValue===null) return;
+  const payEl = document.getElementById('pay-area');
+  if(payEl){
+    const r = payEl.getBoundingClientRect();
+    if(x>=r.left && x<=r.right && y>=r.top && y<=r.bottom){
+      paid.push(dragValue);
+      wallet[dragValue] = Math.max(0,(wallet[dragValue]||0)-1);
+    }
+  }
+  dragValue = null;
+  $('drag-ghost').innerHTML = '';
+  render();
+}
+
+// Pointer events on wallet
+document.addEventListener('pointerdown', e => {
+  const wrap = e.target.closest('[data-draggable="1"]');
+  if(!wrap) return;
+  e.preventDefault();
+  const val = parseInt(wrap.dataset.value);
+  if(isNaN(val)) return;
+  startDrag(val, e.clientX, e.clientY);
+});
+
+document.addEventListener('pointermove', e => {
+  if(dragValue===null) return;
+  e.preventDefault();
+  moveGhost(e.clientX, e.clientY);
+  // Update pay area visual
+  const payEl = document.getElementById('pay-area');
+  if(payEl){
+    const r = payEl.getBoundingClientRect();
+    const over = e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom;
+    payEl.style.borderColor = over ? '#ffd600' : '#ffd600';
+    payEl.style.transform = over ? 'scale(1.02)' : 'scale(1)';
+  }
+}, {passive:false});
+
+document.addEventListener('pointerup', e => {
+  if(dragValue===null) return;
+  endDrag(e.clientX, e.clientY);
+});
+
+document.addEventListener('pointercancel', () => {
+  dragValue = null;
+  $('drag-ghost').innerHTML='';
+  render();
+});
+
+// ====== INIT ======
+render();
+</script>
+
+</body>
+</html>
