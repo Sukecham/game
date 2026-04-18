@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="no" />
+  <meta name="theme-color" content="#fce7f3" />
+  <title>よめるかな？ - ひらがな よみかた あそび</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Yusei+Magic&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow-x: hidden; font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', sans-serif; -webkit-font-smoothing: antialiased; }
+    body { background: linear-gradient(180deg, #fef3c7 0%, #fce7f3 40%, #dbeafe 100%); min-height: 100vh; min-height: 100dvh; }
+    button { font-family: inherit; border: none; cursor: pointer; background: none; }
+    .font-yusei { font-family: 'Yusei Magic', 'Zen Maru Gothic', sans-serif; }
+    .hidden { display: none !important; }
+    .safe-top { padding-top: env(safe-area-inset-top, 12px); }
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
+
+```
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes wiggle { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.6); } 100% { box-shadow: 0 0 0 24px rgba(239,68,68,0); } }
+@keyframes sparkle { 0%,100% { transform: scale(1) rotate(0); opacity: 0.6; } 50% { transform: scale(1.3) rotate(180deg); opacity: 0.9; } }
+@keyframes float-up { 0% { transform: translateY(20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+@keyframes wave { 0%,100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+@keyframes match-glow {
+  0% { color: #1f2937; text-shadow: none; transform: scale(1); }
+  30% { color: #10b981; text-shadow: 0 0 24px rgba(16,185,129,0.7); transform: scale(1.05); }
+  70% { color: #10b981; text-shadow: 0 0 24px rgba(16,185,129,0.7); transform: scale(1.05); }
+  100% { color: #1f2937; text-shadow: none; transform: scale(1); }
+}
+@keyframes match-pop { 0% { transform: scale(0); opacity: 0; } 50% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes stars-float { 0% { transform: translateY(0) scale(0); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-60px) scale(1.2); opacity: 0; } }
+
+.anim-bob { animation: bob 2s ease-in-out infinite; }
+.anim-wiggle { animation: wiggle 1.5s ease-in-out infinite; }
+.anim-pop { animation: pop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+.anim-pulse-ring { animation: pulse-ring 1.5s cubic-bezier(0.215,0.61,0.355,1) infinite; }
+.anim-sparkle { animation: sparkle 2s ease-in-out infinite; position: absolute; font-size: 28px; pointer-events: none; }
+.anim-float-up { animation: float-up 0.4s ease-out; }
+.anim-shake { animation: shake 0.4s ease-in-out; }
+.match-glow { animation: match-glow 1.8s ease-out; }
+.btn-3d { transition: transform 0.1s, box-shadow 0.1s; }
+.btn-3d:active { transform: translateY(4px); }
+
+#home { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; position: relative; overflow: hidden; }
+.bg-deco { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.home-inner { position: relative; z-index: 10; padding: 16px 24px 24px; width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; }
+.title-area { text-align: center; margin-bottom: 16px; }
+.title-fox { font-size: 72px; margin-bottom: 12px; }
+.title-h1 { font-size: 48px; font-weight: 900; color: #db2777; letter-spacing: 0.02em; line-height: 1.1; text-shadow: 0 2px 0 rgba(255,255,255,0.5); }
+.title-sub { font-size: 18px; font-weight: 700; color: #f97316; margin-top: 8px; }
+.level-btns { width: 100%; display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+.level-btn { width: 100%; border-radius: 24px; padding: 20px; display: flex; align-items: center; gap: 16px; text-align: left; font-weight: 900; }
+.level-btn .lv-emoji { font-size: 44px; }
+.level-btn .lv-num { font-size: 12px; font-weight: 900; opacity: 0.7; }
+.level-btn .lv-title { font-size: 22px; font-weight: 900; }
+.level-btn .lv-sub { font-size: 13px; font-weight: 700; opacity: 0.85; margin-top: 2px; }
+.level-btn .lv-arrow { font-size: 24px; font-weight: 900; }
+.home-info { margin-top: 20px; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,0.75); backdrop-filter: blur(8px); border: 2px dashed #f9a8d4; text-align: center; font-size: 13px; font-weight: 700; color: #be185d; line-height: 1.6; }
+
+#game { min-height: 100dvh; display: flex; flex-direction: column; position: relative; }
+#game.lv1 { background: linear-gradient(180deg, #fbcfe8, #fecaca, #fed7aa); }
+#game.lv2 { background: linear-gradient(180deg, #bae6fd, #a5f3fc, #99f6e4); }
+#game.lv3 { background: linear-gradient(180deg, #fde68a, #fef08a, #d9f99d); }
+.game-header { padding: 12px 16px 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; position: relative; z-index: 20; }
+.icon-btn { width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: white; font-size: 22px; font-weight: 900; }
+.progress-wrap { flex: 1; }
+.progress-dots { display: flex; gap: 5px; justify-content: center; }
+.progress-dot { height: 10px; flex: 1; max-width: 18px; border-radius: 999px; background: rgba(255,255,255,0.55); transition: all 0.3s; }
+.progress-dot.done { background: currentColor; opacity: 0.55; }
+.progress-dot.active { background: currentColor; transform: scaleY(1.4); opacity: 1; }
+.progress-count { text-align: center; font-size: 12px; font-weight: 900; margin-top: 4px; }
+.lv-badge { padding: 0 14px; height: 48px; border-radius: 16px; display: flex; align-items: center; background: white; font-size: 14px; font-weight: 900; }
+.game-main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px 16px; position: relative; }
+.card { width: 100%; max-width: 420px; background: white; border-radius: 36px; padding: 24px 20px; text-align: center; position: relative; }
+.card-deco-l, .card-deco-r { position: absolute; top: -14px; font-size: 30px; }
+.card-deco-l { left: -8px; }
+.card-deco-r { right: -8px; animation-delay: 0.5s; }
+.card-emoji { font-size: 64px; margin-bottom: 8px; }
+.card-text { font-family: 'Yusei Magic','Zen Maru Gothic',sans-serif; font-weight: 900; color: #1f2937; letter-spacing: 0.02em; padding: 12px 8px; line-height: 1.3; word-break: break-word; transition: color 0.3s; }
+.card-text.lv1 { font-size: clamp(44px, 13vw, 68px); }
+.card-text.lv2 { font-size: clamp(32px, 9vw, 48px); }
+.card-text.lv3 { font-size: clamp(22px, 6vw, 36px); line-height: 1.5; }
+.hint-pill { display: inline-block; margin-top: 8px; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+
+/* お父さんの声バッジ */
+.papa-voice-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-top: 8px; padding: 4px 12px;
+  background: linear-gradient(90deg, #fde68a, #fed7aa);
+  border: 2px solid #f59e0b; border-radius: 999px;
+  font-size: 11px; font-weight: 900; color: #92400e;
+}
+
+.listening-indicator { margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.wave-bars { display: flex; gap: 4px; align-items: center; height: 32px; }
+.wave-bars .bar { width: 4px; height: 100%; background: #ef4444; border-radius: 2px; animation: wave 0.9s ease-in-out infinite; }
+.wave-bars .bar:nth-child(2) { animation-delay: 0.15s; }
+.wave-bars .bar:nth-child(3) { animation-delay: 0.3s; }
+.wave-bars .bar:nth-child(4) { animation-delay: 0.45s; }
+.wave-bars .bar:nth-child(5) { animation-delay: 0.6s; }
+.listening-text { font-size: 14px; font-weight: 900; color: #ef4444; }
+
+.recog-result { margin-top: 18px; padding: 14px 12px; border-radius: 20px; border: 3px solid #e5e7eb; background: #fafafa; position: relative; }
+.recog-label { font-size: 12px; font-weight: 700; color: #6b7280; margin-bottom: 4px; }
+.recog-text { font-family: 'Yusei Magic','Zen Maru Gothic',sans-serif; font-weight: 900; color: #1f2937; letter-spacing: 0.02em; line-height: 1.3; word-break: break-word; transition: color 0.3s; }
+.recog-text.lv1 { font-size: clamp(32px, 10vw, 52px); }
+.recog-text.lv2 { font-size: clamp(24px, 7vw, 38px); }
+.recog-text.lv3 { font-size: clamp(18px, 5vw, 28px); line-height: 1.5; }
+.recog-result.matched { border-color: #10b981; background: #ecfdf5; }
+.match-check { position: absolute; top: -18px; right: -8px; font-size: 40px; animation: match-pop 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+.floating-stars { position: absolute; pointer-events: none; font-size: 24px; animation: stars-float 1.2s ease-out forwards; }
+
+.feedback { margin-top: 14px; padding: 12px 14px; border-radius: 16px; font-size: 15px; font-weight: 900; border: 3px dashed currentColor; line-height: 1.4; }
+.fb-great { background: #fef3c7; color: #b45309; }
+.fb-nice { background: #dbeafe; color: #1e40af; }
+.fb-retry { background: #fee2e2; color: #991b1b; }
+.fb-info { background: #f3f4f6; color: #374151; }
+
+.controls { padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.main-speak-btn { width: 100%; padding: 18px; border-radius: 24px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 19px; font-weight: 900; background: white; }
+.mic-btn { width: 100%; padding: 14px; border-radius: 24px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; font-weight: 900; }
+.mic-btn.listening { background: #ef4444 !important; color: white !important; border-color: #991b1b !important; box-shadow: 0 5px 0 #991b1b !important; }
+.nav-row { display: flex; gap: 10px; }
+.nav-btn { flex: 1; padding: 12px; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 15px; font-weight: 900; }
+.nav-prev { background: white; color: #6b7280; border: 4px solid #9ca3af; box-shadow: 0 4px 0 #9ca3af; }
+.nav-next { color: white; box-shadow: 0 4px 0 rgba(0,0,0,0.2); border: 4px solid transparent; }
+
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); overflow-y: auto; }
+.modal { background: white; border-radius: 28px; padding: 24px 20px; max-width: 380px; width: 100%; text-align: center; border: 5px solid #f59e0b; max-height: 90vh; overflow-y: auto; }
+.modal h2 { font-size: 22px; font-weight: 900; color: #b45309; margin-bottom: 12px; }
+.modal p { font-size: 14px; font-weight: 700; color: #374151; line-height: 1.6; margin-bottom: 16px; text-align: left; }
+.modal-btn { padding: 14px 24px; border-radius: 16px; background: #f59e0b; color: white; font-weight: 900; font-size: 16px; width: 100%; border: 4px solid #b45309; box-shadow: 0 4px 0 #b45309; }
+```
+
+  </style>
+</head>
+<body>
+
+<div id="home">
+  <div class="bg-deco" id="bgDeco"></div>
+  <div class="safe-top"></div>
+  <div class="home-inner">
+    <div class="title-area anim-float-up">
+      <div class="title-fox anim-bob">🦊</div>
+      <h1 class="title-h1">よめるかな？</h1>
+      <div class="title-sub">ひらがな よみかた あそび</div>
+    </div>
+
+```
+<div class="level-btns">
+  <button class="btn-3d level-btn anim-float-up" onclick="startLevel(1)"
+    style="background:#fbcfe8; border:4px solid #be185d; box-shadow:0 6px 0 #9d174d; color:#831843;">
+    <span class="lv-emoji anim-wiggle">🌸</span>
+    <div style="flex:1;">
+      <div class="lv-num">レベル 1</div>
+      <div class="lv-title">ことばレベル</div>
+      <div class="lv-sub">みじかい ことばを よんでみよう</div>
+    </div>
+    <span class="lv-arrow">›</span>
+  </button>
+
+  <button class="btn-3d level-btn anim-float-up" onclick="startLevel(2)" style="animation-delay:0.1s;
+    background:#bae6fd; border:4px solid #0369a1; box-shadow:0 6px 0 #075985; color:#0c4a6e;">
+    <span class="lv-emoji anim-wiggle">🌈</span>
+    <div style="flex:1;">
+      <div class="lv-num">レベル 2</div>
+      <div class="lv-title">あいさつレベル</div>
+      <div class="lv-sub">みじかい おはなしを よんでみよう</div>
+    </div>
+    <span class="lv-arrow">›</span>
+  </button>
+
+  <button class="btn-3d level-btn anim-float-up" onclick="startLevel(3)" style="animation-delay:0.2s;
+    background:#fde68a; border:4px solid #b45309; box-shadow:0 6px 0 #92400e; color:#78350f;">
+    <span class="lv-emoji anim-wiggle">⭐</span>
+    <div style="flex:1;">
+      <div class="lv-num">レベル 3</div>
+      <div class="lv-title">おはなしレベル</div>
+      <div class="lv-sub">ながい おはなしに ちょうせん！</div>
+    </div>
+    <span class="lv-arrow">›</span>
+  </button>
+</div>
+
+<div class="home-info">
+  📖 もじを みて、なんて よむか かんがえよう！<br>
+  🔊 スピーカーで こたえを きけるよ<br>
+  🎤 マイクで じぶんの こえも ためせるよ
+</div>
+```
+
+  </div>
+  <div class="safe-bottom"></div>
+</div>
+
+<div id="game" class="hidden">
+  <div class="safe-top"></div>
+  <div class="game-header">
+    <button class="btn-3d icon-btn" id="homeBtn" aria-label="ホーム">🏠</button>
+    <div class="progress-wrap">
+      <div class="progress-dots" id="progressDots"></div>
+      <div class="progress-count" id="progressCount"></div>
+    </div>
+    <div class="lv-badge" id="lvBadge"></div>
+  </div>
+
+  <div class="game-main">
+    <div class="card anim-pop" id="card">
+      <div class="card-deco-l anim-sparkle">✨</div>
+      <div class="card-deco-r anim-sparkle">⭐</div>
+      <div class="card-emoji anim-bob" id="cardEmoji">🚲</div>
+      <div class="card-text" id="cardText">じてんしゃ</div>
+      <div id="hintWrap"></div>
+      <div id="papaBadgeWrap"></div>
+      <div id="listeningWrap"></div>
+      <div id="recogWrap"></div>
+      <div id="feedbackWrap"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-3d main-speak-btn" id="speakBtn">
+      <span style="font-size:28px;">🔊</span>
+      <span id="speakLabel">きいてみよう！</span>
+      <span style="font-size:20px;">✨</span>
+    </button>
+    <button class="btn-3d mic-btn" id="micBtn"
+      style="background:#fef3c7; color:#b45309; border:4px solid #f59e0b; box-shadow:0 5px 0 #f59e0b;">
+      <span style="font-size:20px;">🎤</span>
+      <span id="micLabel">おしゃべり チャレンジ</span>
+    </button>
+    <div class="nav-row">
+      <button class="btn-3d nav-btn nav-prev" id="prevBtn">‹ まえ</button>
+      <button class="btn-3d nav-btn nav-next" id="nextBtn">つぎ ›</button>
+    </div>
+  </div>
+  <div class="safe-bottom"></div>
+</div>
+
+<div id="micModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div style="font-size:48px; margin-bottom:8px;">🎤</div>
+    <h2>おしゃべり チャレンジ</h2>
+    <p>
+      マイクボタンを おすと きいてくれるよ。そのあと はっきりと こえを だしてみてね！<br><br>
+      ※ こどもの こえは うまく ききとれない ことも あるよ。でも だいじょうぶ、れんしゅうする のが だいじ！
+    </p>
+    <button class="modal-btn" id="modalOkBtn">はじめる！</button>
+  </div>
+</div>
+
+<!-- オーディオ要素（preloadで事前読み込み） -->
+
+<audio id="audioPlayer" preload="auto"></audio>
+
+<script>
+// ============================================================
+// データ定義 - audio プロパティで肉声ファイルのパスを指定
+// audio が無い問題は Web Speech API にフォールバック
+// ============================================================
+const content = {
+  1: {
+    title: "ことばレベル",
+    accent: "#ec4899",
+    items: [
+      { text: "じてんしゃ", emoji: "🚲", hint: "のりもの",
+        audio: ["audio/jitensha.mp3", "audio/jitensha.m4a"],
+        accept: ["じてんしゃ", "自転車", "ジテンシャ"] },
+      { text: "おちゃ", emoji: "🍵", hint: "あつい のみもの",
+        accept: ["おちゃ", "お茶", "御茶", "オチャ"] },
+      { text: "しゃしん", emoji: "📷", hint: "カメラで とる",
+        accept: ["しゃしん", "写真", "シャシン"] },
+      { text: "でんしゃ", emoji: "🚃", hint: "せんろを はしる",
+        accept: ["でんしゃ", "電車", "デンシャ"] },
+      { text: "きょうりゅう", emoji: "🦕", hint: "むかしの おおきな いきもの",
+        accept: ["きょうりゅう", "恐竜", "キョウリュウ"] },
+      { text: "きんぎょ", emoji: "🐠", hint: "あかい さかな",
+        accept: ["きんぎょ", "金魚", "キンギョ"] },
+      { text: "しゅくだい", emoji: "📚", hint: "おうちで やる べんきょう",
+        accept: ["しゅくだい", "宿題", "シュクダイ"] },
+      { text: "にんじゃ", emoji: "🥷", hint: "くろい ふくの ひと",
+        accept: ["にんじゃ", "忍者", "ニンジャ"] },
+      { text: "おもちゃ", emoji: "🧸", hint: "あそぶ もの",
+        accept: ["おもちゃ", "玩具", "オモチャ"] },
+      { text: "ぎゅうにゅう", emoji: "🥛", hint: "しろい のみもの",
+        accept: ["ぎゅうにゅう", "牛乳", "ギュウニュウ"] },
+      { text: "ちょうちょ", emoji: "🦋", hint: "ひらひら とぶ むし",
+        accept: ["ちょうちょ", "蝶々", "蝶", "蝶蝶", "チョウチョ"] },
+      { text: "しゃぼんだま", emoji: "🫧", hint: "ふくと うかぶ",
+        accept: ["しゃぼんだま", "シャボン玉", "しゃぼん玉", "シャボンダマ", "石鹸玉"] },
+    ],
+  },
+  2: {
+    title: "あいさつレベル",
+    accent: "#0ea5e9",
+    items: [
+      { text: "おはよう", emoji: "☀️", hint: "あさの あいさつ",
+        accept: ["おはよう", "お早う", "おはようございます", "オハヨウ"] },
+      { text: "ありがとう", emoji: "💕", hint: "うれしい とき",
+        accept: ["ありがとう", "有難う", "有り難う", "ありがとうございます", "アリガトウ"] },
+      { text: "いっしょに あそぼう", emoji: "🎈", hint: "おともだちに",
+        accept: ["いっしょにあそぼう", "一緒に遊ぼう", "一緒にあそぼう", "いっしょに遊ぼう"] },
+      { text: "おちゃを どうぞ", emoji: "🍵", hint: "のみものを すすめる",
+        accept: ["おちゃをどうぞ", "お茶をどうぞ", "御茶をどうぞ"] },
+      { text: "しゃしんを とろう", emoji: "📷", hint: "カメラで パチリ",
+        accept: ["しゃしんをとろう", "写真を撮ろう", "写真をとろう", "しゃしんを撮ろう"] },
+      { text: "でんしゃに のろう", emoji: "🚃", hint: "おでかけ",
+        accept: ["でんしゃにのろう", "電車に乗ろう", "電車にのろう", "でんしゃに乗ろう"] },
+      { text: "がっこうへ いこう", emoji: "🎒", hint: "あさの おでかけ",
+        accept: ["がっこうへいこう", "学校へ行こう", "学校へいこう", "がっこうへ行こう", "学校に行こう"] },
+      { text: "しゅくだい がんばる", emoji: "✏️", hint: "おうちで べんきょう",
+        accept: ["しゅくだいがんばる", "宿題頑張る", "宿題がんばる", "しゅくだい頑張る"] },
+      { text: "おやすみなさい", emoji: "🌙", hint: "よるの あいさつ",
+        accept: ["おやすみなさい", "お休みなさい", "御休みなさい", "オヤスミナサイ"] },
+      { text: "きょうは たのしかった", emoji: "🌈", hint: "いちにちの さいご",
+        accept: ["きょうはたのしかった", "今日は楽しかった", "今日はたのしかった", "きょうは楽しかった"] },
+    ],
+  },
+  3: {
+    title: "おはなしレベル",
+    accent: "#f59e0b",
+    items: [
+      { text: "きょうは いい てんきだね。こうえんに いこう。", emoji: "🌞",
+        accept: [
+          "きょうはいいてんきだねこうえんにいこう",
+          "今日はいい天気だね公園に行こう",
+          "今日は良い天気だね公園に行こう",
+          "今日はいい天気だね。公園に行こう",
+          "きょうはいい天気だねこうえんに行こう",
+        ] },
+      { text: "おかあさん、きょうの ゆうごはん なあに？", emoji: "🍽️",
+        accept: [
+          "おかあさんきょうのゆうごはんなあに",
+          "お母さん今日の夕ご飯なあに",
+          "お母さん今日の夕御飯なあに",
+          "お母さん今日の夕ごはんなあに",
+          "おかあさん今日の夕ご飯なあに",
+          "お母さんきょうのゆうごはんなあに",
+        ] },
+      { text: "いっしょに じてんしゃの れんしゅうを しよう。", emoji: "🚲",
+        accept: [
+          "いっしょにじてんしゃのれんしゅうをしよう",
+          "一緒に自転車の練習をしよう",
+          "一緒に自転車のれんしゅうをしよう",
+          "いっしょに自転車の練習をしよう",
+        ] },
+      { text: "あした しゃしんやさんに いくよ。じゅんびしてね。", emoji: "📷",
+        accept: [
+          "あしたしゃしんやさんにいくよじゅんびしてね",
+          "明日写真屋さんに行くよ準備してね",
+          "明日しゃしん屋さんに行くよ準備してね",
+          "あした写真屋さんに行くよじゅんびしてね",
+        ] },
+      { text: "あにと いっしょに でんしゃで とおくまで いった。", emoji: "🚃",
+        accept: [
+          "あにといっしょにでんしゃでとおくまでいった",
+          "兄と一緒に電車で遠くまで行った",
+          "兄と一緒に電車でとおくまで行った",
+          "あにと一緒に電車で遠くまで行った",
+        ] },
+      { text: "きのうの ゆめは、ちょうちょに なって そらを とんだ。", emoji: "🦋",
+        accept: [
+          "きのうのゆめはちょうちょになってそらをとんだ",
+          "昨日の夢は蝶々になって空を飛んだ",
+          "昨日の夢はちょうちょになって空を飛んだ",
+          "きのうの夢は蝶々になって空をとんだ",
+          "昨日のゆめはちょうちょになってそらをとんだ",
+        ] },
+      { text: "しゅくだいが おわったら、おもちゃで あそんで いいよ。", emoji: "🧸",
+        accept: [
+          "しゅくだいがおわったらおもちゃであそんでいいよ",
+          "宿題が終わったらおもちゃで遊んでいいよ",
+          "宿題がおわったらおもちゃで遊んでいいよ",
+          "しゅくだいが終わったらおもちゃで遊んでいいよ",
+        ] },
+      { text: "みんなで いっしょに うたを うたおう。たのしいよ。", emoji: "🎵",
+        accept: [
+          "みんなでいっしょにうたをうたおうたのしいよ",
+          "みんなで一緒に歌を歌おう楽しいよ",
+          "みんなで一緒にうたをうたおうたのしいよ",
+          "みんなでいっしょに歌を歌おう楽しいよ",
+        ] },
+    ],
+  },
+};
+
+let state = {
+  level: 1, index: 0, speaking: false, listening: false,
+  recognition: null, voicesReady: false, recognitionTimer: null,
+  finalTranscript: "", interimTranscript: "", lastFinals: [],
+};
+
+function renderBg() {
+  const emojis = ["⭐","✨","💫","🌸","☁️","🎈","🌟","🎀"];
+  const bg = document.getElementById("bgDeco");
+  bg.innerHTML = emojis.map((e,i) => 
+    `<div class="anim-sparkle" style="left:${(i*13+7)%90}%; top:${(i*19+10)%80}%; animation-delay:${i*0.3}s;">${e}</div>`
+  ).join("");
+}
+renderBg();
+
+function initVoices() {
+  const load = () => {
+    if (window.speechSynthesis.getVoices().length > 0) state.voicesReady = true;
+  };
+  load();
+  if (window.speechSynthesis) window.speechSynthesis.addEventListener("voiceschanged", load);
+}
+initVoices();
+
+function selectBestJapaneseVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
+  const candidates = [
+    v => v.lang === "ja-JP" && /kyoko/i.test(v.name) && /enhanced|premium|拡張/i.test(v.name),
+    v => v.lang === "ja-JP" && /otoya/i.test(v.name) && /enhanced|premium|拡張/i.test(v.name),
+    v => v.lang === "ja-JP" && /kyoko/i.test(v.name),
+    v => v.lang === "ja-JP" && /otoya/i.test(v.name),
+    v => v.lang === "ja-JP" && v.localService,
+    v => v.lang === "ja-JP",
+    v => v.lang && v.lang.startsWith("ja"),
+  ];
+  for (const filter of candidates) {
+    const found = voices.find(filter);
+    if (found) return found;
+  }
+  return null;
+}
+
+// ============================================================
+// ★ 読み上げ処理：audioファイル（複数候補）→ 合成音声の順にフォールバック
+// ============================================================
+function speak(item) {
+  // 既に何か鳴っていたら止める
+  window.speechSynthesis.cancel();
+  const audio = document.getElementById("audioPlayer");
+  audio.pause();
+  audio.currentTime = 0;
+
+  // audioファイルがあれば再生（複数候補を順に試す）
+  if (item.audio) {
+    const audioSources = Array.isArray(item.audio) ? item.audio : [item.audio];
+    tryPlayAudio(audioSources, 0, item);
+    return;
+  }
+
+  // audioが無ければWeb Speech APIで読み上げ
+  speakWithSynthesis(item.text);
+}
+
+// 複数の音声ソースを順番に試す
+function tryPlayAudio(sources, index, item) {
+  if (index >= sources.length) {
+    // すべての音声ファイルが失敗 → 合成音声にフォールバック
+    console.warn("すべての音声ファイルで再生失敗。合成音声にフォールバック");
+    speakWithSynthesis(item.text);
+    return;
+  }
+
+  const audio = document.getElementById("audioPlayer");
+  const src = sources[index];
+  audio.src = src;
+
+  state.speaking = true;
+  updateSpeakBtn();
+
+  let handled = false;
+
+  const onSuccess = () => {
+    if (handled) return;
+    handled = true;
+    audio.removeEventListener("ended", onEnded);
+    audio.removeEventListener("error", onError);
+    state.speaking = false;
+    updateSpeakBtn();
+  };
+  const onEnded = () => onSuccess();
+  const onError = () => {
+    if (handled) return;
+    handled = true;
+    audio.removeEventListener("ended", onEnded);
+    audio.removeEventListener("error", onError);
+    console.warn("音声ファイル再生失敗:", src);
+    state.speaking = false;
+    updateSpeakBtn();
+    // 次のソースを試す
+    tryPlayAudio(sources, index + 1, item);
+  };
+
+  audio.addEventListener("ended", onEnded);
+  audio.addEventListener("error", onError);
+
+  const playPromise = audio.play();
+  if (playPromise !== undefined) {
+    playPromise.catch(err => {
+      if (handled) return;
+      handled = true;
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("error", onError);
+      console.warn("再生エラー:", src, err.name, err.message);
+      state.speaking = false;
+      updateSpeakBtn();
+      // 次のソースを試す
+      tryPlayAudio(sources, index + 1, item);
+    });
+  }
+}
+
+function speakWithSynthesis(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+
+  const voice = selectBestJapaneseVoice();
+  const prepared = text.replace(/\s+/g, " ").trim();
+  const sentences = splitIntoSentences(prepared);
+
+  state.speaking = true;
+  updateSpeakBtn();
+
+  let finishedCount = 0;
+  sentences.forEach((sentence) => {
+    const u = new SpeechSynthesisUtterance(sentence);
+    u.lang = "ja-JP";
+    u.rate = 0.9;
+    u.pitch = 1.1;
+    u.volume = 1;
+    if (voice) u.voice = voice;
+
+    u.onend = () => {
+      finishedCount++;
+      if (finishedCount >= sentences.length) { state.speaking = false; updateSpeakBtn(); }
+    };
+    u.onerror = () => {
+      finishedCount++;
+      if (finishedCount >= sentences.length) { state.speaking = false; updateSpeakBtn(); }
+    };
+    window.speechSynthesis.speak(u);
+  });
+
+  setTimeout(() => {
+    if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+      state.speaking = false;
+      updateSpeakBtn();
+    }
+  }, text.length * 200 + 2000);
+}
+
+function splitIntoSentences(text) {
+  const rawParts = text.split(/([。、！？])/);
+  const sentences = [];
+  let buffer = "";
+  for (const part of rawParts) {
+    buffer += part;
+    if (/[。！？]$/.test(buffer) || buffer.length >= 25) {
+      if (buffer.trim()) sentences.push(buffer.trim());
+      buffer = "";
+    }
+  }
+  if (buffer.trim()) sentences.push(buffer.trim());
+  return sentences.length > 0 ? sentences : [text];
+}
+
+function updateSpeakBtn() {
+  const btn = document.getElementById("speakBtn");
+  const label = document.getElementById("speakLabel");
+  if (state.speaking) { btn.classList.add("anim-pulse-ring"); label.textContent = "よんでるよ…"; }
+  else { btn.classList.remove("anim-pulse-ring"); label.textContent = "きいてみよう！"; }
+}
+
+function kataToHira(s) {
+  return s.replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+}
+function cleanString(s) {
+  return s.replace(/[\s\u3000]/g, "").replace(/[。、・！？!?\.,'"「」『』（）()\[\]【】〜ー～…]/g, "").toLowerCase();
+}
+function normalize(s) {
+  if (!s) return "";
+  return cleanString(kataToHira(s));
+}
+function levenshtein(a, b) {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const dp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j-1], dp[i-1][j], dp[i][j-1]);
+    }
+  }
+  return dp[a.length][b.length];
+}
+function similarity(a, b) {
+  if (!a && !b) return 1;
+  if (!a || !b) return 0;
+  return 1 - levenshtein(a, b) / Math.max(a.length, b.length);
+}
+
+function matchScore(recognized, acceptList, targetText) {
+  if (!recognized) return { score: 0 };
+  const normRec = normalize(recognized);
+  if (!normRec) return { score: 0 };
+  const normTarget = normalize(targetText);
+  const lengthRatio = normRec.length / Math.max(normTarget.length, 1);
+
+  let best = 0;
+  for (const acc of acceptList) {
+    const normAcc = normalize(acc);
+    if (!normAcc) continue;
+    if (normRec === normAcc) return { score: 1.0 };
+    let score = similarity(normRec, normAcc);
+    if (normRec.includes(normAcc) && lengthRatio <= 1.8) score = Math.max(score, 0.9);
+    if (score > best) best = score;
+  }
+  if (lengthRatio < 0.5) best = Math.min(best, 0.4);
+  else if (lengthRatio < 0.7) best = Math.min(best, 0.65);
+  if (lengthRatio > 2.0) best = best * 0.7;
+  return { score: best };
+}
+
+function getDisplayHiragana(recognized, score, item) {
+  if (score >= 0.75) return { text: item.text, isMatched: true };
+  const hiragana = kataToHira(recognized);
+  if (/[\u4e00-\u9faf]/.test(hiragana)) return { text: null, isMatched: false };
+  return { text: hiragana, isMatched: false };
+}
+
+function startListening() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    showFeedback("info", "このブラウザでは おしゃべりチャレンジは つかえないよ。Safariで ためしてみてね！");
+    return;
+  }
+  if (!localStorage.getItem("micIntroShown")) {
+    document.getElementById("micModal").classList.remove("hidden");
+    return;
+  }
+  if (state.recognition) {
+    try { state.recognition.abort(); } catch(e) {}
+    state.recognition = null;
+  }
+
+  const recognition = new SR();
+  recognition.lang = "ja-JP";
+  recognition.interimResults = true;
+  recognition.continuous = false;
+  recognition.maxAlternatives = 5;
+  state.recognition = recognition;
+  state.finalTranscript = "";
+  state.interimTranscript = "";
+  state.lastFinals = [];
+
+  recognition.onstart = () => {
+    state.listening = true;
+    updateMicBtn();
+    clearFeedback();
+    clearRecog();
+    showListeningUI();
+    if (state.recognitionTimer) clearTimeout(state.recognitionTimer);
+    const timeoutMs = state.level === 3 ? 15000 : 10000;
+    state.recognitionTimer = setTimeout(() => { try { recognition.stop(); } catch(e) {} }, timeoutMs);
+  };
+  recognition.onresult = (event) => {
+    let interim = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const res = event.results[i];
+      if (res.isFinal) {
+        for (let j = 0; j < res.length; j++) state.lastFinals.push(res[j].transcript);
+        state.finalTranscript += res[0].transcript;
+      } else {
+        interim += res[0].transcript;
+      }
+    }
+    state.interimTranscript = interim;
+  };
+  recognition.onerror = (e) => {
+    state.listening = false;
+    updateMicBtn();
+    hideListeningUI();
+    if (state.recognitionTimer) clearTimeout(state.recognitionTimer);
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+      showFeedback("info", "マイクの きょかが ひつようだよ。Safariで ひらいて、きょかを ゆるしてね。");
+    } else if (e.error === "no-speech") {
+      showFeedback("info", "こえが きこえなかったよ。もういちど はなしてみてね！");
+    } else if (e.error === "network") {
+      showFeedback("info", "インターネットが ひつようだよ。でんぱを たしかめてね。");
+    } else if (e.error === "aborted") {} else {
+      showFeedback("info", "うまく ききとれなかったよ。もういちど ためしてみてね！");
+    }
+  };
+  recognition.onend = () => {
+    state.listening = false;
+    updateMicBtn();
+    hideListeningUI();
+    if (state.recognitionTimer) clearTimeout(state.recognitionTimer);
+    const candidates = [];
+    if (state.lastFinals && state.lastFinals.length > 0) candidates.push(...state.lastFinals);
+    if (state.finalTranscript) candidates.push(state.finalTranscript);
+    if (state.interimTranscript) candidates.push(state.interimTranscript);
+    state.lastFinals = [];
+    if (candidates.length === 0 || candidates.every(c => !c || !c.trim())) {
+      showFeedback("info", "こえが うまく ききとれなかったよ。もうすこし おおきな こえで はなしてみてね！");
+      return;
+    }
+    evaluateCandidates(candidates);
+  };
+  try {
+    recognition.start();
+  } catch (err) {
+    state.listening = false;
+    updateMicBtn();
+    hideListeningUI();
+    showFeedback("info", "まだ まえの おしゃべりが おわっていないみたい。1びょう まってから もういちど おしてね。");
+  }
+}
+
+function evaluateCandidates(candidates) {
+  const current = content[state.level].items[state.index];
+  const accepts = current.accept || [current.text];
+  let bestScore = 0;
+  let bestHeard = candidates[0] || "";
+  for (const cand of candidates) {
+    if (!cand || !cand.trim()) continue;
+    const { score } = matchScore(cand, accepts, current.text);
+    if (score > bestScore) { bestScore = score; bestHeard = cand; }
+  }
+  const display = getDisplayHiragana(bestHeard, bestScore, current);
+  if (bestScore >= 0.85) {
+    showRecog(display.text || kataToHira(bestHeard), true);
+    triggerMatchAnimation();
+    showFeedback("great", "すっごく じょうず！ばっちり よめたね！🎉");
+  } else if (bestScore >= 0.65) {
+    showRecog(display.text || kataToHira(bestHeard), false);
+    showFeedback("nice", "おしい！じょうずに よめてるよ。もういっかい チャレンジしてみて！");
+  } else {
+    if (display.text) showRecog(display.text, false);
+    else showRecogNoText();
+    showFeedback("retry", "ちがうみたい！スピーカーボタンで ききなおして、おなじ ように よんでみよう！");
+  }
+}
+
+function stopListening() {
+  if (state.recognition) { try { state.recognition.stop(); } catch(e) {} }
+  if (state.recognitionTimer) clearTimeout(state.recognitionTimer);
+}
+
+function updateMicBtn() {
+  const btn = document.getElementById("micBtn");
+  const label = document.getElementById("micLabel");
+  if (state.listening) {
+    btn.classList.add("listening", "anim-pulse-ring");
+    label.textContent = "とめる";
+  } else {
+    btn.classList.remove("listening", "anim-pulse-ring");
+    label.textContent = "おしゃべり チャレンジ";
+  }
+}
+
+function showListeningUI() {
+  const w = document.getElementById("listeningWrap");
+  w.innerHTML = `
+    <div class="listening-indicator anim-float-up">
+      <div class="wave-bars">
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      </div>
+      <div class="listening-text">🎤 きいてるよ... はなしてね！</div>
+    </div>`;
+}
+function hideListeningUI() { document.getElementById("listeningWrap").innerHTML = ""; }
+
+function showRecog(text, isMatched) {
+  const w = document.getElementById("recogWrap");
+  const lvClass = `lv${state.level}`;
+  const matchedClass = isMatched ? " matched" : "";
+  const check = isMatched ? `<div class="match-check">✅</div>` : "";
+  w.innerHTML = `<div class="recog-result anim-float-up${matchedClass}">
+    ${check}
+    <div class="recog-label">きこえた こえ：</div>
+    <div class="recog-text ${lvClass}" id="recogTextEl">${escapeHtml(text)}</div>
+  </div>`;
+}
+function showRecogNoText() {
+  const w = document.getElementById("recogWrap");
+  w.innerHTML = `<div class="recog-result anim-float-up">
+    <div class="recog-label">きこえた こえ：</div>
+    <div class="recog-text" style="font-size:16px; color:#6b7280;">ちがう ことばに きこえたみたい…</div>
+  </div>`;
+}
+function clearRecog() { document.getElementById("recogWrap").innerHTML = ""; }
+
+function triggerMatchAnimation() {
+  const cardText = document.getElementById("cardText");
+  const recogText = document.getElementById("recogTextEl");
+  cardText.classList.remove("match-glow"); void cardText.offsetWidth; cardText.classList.add("match-glow");
+  if (recogText) { recogText.classList.remove("match-glow"); void recogText.offsetWidth; recogText.classList.add("match-glow"); }
+  const card = document.getElementById("card");
+  const stars = ["⭐","✨","🌟","💫","🎉"];
+  for (let i = 0; i < 8; i++) {
+    const s = document.createElement("div");
+    s.className = "floating-stars";
+    s.textContent = stars[Math.floor(Math.random() * stars.length)];
+    s.style.left = `${10 + Math.random() * 80}%`;
+    s.style.top = `${40 + Math.random() * 20}%`;
+    s.style.animationDelay = `${i * 0.08}s`;
+    card.appendChild(s);
+    setTimeout(() => s.remove(), 1500);
+  }
+}
+
+function showFeedback(type, msg) {
+  const w = document.getElementById("feedbackWrap");
+  const icons = { great: "🎉 ", nice: "😊 ", retry: "🦊 ", info: "💡 " };
+  const shake = type === "retry" ? " anim-shake" : "";
+  w.innerHTML = `<div class="feedback fb-${type} anim-float-up${shake}">${icons[type]||""}${escapeHtml(msg)}</div>`;
+}
+function clearFeedback() { document.getElementById("feedbackWrap").innerHTML = ""; }
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+
+function renderGame() {
+  const data = content[state.level];
+  const item = data.items[state.index];
+  const total = data.items.length;
+  const game = document.getElementById("game");
+  game.className = `lv${state.level}`;
+
+  const dots = document.getElementById("progressDots");
+  dots.style.color = data.accent;
+  let dotsHtml = "";
+  for (let i = 0; i < total; i++) {
+    const cls = i === state.index ? "active" : i < state.index ? "done" : "";
+    dotsHtml += `<div class="progress-dot ${cls}"></div>`;
+  }
+  dots.innerHTML = dotsHtml;
+
+  const count = document.getElementById("progressCount");
+  count.textContent = `${state.index + 1} / ${total}`;
+  count.style.color = data.accent;
+
+  const homeBtn = document.getElementById("homeBtn");
+  homeBtn.style.border = `4px solid ${data.accent}`;
+  homeBtn.style.boxShadow = `0 4px 0 ${data.accent}`;
+  homeBtn.style.color = data.accent;
+
+  const badge = document.getElementById("lvBadge");
+  badge.textContent = `レベル${state.level}`;
+  badge.style.color = data.accent;
+  badge.style.border = `4px solid ${data.accent}`;
+  badge.style.boxShadow = `0 4px 0 ${data.accent}`;
+
+  const card = document.getElementById("card");
+  card.style.border = `5px solid ${data.accent}`;
+  card.style.boxShadow = `0 8px 0 ${data.accent}, 0 20px 40px rgba(0,0,0,0.1)`;
+  card.classList.remove("anim-pop"); void card.offsetWidth; card.classList.add("anim-pop");
+
+  document.getElementById("cardEmoji").textContent = item.emoji;
+  const text = document.getElementById("cardText");
+  text.textContent = item.text;
+  text.className = `card-text lv${state.level}`;
+
+  const hintWrap = document.getElementById("hintWrap");
+  hintWrap.innerHTML = item.hint
+    ? `<div class="hint-pill" style="background:${data.accent}20; color:${data.accent};">💡 ヒント：${item.hint}</div>`
+    : "";
+
+  // ★ お父さんの声バッジ：audioファイルがある問題のみ表示
+  const papaBadgeWrap = document.getElementById("papaBadgeWrap");
+  if (item.audio) {
+    papaBadgeWrap.innerHTML = `<div class="papa-voice-badge">🎙️ おとうさんの こえ</div>`;
+  } else {
+    papaBadgeWrap.innerHTML = "";
+  }
+
+  // 音声ファイルの事前読み込み（最初のソースのみ）
+  const audioEl = document.getElementById("audioPlayer");
+  if (item.audio) {
+    const firstSrc = Array.isArray(item.audio) ? item.audio[0] : item.audio;
+    audioEl.src = firstSrc;
+    audioEl.load();
+  }
+
+  clearRecog(); clearFeedback(); hideListeningUI();
+
+  const speakBtn = document.getElementById("speakBtn");
+  speakBtn.style.color = data.accent;
+  speakBtn.style.border = `5px solid ${data.accent}`;
+  speakBtn.style.boxShadow = `0 6px 0 ${data.accent}`;
+
+  const nextBtn = document.getElementById("nextBtn");
+  nextBtn.style.background = data.accent;
+}
+
+function startLevel(lv) {
+  state.level = lv; state.index = 0;
+  document.getElementById("home").classList.add("hidden");
+  document.getElementById("game").classList.remove("hidden");
+  renderGame();
+}
+function goHome() {
+  window.speechSynthesis.cancel();
+  const audio = document.getElementById("audioPlayer");
+  audio.pause(); audio.currentTime = 0;
+  stopListening();
+  state.speaking = false; updateSpeakBtn();
+  state.index = 0;
+  document.getElementById("game").classList.add("hidden");
+  document.getElementById("home").classList.remove("hidden");
+}
+function nextItem() {
+  stopListening();
+  window.speechSynthesis.cancel();
+  const audio = document.getElementById("audioPlayer");
+  audio.pause(); audio.currentTime = 0;
+  state.speaking = false; updateSpeakBtn();
+  const total = content[state.level].items.length;
+  state.index = (state.index + 1) % total;
+  renderGame();
+}
+function prevItem() {
+  stopListening();
+  window.speechSynthesis.cancel();
+  const audio = document.getElementById("audioPlayer");
+  audio.pause(); audio.currentTime = 0;
+  state.speaking = false; updateSpeakBtn();
+  const total = content[state.level].items.length;
+  state.index = (state.index - 1 + total) % total;
+  renderGame();
+}
+
+document.getElementById("speakBtn").addEventListener("click", () => {
+  const item = content[state.level].items[state.index];
+  speak(item);
+});
+document.getElementById("micBtn").addEventListener("click", () => {
+  if (state.listening) stopListening(); else startListening();
+});
+document.getElementById("homeBtn").addEventListener("click", goHome);
+document.getElementById("prevBtn").addEventListener("click", prevItem);
+document.getElementById("nextBtn").addEventListener("click", nextItem);
+document.getElementById("modalOkBtn").addEventListener("click", () => {
+  localStorage.setItem("micIntroShown", "1");
+  document.getElementById("micModal").classList.add("hidden");
+  setTimeout(startListening, 300);
+});
+</script>
+
+</body>
+</html>
