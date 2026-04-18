@@ -29,6 +29,22 @@
 @keyframes float-up { 0% { transform: translateY(20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
 @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 @keyframes wave { 0%,100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+@keyframes match-glow {
+  0% { color: #1f2937; text-shadow: none; transform: scale(1); }
+  30% { color: #10b981; text-shadow: 0 0 24px rgba(16,185,129,0.7); transform: scale(1.05); }
+  70% { color: #10b981; text-shadow: 0 0 24px rgba(16,185,129,0.7); transform: scale(1.05); }
+  100% { color: #1f2937; text-shadow: none; transform: scale(1); }
+}
+@keyframes match-pop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes stars-float {
+  0% { transform: translateY(0) scale(0); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateY(-60px) scale(1.2); opacity: 0; }
+}
 
 .anim-bob { animation: bob 2s ease-in-out infinite; }
 .anim-wiggle { animation: wiggle 1.5s ease-in-out infinite; }
@@ -37,6 +53,7 @@
 .anim-sparkle { animation: sparkle 2s ease-in-out infinite; position: absolute; font-size: 28px; pointer-events: none; }
 .anim-float-up { animation: float-up 0.4s ease-out; }
 .anim-shake { animation: shake 0.4s ease-in-out; }
+.match-glow { animation: match-glow 1.8s ease-out; }
 .btn-3d { transition: transform 0.1s, box-shadow 0.1s; }
 .btn-3d:active { transform: translateY(4px); }
 
@@ -75,7 +92,7 @@
 .card-deco-l { left: -8px; }
 .card-deco-r { right: -8px; animation-delay: 0.5s; }
 .card-emoji { font-size: 64px; margin-bottom: 8px; }
-.card-text { font-family: 'Yusei Magic','Zen Maru Gothic',sans-serif; font-weight: 900; color: #1f2937; letter-spacing: 0.02em; padding: 12px 8px; line-height: 1.3; word-break: break-word; }
+.card-text { font-family: 'Yusei Magic','Zen Maru Gothic',sans-serif; font-weight: 900; color: #1f2937; letter-spacing: 0.02em; padding: 12px 8px; line-height: 1.3; word-break: break-word; transition: color 0.3s; }
 .card-text.lv1 { font-size: clamp(44px, 13vw, 68px); }
 .card-text.lv2 { font-size: clamp(32px, 9vw, 48px); }
 .card-text.lv3 { font-size: clamp(22px, 6vw, 36px); line-height: 1.5; }
@@ -89,11 +106,27 @@
 .wave-bars .bar:nth-child(4) { animation-delay: 0.45s; }
 .wave-bars .bar:nth-child(5) { animation-delay: 0.6s; }
 .listening-text { font-size: 14px; font-weight: 900; color: #ef4444; }
-.interim-text { font-size: 16px; font-weight: 700; color: #4b5563; min-height: 24px; margin-top: 4px; padding: 4px 12px; border-radius: 12px; background: #f3f4f6; max-width: 100%; word-break: break-word; }
 
-.recog-result { margin-top: 14px; }
-.recog-label { font-size: 12px; font-weight: 700; color: #6b7280; }
-.recog-text { font-size: 18px; font-weight: 700; color: #374151; margin-top: 4px; }
+/* 「きこえた こえ」表示 — 問題文と同じ大きなひらがなで表示 */
+.recog-result { margin-top: 18px; padding: 14px 12px; border-radius: 20px; border: 3px solid #e5e7eb; background: #fafafa; position: relative; }
+.recog-label { font-size: 12px; font-weight: 700; color: #6b7280; margin-bottom: 4px; }
+.recog-text {
+  font-family: 'Yusei Magic','Zen Maru Gothic',sans-serif;
+  font-weight: 900; color: #1f2937;
+  letter-spacing: 0.02em; line-height: 1.3;
+  word-break: break-word;
+  transition: color 0.3s;
+}
+.recog-text.lv1 { font-size: clamp(32px, 10vw, 52px); }
+.recog-text.lv2 { font-size: clamp(24px, 7vw, 38px); }
+.recog-text.lv3 { font-size: clamp(18px, 5vw, 28px); line-height: 1.5; }
+.recog-result.matched { border-color: #10b981; background: #ecfdf5; }
+.match-check {
+  position: absolute; top: -18px; right: -8px;
+  font-size: 40px; animation: match-pop 0.6s cubic-bezier(0.34,1.56,0.64,1);
+}
+.floating-stars { position: absolute; pointer-events: none; font-size: 24px; animation: stars-float 1.2s ease-out forwards; }
+
 .feedback { margin-top: 14px; padding: 12px 14px; border-radius: 16px; font-size: 15px; font-weight: 900; border: 3px dashed currentColor; line-height: 1.4; }
 .fb-great { background: #fef3c7; color: #b45309; }
 .fb-nice { background: #dbeafe; color: #1e40af; }
@@ -463,7 +496,6 @@ function matchScore(recognized, acceptList) {
     if (normAcc.includes(normRec) && normRec.length >= normAcc.length * 0.7) best = Math.max(best, 0.88);
     best = Math.max(best, similarity(normRec, normAcc));
 
-    // 漢字が含まれる候補の場合、漢字の一致率でも救済
     if (/[\u4e00-\u9faf]/.test(acc)) {
       let kanjiHit = 0, kanjiTotal = 0;
       for (const ch of acc) {
@@ -475,6 +507,31 @@ function matchScore(recognized, acceptList) {
     }
   }
   return best;
+}
+
+// ============================================================
+// ★重要★ 表示用テキストを「ひらがな」に変換する
+// マッチした場合はその問題のひらがな版(item.text)を返す
+// マッチしなかった場合は、カタカナをひらがなに変換し、
+// 漢字が残っていたら表示しない（ひらがな学習を妨げないため）
+// ============================================================
+function getDisplayHiragana(recognized, score, item) {
+  // 明らかに正解に近い → 画面に表示されているひらがなをそのまま見せる
+  // （内部で漢字認識されても、子供には "じてんしゃ" として見える）
+  if (score >= 0.5) {
+    return { text: item.text, isMatched: true };
+  }
+
+  // マッチしなかった場合：カタカナ→ひらがな変換を試みる
+  const hiragana = kataToHira(recognized);
+
+  // 漢字が残っていたら、ひらがな学習の妨げになるので表示しない
+  if (/[\u4e00-\u9faf]/.test(hiragana)) {
+    return { text: null, isMatched: false };
+  }
+
+  // 純粋なひらがな/カタカナのみなら表示する
+  return { text: hiragana, isMatched: false };
 }
 
 // ============================================================
@@ -499,7 +556,6 @@ function startListening() {
 
   const recognition = new SR();
   recognition.lang = "ja-JP";
-  // iOS Safari対策：interimResults=trueでないと結果が返ってこないケースがある
   recognition.interimResults = true;
   recognition.continuous = false;
   recognition.maxAlternatives = 5;
@@ -515,7 +571,6 @@ function startListening() {
     clearRecog();
     showListeningUI();
     if (state.recognitionTimer) clearTimeout(state.recognitionTimer);
-    // 10秒で強制終了
     state.recognitionTimer = setTimeout(() => {
       try { recognition.stop(); } catch(e) {}
     }, 10000);
@@ -526,7 +581,6 @@ function startListening() {
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const res = event.results[i];
       if (res.isFinal) {
-        // 複数候補を全て保存
         for (let j = 0; j < res.length; j++) {
           state.lastFinals.push(res[j].transcript);
         }
@@ -536,7 +590,6 @@ function startListening() {
       }
     }
     state.interimTranscript = interim;
-    updateInterimDisplay(interim || state.finalTranscript);
   };
 
   recognition.onerror = (e) => {
@@ -603,13 +656,33 @@ function evaluateCandidates(candidates) {
     }
   }
 
-  showRecog(bestHeard);
+  // ★ ひらがな表記に変換して表示 ★
+  const display = getDisplayHiragana(bestHeard, bestScore, current);
 
-  if (bestScore >= 0.75) {
+  if (bestScore >= 0.7) {
+    // 大正解：ひらがな表示 + 上下の文字が一致している視覚演出
+    showRecog(display.text, true);
+    triggerMatchAnimation();
     showFeedback("great", "すっごく じょうず！ばっちり よめたね！🎉");
   } else if (bestScore >= 0.5) {
-    showFeedback("nice", "おしい！あと ちょっと！もういっかい チャレンジ してみよう！");
+    // かなり惜しい：まだマッチ扱い
+    showRecog(display.text, true);
+    showFeedback("nice", "じょうず！もういっかい よむと もっと きれいに なるよ！");
+  } else if (bestScore >= 0.3) {
+    // ちょっとだけ惜しい
+    if (display.text) {
+      showRecog(display.text, false);
+    } else {
+      showRecogNoText();
+    }
+    showFeedback("nice", "おしい！もういっかい チャレンジ してみよう！");
   } else {
+    // 大きく外れた
+    if (display.text) {
+      showRecog(display.text, false);
+    } else {
+      showRecogNoText();
+    }
     showFeedback("retry", "スピーカーボタンで ききなおして、まねっこ してみよう！");
   }
 }
@@ -641,22 +714,56 @@ function showListeningUI() {
         <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
       </div>
       <div class="listening-text">🎤 きいてるよ... はなしてね！</div>
-      <div class="interim-text" id="interimText">...</div>
     </div>`;
 }
 function hideListeningUI() { document.getElementById("listeningWrap").innerHTML = ""; }
-function updateInterimDisplay(text) {
-  const el = document.getElementById("interimText");
-  if (el) el.textContent = text || "...";
+
+// マッチしたら大きなひらがなで表示、マッチしなかったら控えめに
+function showRecog(text, isMatched) {
+  const w = document.getElementById("recogWrap");
+  const lvClass = `lv${state.level}`;
+  const matchedClass = isMatched ? " matched" : "";
+  const check = isMatched ? `<div class="match-check">✅</div>` : "";
+  w.innerHTML = `<div class="recog-result anim-float-up${matchedClass}">
+    ${check}
+    <div class="recog-label">きこえた こえ：</div>
+    <div class="recog-text ${lvClass}" id="recogTextEl">${escapeHtml(text)}</div>
+  </div>`;
 }
-function showRecog(text) {
+// 漢字のみで変換できない場合：テキストなしでメッセージ
+function showRecogNoText() {
   const w = document.getElementById("recogWrap");
   w.innerHTML = `<div class="recog-result anim-float-up">
     <div class="recog-label">きこえた こえ：</div>
-    <div class="recog-text">「${escapeHtml(text)}」</div>
+    <div class="recog-text" style="font-size:16px; color:#6b7280;">ちがう ことばに きこえたみたい…</div>
   </div>`;
 }
 function clearRecog() { document.getElementById("recogWrap").innerHTML = ""; }
+
+// ★ マッチ成功時の演出：上の問題文と「きこえた こえ」が同時に緑色に光る ★
+function triggerMatchAnimation() {
+  const cardText = document.getElementById("cardText");
+  const recogText = document.getElementById("recogTextEl");
+  cardText.classList.remove("match-glow"); void cardText.offsetWidth; cardText.classList.add("match-glow");
+  if (recogText) {
+    recogText.classList.remove("match-glow"); void recogText.offsetWidth; recogText.classList.add("match-glow");
+  }
+
+  // 星を舞わせる
+  const card = document.getElementById("card");
+  const stars = ["⭐","✨","🌟","💫","🎉"];
+  for (let i = 0; i < 8; i++) {
+    const s = document.createElement("div");
+    s.className = "floating-stars";
+    s.textContent = stars[Math.floor(Math.random() * stars.length)];
+    s.style.left = `${10 + Math.random() * 80}%`;
+    s.style.top = `${40 + Math.random() * 20}%`;
+    s.style.animationDelay = `${i * 0.08}s`;
+    card.appendChild(s);
+    setTimeout(() => s.remove(), 1500);
+  }
+}
+
 function showFeedback(type, msg) {
   const w = document.getElementById("feedbackWrap");
   const icons = { great: "🎉 ", nice: "😊 ", retry: "🦊 ", info: "💡 " };
