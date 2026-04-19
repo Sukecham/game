@@ -418,7 +418,7 @@ const ctx = canvas.getContext('2d');
 // ========================================
 //  AUDIO — 異議あり voice on jump
 // ========================================
-// Expects "異議あり.m4a" next to this HTML. Uses a pool for overlap + iOS Safari gesture-unlock.
+// Expects "igiari.m4a" next to this HTML. Uses a pool for overlap + iOS Safari gesture-unlock.
 const objectionAudio = (() => {
   const POOL_SIZE = 2;
   const pool = [];
@@ -426,7 +426,7 @@ const objectionAudio = (() => {
   let unlocked = false;
   try {
     for (let i = 0; i < POOL_SIZE; i++) {
-      const a = new Audio('異議あり.m4a');
+      const a = new Audio('igiari.m4a');
       a.preload = 'auto';
       a.volume = 0.9;
       pool.push(a);
