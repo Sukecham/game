@@ -415,6 +415,43 @@ opacity: 0; animation: toast 1.2s ease forwards;
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
+// ========================================
+//  AUDIO — 異議あり voice on jump
+// ========================================
+// Expects "異議あり.m4a" next to this HTML. Uses a pool for overlap + iOS Safari gesture-unlock.
+const objectionAudio = (() => {
+  const POOL_SIZE = 2;
+  const pool = [];
+  let idx = 0;
+  let unlocked = false;
+  try {
+    for (let i = 0; i < POOL_SIZE; i++) {
+      const a = new Audio('異議あり.m4a');
+      a.preload = 'auto';
+      a.volume = 0.9;
+      pool.push(a);
+    }
+  } catch (e) { /* Audio API not available */ }
+  function unlock() {
+    if (unlocked || !pool.length) return;
+    unlocked = true;
+    // iOS requires a play()/pause() during a user gesture for later programmatic play
+    pool.forEach(a => {
+      a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
+    });
+  }
+  function play() {
+    if (!pool.length) return;
+    const a = pool[idx];
+    idx = (idx + 1) % pool.length;
+    try {
+      a.currentTime = 0;
+      a.play().catch(() => {});
+    } catch (e) {}
+  }
+  return { play, unlock };
+})();
+
 // Virtual coordinate system (fits portrait phone)
 const VW = 360;
 let VH = 640;   // computed from actual aspect
@@ -440,7 +477,7 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 120));
 //  COURT TYPES — each 審 has different kong, weapon, palette
 // ========================================
 const COURT_TYPES = [
-  { // 第1審 — 地方裁判所
+  { // 第1審 — 地方裁判所 (CLASSIC DK, warm wood)
     id: 'lawyer',
     court: '地方裁判所',
     kongTitle: 'コング弁護士',
@@ -449,12 +486,28 @@ const COURT_TYPES = [
     weaponName: '六法全書',
     throwMin: 1.8, throwMax: 3.0,
     rollBase: 75,
-    accent: '#c9a54a',        // gold
-    weaponColor: '#6b1a1a',   // oxblood
+    accent: '#c9a54a',
+    weaponColor: '#6b1a1a',
     bounces: false,
     preview: '法',
+    theme: {
+      floors: 5,
+      slopes:    [ 0.025, -0.025, 0.025, -0.025, 0.025 ],
+      ladderXs:  [ 316, 44, 316, 44 ],   // bottom→top, len = floors-1
+      bgTop: '#1a1530', bgMid: '#14102a', bgBot: '#08050f',
+      glow: 'rgba(107,26,26,0.15)',
+      pillarColor: 'rgba(60,55,85,0.4)',
+      pillarCount: 5,
+      woodTop: '#5a3a20', woodMid: '#3a2010', woodBot: '#1f100a',
+      woodTrim: '#c9a54a',
+      woodGrain: 'rgba(0,0,0,0.35)',
+      ladderRail0: '#8a6c28', ladderRail1: '#e4c76a',
+      ladderRung: '#c9a54a',
+      ladderW: 14,
+      scalesAlpha: 0.07,
+    }
   },
-  { // 第2審 — 高等裁判所
+  { // 第2審 — 高等裁判所 (SLATE & PEWTER, cooler, more asymmetric)
     id: 'prosecutor',
     court: '高等裁判所',
     kongTitle: 'コング検察官',
@@ -467,8 +520,24 @@ const COURT_TYPES = [
     weaponColor: '#2a2a40',
     bounces: false,
     preview: '訴',
+    theme: {
+      floors: 5,
+      slopes:    [ 0.030, -0.030, 0.030, -0.030, 0.030 ],
+      ladderXs:  [ 280, 60, 300, 80 ],
+      bgTop: '#1e1a34', bgMid: '#16132a', bgBot: '#0a0614',
+      glow: 'rgba(140,90,170,0.12)',
+      pillarColor: 'rgba(90,70,130,0.38)',
+      pillarCount: 6,
+      woodTop: '#3a3848', woodMid: '#22212a', woodBot: '#0e0e14',
+      woodTrim: '#a89a72',
+      woodGrain: 'rgba(0,0,0,0.55)',
+      ladderRail0: '#4a4a58', ladderRail1: '#9a9ab0',
+      ladderRung: '#b8b8cc',
+      ladderW: 12,
+      scalesAlpha: 0.05,
+    }
   },
-  { // 第3審 — 最高裁判所
+  { // 第3審 — 最高裁判所 (BLACK MARBLE & CRIMSON, 6 floors, taller)
     id: 'judge',
     court: '最高裁判所',
     kongTitle: 'コング裁判長',
@@ -479,8 +548,24 @@ const COURT_TYPES = [
     rollBase: 110,
     accent: '#a84040',
     weaponColor: '#5a3a1a',
-    bounces: true,      // gavels bounce once!
+    bounces: true,
     preview: '判',
+    theme: {
+      floors: 6,
+      slopes:    [ 0.020, -0.028, 0.028, -0.022, 0.025, 0.025 ],
+      ladderXs:  [ 290, 70, 270, 90, 60 ],
+      bgTop: '#2a1420', bgMid: '#1a0a14', bgBot: '#0a0408',
+      glow: 'rgba(200,40,60,0.18)',
+      pillarColor: 'rgba(110,40,50,0.32)',
+      pillarCount: 4,
+      woodTop: '#1f0f14', woodMid: '#120709', woodBot: '#060203',
+      woodTrim: '#c94040',
+      woodGrain: 'rgba(255,200,200,0.06)',
+      ladderRail0: '#6b1a1a', ladderRail1: '#c9a54a',
+      ladderRung: '#e4c76a',
+      ladderW: 16,
+      scalesAlpha: 0.09,
+    }
   },
 ];
 function currentType() {
@@ -534,7 +619,9 @@ function setupLevel() {
   state.ladders = [];
   state.books = [];
 
-  const floors = 5;
+  const T = currentType();
+  const theme = T.theme;
+  const floors = theme.floors;
   const topReserve = 80;       // kong area
   const bottomReserve = 40;
   const playArea = VH - topReserve - bottomReserve;
@@ -542,10 +629,7 @@ function setupLevel() {
 
   for (let i = 0; i < floors; i++) {
     const baseY = VH - bottomReserve - i * gap;
-    // Alternating slope so books zigzag downward
-    // Even floors (incl. top at i=4): descends right → books roll right
-    // Odd floors: descends left → books roll left
-    const slope = (i % 2 === 0) ? 0.025 : -0.025;
+    const slope = theme.slopes[i] ?? ((i % 2 === 0) ? 0.025 : -0.025);
     state.platforms.push({
       y: baseY,
       slope: slope,
@@ -555,15 +639,14 @@ function setupLevel() {
     });
   }
 
-  // Ladders alternate sides
+  // Ladders per theme — x positions for each gap from bottom to top
   for (let i = 0; i < floors - 1; i++) {
-    const side = (i % 2 === 0);
-    const x = side ? (VW - 44) : 44;
+    const x = theme.ladderXs[i] ?? ((i % 2 === 0) ? (VW - 44) : 44);
     const top = state.platforms[i+1];
     const bot = state.platforms[i];
     const yTop = getPlatY(top, x);
     const yBot = getPlatY(bot, x);
-    state.ladders.push({ x, yTop, yBot, w: 14 });
+    state.ladders.push({ x, yTop, yBot, w: theme.ladderW || 14 });
   }
 
   // Player at bottom-left
@@ -927,21 +1010,33 @@ function render() {
   ctx.translate(sx, sy);
   ctx.scale(scale, scale);
 
-  // Background: deep courtroom
+  // Get current theme
+  const theme = currentType().theme;
+
+  // Background: deep courtroom (3-stop gradient for richer depth)
   const bgGrad = ctx.createLinearGradient(0, 0, 0, VH);
-  bgGrad.addColorStop(0, '#1a1530');
-  bgGrad.addColorStop(1, '#08050f');
+  bgGrad.addColorStop(0, theme.bgTop);
+  bgGrad.addColorStop(0.55, theme.bgMid);
+  bgGrad.addColorStop(1, theme.bgBot);
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, VW, VH);
 
-  // Decorative columns
+  // Atmospheric glow behind top kong area
+  const glow = ctx.createRadialGradient(VW/2, VH * 0.18, 0, VW/2, VH * 0.18, VW * 0.6);
+  glow.addColorStop(0, theme.glow);
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, VW, VH);
+
+  // Decorative columns (count varies by theme)
   ctx.save();
-  for (let i = 0; i < 5; i++) {
-    const x = (i + 0.5) * VW / 5;
+  const pc = theme.pillarCount || 5;
+  for (let i = 0; i < pc; i++) {
+    const x = (i + 0.5) * VW / pc;
     const colGrad = ctx.createLinearGradient(x - 14, 0, x + 14, 0);
-    colGrad.addColorStop(0, 'rgba(40,35,60,0)');
-    colGrad.addColorStop(0.5, 'rgba(60,55,85,0.4)');
-    colGrad.addColorStop(1, 'rgba(40,35,60,0)');
+    colGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    colGrad.addColorStop(0.5, theme.pillarColor);
+    colGrad.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = colGrad;
     ctx.fillRect(x - 14, 0, 28, VH);
   }
@@ -949,7 +1044,7 @@ function render() {
 
   // Scales of justice watermark
   ctx.save();
-  ctx.globalAlpha = 0.07;
+  ctx.globalAlpha = theme.scalesAlpha || 0.07;
   ctx.translate(VW/2, VH * 0.45);
   drawScales(ctx, 100);
   ctx.restore();
@@ -1003,8 +1098,9 @@ function drawProjectile(x, y, rot, type) {
   else drawBook(x, y, rot);
 }
 
-// ----- platforms (wooden court floors)
+// ----- platforms (themed court floors)
 function drawPlatform(pl) {
+  const theme = currentType().theme;
   const y0 = getPlatY(pl, pl.x0);
   const y1 = getPlatY(pl, pl.x1);
   const thick = 10;
@@ -1021,9 +1117,7 @@ function drawPlatform(pl) {
   ctx.restore();
 
   // Main slab
-  const grad = ctx.createLinearGradient(0, 0, 0, thick);
   ctx.save();
-  ctx.translate(0, 0);
   ctx.beginPath();
   ctx.moveTo(pl.x0, y0);
   ctx.lineTo(pl.x1, y1);
@@ -1031,14 +1125,14 @@ function drawPlatform(pl) {
   ctx.lineTo(pl.x0, y0 + thick);
   ctx.closePath();
   const wood = ctx.createLinearGradient(0, (y0+y1)/2, 0, (y0+y1)/2 + thick);
-  wood.addColorStop(0, '#5a3a20');
-  wood.addColorStop(0.5, '#3a2010');
-  wood.addColorStop(1, '#1f100a');
+  wood.addColorStop(0, theme.woodTop);
+  wood.addColorStop(0.5, theme.woodMid);
+  wood.addColorStop(1, theme.woodBot);
   ctx.fillStyle = wood;
   ctx.fill();
 
-  // Wood grain lines
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  // Grain / veining lines
+  ctx.strokeStyle = theme.woodGrain;
   ctx.lineWidth = 0.6;
   for (let i = 1; i < 4; i++) {
     ctx.beginPath();
@@ -1047,16 +1141,16 @@ function drawPlatform(pl) {
     ctx.stroke();
   }
 
-  // Gold upper trim
-  ctx.strokeStyle = '#c9a54a';
+  // Upper trim line (brass / pewter / crimson-gold depending on theme)
+  ctx.strokeStyle = theme.woodTrim;
   ctx.lineWidth = 1.2;
   ctx.beginPath();
   ctx.moveTo(pl.x0, y0);
   ctx.lineTo(pl.x1, y1);
   ctx.stroke();
 
-  // Gold highlight glint
-  ctx.strokeStyle = 'rgba(228,199,106,0.4)';
+  // Subtle highlight glint
+  ctx.strokeStyle = 'rgba(255,240,200,0.28)';
   ctx.lineWidth = 0.5;
   ctx.beginPath();
   ctx.moveTo(pl.x0, y0 + 1);
@@ -1065,8 +1159,9 @@ function drawPlatform(pl) {
   ctx.restore();
 }
 
-// ----- ladders (brass courtroom ladders)
+// ----- ladders (themed court ladders)
 function drawLadder(L) {
+  const theme = currentType().theme;
   ctx.save();
   // shadow
   ctx.strokeStyle = 'rgba(0,0,0,0.4)';
@@ -1078,9 +1173,9 @@ function drawLadder(L) {
 
   // Rails
   const railGrad = ctx.createLinearGradient(L.x - L.w/2, 0, L.x + L.w/2, 0);
-  railGrad.addColorStop(0, '#8a6c28');
-  railGrad.addColorStop(0.5, '#e4c76a');
-  railGrad.addColorStop(1, '#8a6c28');
+  railGrad.addColorStop(0, theme.ladderRail0);
+  railGrad.addColorStop(0.5, theme.ladderRail1);
+  railGrad.addColorStop(1, theme.ladderRail0);
   ctx.strokeStyle = railGrad;
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -1091,7 +1186,7 @@ function drawLadder(L) {
   ctx.stroke();
 
   // Rungs
-  ctx.strokeStyle = '#c9a54a';
+  ctx.strokeStyle = theme.ladderRung;
   ctx.lineWidth = 1.4;
   const step = 9;
   for (let y = L.yTop + 5; y < L.yBot - 2; y += step) {
@@ -2355,6 +2450,7 @@ function showOverlay(title, msg, btn, icon) {
 function hideOverlay() { document.getElementById('overlay').classList.add('hidden'); }
 
 function startGame() {
+  objectionAudio.unlock(); // iOS Safari — must be inside user gesture
   setupLevel();
   state.running = true;
   updateHUD();
@@ -2372,7 +2468,10 @@ function bind(id, key) {
   const on = (e) => {
     if (e.cancelable) e.preventDefault();
     input[key] = true;
-    if (key === 'jump') input.jumpPress = true;
+    if (key === 'jump') {
+      input.jumpPress = true;
+      objectionAudio.play();  // 「異議あり!」
+    }
     el.classList.add('pressed');
   };
   const off = (e) => {
@@ -2400,7 +2499,7 @@ window.addEventListener('keydown', (e) => {
   if (['ArrowUp','w','W'].includes(e.key)) input.up = true;
   if (['ArrowDown','s','S'].includes(e.key)) input.down = true;
   if (e.key === ' ' || e.key === 'Enter') {
-    if (!input.jump) input.jumpPress = true;
+    if (!input.jump) { input.jumpPress = true; objectionAudio.play(); }
     input.jump = true;
   }
 });
