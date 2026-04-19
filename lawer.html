@@ -34,8 +34,11 @@
     user-select: none; -webkit-user-select: none;
   }
   html, body {
-    width: 100%; height: 100%;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
     overflow: hidden; position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: var(--ink);
     overscroll-behavior: none;
     touch-action: none;
@@ -43,7 +46,9 @@
     font-family: 'Shippori Mincho', 'Cormorant Garamond', 'Hiragino Mincho ProN', serif;
   }
   #app {
-    width: 100vw; height: 100vh;
+    width: 100%;
+    height: 100vh;     /* fallback */
+    height: 100dvh;    /* modern browsers — resizes with iOS Safari URL bar */
     display: flex; flex-direction: column;
     background:
       radial-gradient(ellipse at top, #1a1a30 0%, transparent 55%),
@@ -713,24 +718,26 @@ function getPlatY(p, x) {
 function update(dt) {
   const p = state.player;
 
-  // Ladder detection (is player within any ladder's column & vertical range?)
+  // Ladder detection — lenient horizontal reach (much wider than ladder sprite)
+  // so player doesn't need to be pixel-perfect to grab it.
+  const LADDER_GRAB = 16; // half-width of catch zone (ladder visual is only ~7)
   let onLadder = null;
   for (const L of state.ladders) {
     const cx = p.x + p.w/2;
-    if (cx > L.x - L.w/2 && cx < L.x + L.w/2 &&
+    if (cx > L.x - LADDER_GRAB && cx < L.x + LADDER_GRAB &&
         p.y + p.h > L.yTop - 8 && p.y < L.yBot + 8) {
       onLadder = L;
       break;
     }
   }
 
-  // "Ladder top" detection — player is standing ON a platform that has a ladder
+  // "Ladder top" detection — player standing on a platform that has a ladder
   // descending from it. Used when user presses DOWN while on ground.
   let ladderBelow = null;
   if (p.onGround && !p.onLadder) {
     for (const L of state.ladders) {
       const cx = p.x + p.w/2;
-      if (cx > L.x - L.w/2 && cx < L.x + L.w/2 &&
+      if (cx > L.x - LADDER_GRAB && cx < L.x + LADDER_GRAB &&
           Math.abs((p.y + p.h) - L.yTop) < 6) {
         ladderBelow = L;
         break;
@@ -1054,6 +1061,18 @@ function updateHazards(dt, T, D) {
   }
 }
 
+// Clear all input state & visual pressed states. Defensive against stuck buttons
+// (e.g., touchcancel missed during camera shake, modal overlays, iOS edge cases)
+function resetInput() {
+  input.left = false;
+  input.right = false;
+  input.up = false;
+  input.down = false;
+  input.jump = false;
+  input.jumpPress = false;
+  document.querySelectorAll('.btn.pressed').forEach(b => b.classList.remove('pressed'));
+}
+
 function hitPlayer() {
   state.lives--;
   state.camShake = 10;
@@ -1067,6 +1086,7 @@ function hitPlayer() {
   state.player.y = getPlatY(p0, 44) - state.player.h;
   state.player.vx = state.player.vy = 0;
   state.player.invuln = 2;
+  resetInput();  // clear any stuck button state from the hit moment
 }
 
 function winLevel() {
@@ -2763,6 +2783,7 @@ function hideOverlay() { document.getElementById('overlay').classList.add('hidde
 
 function startGame() {
   objectionAudio.unlock(); // iOS Safari — must be inside user gesture
+  resetInput();             // clear any pre-existing stuck button state
   setupLevel();
   state.running = true;
   updateHUD();
@@ -2828,6 +2849,13 @@ document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('gesturechange', (e) => e.preventDefault());
 document.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
 document.addEventListener('dblclick', (e) => e.preventDefault());
+
+// Defensive: release all buttons if tab loses focus, visibility changes, or window blurs
+// (prevents iOS Safari "stuck button" cases where touchcancel was missed)
+window.addEventListener('blur', resetInput);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) resetInput();
+});
 
 // ========================================
 //  MAIN LOOP
