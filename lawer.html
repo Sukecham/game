@@ -718,6 +718,14 @@ function getPlatY(p, x) {
 function update(dt) {
   const p = state.player;
 
+  // If hitPlayer() fired during the previous frame, reset the stage's
+  // attack state now — before any projectile/hazard loops run — so the
+  // player doesn't respawn into ongoing attacks.
+  if (state.pendingAttackReset) {
+    state.pendingAttackReset = false;
+    resetStageAttacks();
+  }
+
   // Ladder detection — lenient horizontal reach (much wider than ladder sprite)
   // so player doesn't need to be pixel-perfect to grab it.
   const LADDER_GRAB = 16; // half-width of catch zone (ladder visual is only ~7)
@@ -1087,6 +1095,44 @@ function hitPlayer() {
   state.player.vx = state.player.vy = 0;
   state.player.invuln = 2;
   resetInput();  // clear any stuck button state from the hit moment
+
+  // Defer the attack-state reset to the top of the next update tick,
+  // so enclosing collision loops (books/hazards) can finish this frame
+  // without crashing on a cleared array.
+  state.pendingAttackReset = true;
+}
+
+function resetStageAttacks() {
+  // Return the kong/projectile/hazard state to this stage's starting
+  // configuration. Stage difficulty (driven by state.level) is not touched.
+  const T = currentType();
+  const theme = T.theme;
+  const floors = theme.floors;
+
+  state.books.length = 0;
+  state.kong.throwT = 1.5;
+  state.kong.armT = 0;
+  state.hazards.length = 0;
+  state.lightningTimer = 0;
+
+  const atr = theme.attraction;
+  if (atr) {
+    if (atr.type === 'bailiff') {
+      const plat = state.platforms[Math.min(atr.floor, floors - 2)];
+      state.hazards.push({
+        type: 'bailiff',
+        platform: plat,
+        x: (plat.x0 + plat.x1) / 2,
+        y: 0,
+        vx: atr.speed,
+        anim: 0,
+        w: 14, h: 18
+      });
+    } else if (atr.type === 'lightning') {
+      state.lightningTimer = 2.0;
+    }
+    // conveyor is a per-platform property set in setupLevel — no reset needed.
+  }
 }
 
 function winLevel() {
