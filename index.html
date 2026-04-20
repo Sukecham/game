@@ -1,142 +1,48 @@
----
-layout: null
----
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>GAME SELECT</title>
+<title>ゲーム一覧</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-
 <style>
-:root{
-  --bg:#0f0f1a;
-  --neon:#00f0ff;
-  --accent:#ff00c8;
-  --card:#1a1a2e;
-  --text:#e6faff;
-}
-
 *{box-sizing:border-box}
-
 body{
-  margin:0;
-  font-family:"Orbitron","Segoe UI",sans-serif;
-  background: radial-gradient(circle at 30% 30%, #1b1b3a, #0f0f1a 60%);
-  color:var(--text);
-}
-
-/* 背景グリッド */
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  background:
-    linear-gradient(rgba(0,255,255,.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,255,.05) 1px, transparent 1px);
-  background-size:40px 40px;
-  pointer-events:none;
-}
-
-header{
-  text-align:center;
+  font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;
+  max-width:640px;
+  margin:0 auto;
   padding:2rem 1rem;
+  background:#fafafa;
+  color:#222;
+  line-height:1.5;
 }
-
-h1{
-  margin:0;
-  font-size:2rem;
-  letter-spacing:.15em;
-  color:var(--neon);
-  text-shadow:0 0 10px var(--neon),
-              0 0 20px var(--neon);
-}
-
-main{
-  max-width:1100px;
-  margin:2rem auto 4rem;
-  padding:0 1rem;
-}
-
-ul{
-  list-style:none;
-  padding:0;
-  margin:0;
-  display:grid;
-  gap:1.5rem;
-  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-}
-
-li{
-  background:var(--card);
-  border:1px solid rgba(0,255,255,.3);
-  border-radius:12px;
-  padding:1.5rem;
-  transition:.25s transform,.25s box-shadow;
-}
-
-li:hover{
-  transform:translateY(-8px) scale(1.03);
-  box-shadow:0 0 20px rgba(0,255,255,.5);
-}
-
+h1{font-size:1.4rem;margin:0 0 1.25rem}
+ul{list-style:none;padding:0;margin:0}
+li{margin:0 0 .6rem}
 a{
-  text-decoration:none;
-  color:var(--text);
-  font-weight:700;
-  font-size:1.1rem;
   display:block;
+  padding:1rem 1.2rem;
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:10px;
+  text-decoration:none;
+  color:#222;
+  font-size:1.05rem;
 }
-
-.stage-label{
-  font-size:.75rem;
-  opacity:.6;
-  margin-bottom:.5rem;
-  color:var(--accent);
-  letter-spacing:.2em;
-  text-transform:uppercase;
-}
-
-footer{
-  text-align:center;
-  padding:2rem 1rem;
-  font-size:.8rem;
-  opacity:.5;
-}
+a:hover,a:focus{background:#eef4ff;border-color:#8ab}
 </style>
 </head>
-
 <body>
 
-<header>
-  <h1>🎮 GAME SELECT</h1>
-</header>
+<h1>ゲーム一覧</h1>
 
-<main>
-  <ul>
-
-  {% assign count = 1 %}
-  {% for page in site.pages %}
-    {% if page.name != "index.html" and page.ext == ".html" %}
-      <li>
-        <div class="stage-label">
-          STAGE {{ count }}
-        </div>
-        <a href="{{ page.url | relative_url }}">
-          ▶ {{ page.name | replace: ".html","" }}
-        </a>
-      </li>
-      {% assign count = count | plus: 1 %}
-    {% endif %}
-  {% endfor %}
-
-  </ul>
-</main>
-
-<footer>
-  SYSTEM READY // SELECT YOUR MISSION
-</footer>
+<ul>
+  <li><a href="buy.html">ゆいみおの おかいものだいさくせん！</a></li>
+  <li><a href="hira.html">よめるかな？（ひらがな あそび）</a></li>
+  <li><a href="hiragana.html">よめるかな？（ひらがな よみかた）</a></li>
+  <li><a href="keigo.html">敬語王 〜正しい日本語グランプリ〜</a></li>
+  <li><a href="lawer.html">ドンキー弁護士</a></li>
+  <li><a href="yuimio.html">スーパーヒーロー ゆいみお</a></li>
+</ul>
 
 </body>
 </html>
