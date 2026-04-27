@@ -2,16 +2,18 @@
 
 <html lang="ja">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,user-scalable=no"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<title>🐰 ウサギとカメ 🐢</title>
-<link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Maru+Gothic:wght@400;700;900&display=swap" rel="stylesheet"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>ウサギとカメ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Maru+Gothic:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body,#root{width:100%;height:100dvh;overflow:hidden}
-body{font-family:'Zen Maru Gothic',sans-serif;-webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+html,body,#root{width:100%;height:100%;height:100dvh;overflow:hidden}
+body{font-family:'Zen Maru Gothic',sans-serif;-webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;background:#87CEEB}
+#loading{display:flex;align-items:center;justify-content:center;height:100%;font-family:'Zen Maru Gothic',sans-serif;font-size:24px;color:#5D4037;background:linear-gradient(180deg,#87CEEB 0%,#B8E6FF 40%,#90EE90 65%,#4CAF50 100%)}
 @keyframes rabbitBounce{0%{transform:translateY(0)}40%{transform:translateY(-18px)}100%{transform:translateY(0)}}
 @keyframes turtleBounce{0%{transform:translateY(0)}40%{transform:translateY(-8px)}100%{transform:translateY(0)}}
 @keyframes cloudFloat{0%{transform:translateX(0)}100%{transform:translateX(15px)}}
@@ -32,23 +34,40 @@ body{font-family:'Zen Maru Gothic',sans-serif;-webkit-user-select:none;user-sele
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<div id="root"><div id="loading">よみこみちゅう…🐰🐢</div></div>
+<noscript><p style="text-align:center;padding:40px;font-size:20px">JavaScriptをオンにしてください</p></noscript>
+<script>window.onerror=function(m,s,l,c,e){document.getElementById("root").innerHTML="<p style=\"padding:20px;color:red\">エラー: "+m+"</p>";}</script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script>
-const {
-  useState,
-  useEffect,
-  useRef
-} = React;
-const TRACK_LENGTH = 100;
-const RABBIT_SPEED = 3.2;
-const TURTLE_SPEED = 1.6;
-const SLEEP_CHANCE = 0.18;
-const SLEEP_DURATION = 2000;
-const CPU_TAP_MIN = 280;
-const CPU_TAP_MAX = 520;
-const RABBIT_COLORS = {
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
+function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
+function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
+function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
+function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
+function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
+function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
+function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
+function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
+function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
+function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
+function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
+var _React = React,
+  useState = _React.useState,
+  useEffect = _React.useEffect,
+  useRef = _React.useRef;
+var TRACK_LENGTH = 100;
+var RABBIT_SPEED = 3.2;
+var TURTLE_SPEED = 1.6;
+var SLEEP_CHANCE = 0.18;
+var SLEEP_DURATION = 2000;
+var CPU_TAP_MIN = 280;
+var CPU_TAP_MAX = 520;
+var RABBIT_COLORS = {
   1: {
     body: "#FFF5F5",
     earInner: "#FFB8B8",
@@ -76,7 +95,7 @@ const RABBIT_COLORS = {
     name: "あお"
   }
 };
-const TURTLE_COLORS = {
+var TURTLE_COLORS = {
   1: {
     shell: "#6BCB77",
     pattern1: "#4CAF50",
@@ -112,13 +131,14 @@ const TURTLE_COLORS = {
     name: "みずいろ"
   }
 };
-function RabbitCharacter({
-  sleeping,
-  bouncing,
-  variant = 1,
-  showBadge = false
-}) {
-  const c = RABBIT_COLORS[variant] || RABBIT_COLORS[1];
+function RabbitCharacter(_ref) {
+  var sleeping = _ref.sleeping,
+    bouncing = _ref.bouncing,
+    _ref$variant = _ref.variant,
+    variant = _ref$variant === void 0 ? 1 : _ref$variant,
+    _ref$showBadge = _ref.showBadge,
+    showBadge = _ref$showBadge === void 0 ? false : _ref$showBadge;
+  var c = RABBIT_COLORS[variant] || RABBIT_COLORS[1];
   return /*#__PURE__*/React.createElement("div", {
     style: {
       animation: bouncing && !sleeping ? "rabbitBounce 0.3s ease" : "none",
@@ -279,12 +299,13 @@ function RabbitCharacter({
     }
   }, "\uD83D\uDCA4"));
 }
-function TurtleCharacter({
-  bouncing,
-  variant = 1,
-  showBadge = false
-}) {
-  const c = TURTLE_COLORS[variant] || TURTLE_COLORS[1];
+function TurtleCharacter(_ref2) {
+  var bouncing = _ref2.bouncing,
+    _ref2$variant = _ref2.variant,
+    variant = _ref2$variant === void 0 ? 1 : _ref2$variant,
+    _ref2$showBadge = _ref2.showBadge,
+    showBadge = _ref2$showBadge === void 0 ? false : _ref2$showBadge;
+  var c = TURTLE_COLORS[variant] || TURTLE_COLORS[1];
   return /*#__PURE__*/React.createElement("div", {
     style: {
       animation: bouncing ? "turtleBounce 0.25s ease" : "none",
@@ -417,19 +438,18 @@ function TurtleCharacter({
     strokeWidth: "1"
   })));
 }
-function Cloud({
-  x,
-  y,
-  scale,
-  speed
-}) {
+function Cloud(_ref3) {
+  var x = _ref3.x,
+    y = _ref3.y,
+    scale = _ref3.scale,
+    speed = _ref3.speed;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       left: x,
       top: y,
-      transform: `scale(${scale})`,
-      animation: `cloudFloat ${speed}s ease-in-out infinite alternate`,
+      transform: "scale(".concat(scale, ")"),
+      animation: "cloudFloat ".concat(speed, "s ease-in-out infinite alternate"),
       opacity: 0.9,
       zIndex: 1
     }
@@ -463,18 +483,17 @@ function Cloud({
     fill: "white"
   })));
 }
-function Flower({
-  x,
-  y,
-  color,
-  delay
-}) {
+function Flower(_ref4) {
+  var x = _ref4.x,
+    y = _ref4.y,
+    color = _ref4.color,
+    delay = _ref4.delay;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       left: x,
       bottom: y,
-      animation: `flowerSway 2s ease-in-out ${delay}s infinite alternate`,
+      animation: "flowerSway 2s ease-in-out ".concat(delay, "s infinite alternate"),
       zIndex: 2
     }
   }, /*#__PURE__*/React.createElement("svg", {
@@ -524,17 +543,16 @@ function Flower({
     fill: "#FFD93D"
   })));
 }
-function Butterfly({
-  x,
-  y,
-  delay
-}) {
+function Butterfly(_ref5) {
+  var x = _ref5.x,
+    y = _ref5.y,
+    delay = _ref5.delay;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       left: x,
       top: y,
-      animation: `butterflyFloat 4s ease-in-out ${delay}s infinite`,
+      animation: "butterflyFloat 4s ease-in-out ".concat(delay, "s infinite"),
       zIndex: 5
     }
   }, /*#__PURE__*/React.createElement("svg", {
@@ -659,17 +677,19 @@ function Sun() {
     width: "60",
     height: "60",
     viewBox: "0 0 60 60"
-  }, [0, 45, 90, 135, 180, 225, 270, 315].map(a => /*#__PURE__*/React.createElement("line", {
-    key: a,
-    x1: "30",
-    y1: "30",
-    x2: 30 + 28 * Math.cos(a * Math.PI / 180),
-    y2: 30 + 28 * Math.sin(a * Math.PI / 180),
-    stroke: "#FFD93D",
-    strokeWidth: "3",
-    strokeLinecap: "round",
-    opacity: "0.7"
-  })), /*#__PURE__*/React.createElement("circle", {
+  }, [0, 45, 90, 135, 180, 225, 270, 315].map(function (a) {
+    return /*#__PURE__*/React.createElement("line", {
+      key: a,
+      x1: "30",
+      y1: "30",
+      x2: 30 + 28 * Math.cos(a * Math.PI / 180),
+      y2: 30 + 28 * Math.sin(a * Math.PI / 180),
+      stroke: "#FFD93D",
+      strokeWidth: "3",
+      strokeLinecap: "round",
+      opacity: "0.7"
+    });
+  }), /*#__PURE__*/React.createElement("circle", {
     cx: "30",
     cy: "30",
     r: "16",
@@ -693,39 +713,80 @@ function Sun() {
   })));
 }
 function UsagiKameRace() {
-  const [screen, setScreen] = useState("title");
-  const [playerCount, setPlayerCount] = useState(1);
-  const [p1Char, setP1Char] = useState(null);
-  const [p2Char, setP2Char] = useState(null);
-  const [p1Pos, setP1Pos] = useState(0);
-  const [p2Pos, setP2Pos] = useState(0);
-  const [p1Sleeping, setP1Sleeping] = useState(false);
-  const [p2Sleeping, setP2Sleeping] = useState(false);
-  const [p1Bounce, setP1Bounce] = useState(false);
-  const [p2Bounce, setP2Bounce] = useState(false);
-  const [winner, setWinner] = useState(null);
-  const [countdown, setCountdown] = useState(0);
-  const [titleAnim, setTitleAnim] = useState(false);
-  const cpuIntervalRef = useRef(null);
-  const gameActiveRef = useRef(false);
-  const p1PosRef = useRef(0);
-  const p2PosRef = useRef(0);
-  const p1SleepRef = useRef(false);
-  const p2SleepRef = useRef(false);
+  var _useState = useState("title"),
+    _useState2 = _slicedToArray(_useState, 2),
+    screen = _useState2[0],
+    setScreen = _useState2[1];
+  var _useState3 = useState(1),
+    _useState4 = _slicedToArray(_useState3, 2),
+    playerCount = _useState4[0],
+    setPlayerCount = _useState4[1];
+  var _useState5 = useState(null),
+    _useState6 = _slicedToArray(_useState5, 2),
+    p1Char = _useState6[0],
+    setP1Char = _useState6[1];
+  var _useState7 = useState(null),
+    _useState8 = _slicedToArray(_useState7, 2),
+    p2Char = _useState8[0],
+    setP2Char = _useState8[1];
+  var _useState9 = useState(0),
+    _useState0 = _slicedToArray(_useState9, 2),
+    p1Pos = _useState0[0],
+    setP1Pos = _useState0[1];
+  var _useState1 = useState(0),
+    _useState10 = _slicedToArray(_useState1, 2),
+    p2Pos = _useState10[0],
+    setP2Pos = _useState10[1];
+  var _useState11 = useState(false),
+    _useState12 = _slicedToArray(_useState11, 2),
+    p1Sleeping = _useState12[0],
+    setP1Sleeping = _useState12[1];
+  var _useState13 = useState(false),
+    _useState14 = _slicedToArray(_useState13, 2),
+    p2Sleeping = _useState14[0],
+    setP2Sleeping = _useState14[1];
+  var _useState15 = useState(false),
+    _useState16 = _slicedToArray(_useState15, 2),
+    p1Bounce = _useState16[0],
+    setP1Bounce = _useState16[1];
+  var _useState17 = useState(false),
+    _useState18 = _slicedToArray(_useState17, 2),
+    p2Bounce = _useState18[0],
+    setP2Bounce = _useState18[1];
+  var _useState19 = useState(null),
+    _useState20 = _slicedToArray(_useState19, 2),
+    winner = _useState20[0],
+    setWinner = _useState20[1];
+  var _useState21 = useState(0),
+    _useState22 = _slicedToArray(_useState21, 2),
+    countdown = _useState22[0],
+    setCountdown = _useState22[1];
+  var _useState23 = useState(false),
+    _useState24 = _slicedToArray(_useState23, 2),
+    titleAnim = _useState24[0],
+    setTitleAnim = _useState24[1];
+  var cpuIntervalRef = useRef(null);
+  var gameActiveRef = useRef(false);
+  var p1PosRef = useRef(0);
+  var p2PosRef = useRef(0);
+  var p1SleepRef = useRef(false);
+  var p2SleepRef = useRef(false);
 
 // Determine variant numbers: if same char, P1=variant1 P2=variant2, else both variant1
-const sameChar = p1Char && p2Char && p1Char === p2Char;
-const p1Variant = 1;
-const p2Variant = sameChar ? 2 : 1;
-useEffect(() => {
-setTimeout(() => setTitleAnim(true), 100);
+var sameChar = p1Char && p2Char && p1Char === p2Char;
+var p1Variant = 1;
+var p2Variant = sameChar ? 2 : 1;
+useEffect(function () {
+setTimeout(function () {
+return setTitleAnim(true);
+}, 100);
 }, []);
-useEffect(() => {
-return () => {
+useEffect(function () {
+return function () {
 if (cpuIntervalRef.current) clearInterval(cpuIntervalRef.current);
 };
 }, []);
-const startGame = () => {
+var startGame = function startGame() {
 setP1Pos(0);
 setP2Pos(0);
 p1PosRef.current = 0;
@@ -738,8 +799,8 @@ setWinner(null);
 setCountdown(3);
 setScreen(“race”);
 gameActiveRef.current = false;
-let c = 3;
-const cdInterval = setInterval(() => {
+var c = 3;
+var cdInterval = setInterval(function () {
 c–;
 setCountdown(c);
 if (c <= 0) {
@@ -749,18 +810,18 @@ startCPU();
 }
 }, 800);
 };
-const startCPU = () => {
+var startCPU = function startCPU() {
 if (cpuIntervalRef.current) clearInterval(cpuIntervalRef.current);
 if (playerCount === 1) {
-const cpuChar = p2Char;
-const cpuTap = () => {
+var cpuChar = p2Char;
+var cpuTap = function cpuTap() {
 if (!gameActiveRef.current) return;
 if (p2SleepRef.current) return;
-const speed = cpuChar === “rabbit” ? RABBIT_SPEED : TURTLE_SPEED;
+var speed = cpuChar === “rabbit” ? RABBIT_SPEED : TURTLE_SPEED;
 if (cpuChar === “rabbit” && Math.random() < SLEEP_CHANCE) {
 setP2Sleeping(true);
 p2SleepRef.current = true;
-setTimeout(() => {
+setTimeout(function () {
 setP2Sleeping(false);
 p2SleepRef.current = false;
 }, SLEEP_DURATION);
@@ -769,35 +830,39 @@ return;
 p2PosRef.current = Math.min(TRACK_LENGTH, p2PosRef.current + speed);
 setP2Pos(p2PosRef.current);
 setP2Bounce(true);
-setTimeout(() => setP2Bounce(false), 250);
+setTimeout(function () {
+return setP2Bounce(false);
+}, 250);
 if (p2PosRef.current >= TRACK_LENGTH) {
 gameActiveRef.current = false;
 clearInterval(cpuIntervalRef.current);
-setTimeout(() => setWinner(“p2”), 300);
+setTimeout(function () {
+return setWinner(“p2”);
+}, 300);
 }
 };
 cpuIntervalRef.current = setInterval(cpuTap, CPU_TAP_MIN + Math.random() * (CPU_TAP_MAX - CPU_TAP_MIN));
 }
 };
-const handleTap = player => {
+var handleTap = function handleTap(player) {
 if (!gameActiveRef.current) return;
-const isP1 = player === 1;
-const char = isP1 ? p1Char : p2Char;
-const sleeping = isP1 ? p1SleepRef.current : p2SleepRef.current;
+var isP1 = player === 1;
+var _char = isP1 ? p1Char : p2Char;
+var sleeping = isP1 ? p1SleepRef.current : p2SleepRef.current;
 if (sleeping) return;
-const speed = char === “rabbit” ? RABBIT_SPEED : TURTLE_SPEED;
-if (char === “rabbit” && Math.random() < SLEEP_CHANCE) {
+var speed = _char === “rabbit” ? RABBIT_SPEED : TURTLE_SPEED;
+if (_char === “rabbit” && Math.random() < SLEEP_CHANCE) {
 if (isP1) {
 setP1Sleeping(true);
 p1SleepRef.current = true;
-setTimeout(() => {
+setTimeout(function () {
 setP1Sleeping(false);
 p1SleepRef.current = false;
 }, SLEEP_DURATION);
 } else {
 setP2Sleeping(true);
 p2SleepRef.current = true;
-setTimeout(() => {
+setTimeout(function () {
 setP2Sleeping(false);
 p2SleepRef.current = false;
 }, SLEEP_DURATION);
@@ -808,43 +873,53 @@ if (isP1) {
 p1PosRef.current = Math.min(TRACK_LENGTH, p1PosRef.current + speed);
 setP1Pos(p1PosRef.current);
 setP1Bounce(true);
-setTimeout(() => setP1Bounce(false), 250);
+setTimeout(function () {
+return setP1Bounce(false);
+}, 250);
 if (p1PosRef.current >= TRACK_LENGTH) {
 gameActiveRef.current = false;
 if (cpuIntervalRef.current) clearInterval(cpuIntervalRef.current);
-setTimeout(() => setWinner(“p1”), 300);
+setTimeout(function () {
+return setWinner(“p1”);
+}, 300);
 }
 } else {
 p2PosRef.current = Math.min(TRACK_LENGTH, p2PosRef.current + speed);
 setP2Pos(p2PosRef.current);
 setP2Bounce(true);
-setTimeout(() => setP2Bounce(false), 250);
+setTimeout(function () {
+return setP2Bounce(false);
+}, 250);
 if (p2PosRef.current >= TRACK_LENGTH) {
 gameActiveRef.current = false;
 if (cpuIntervalRef.current) clearInterval(cpuIntervalRef.current);
-setTimeout(() => setWinner(“p2”), 300);
+setTimeout(function () {
+return setWinner(“p2”);
+}, 300);
 }
 }
 };
-const selectPlayerCount = count => {
+var selectPlayerCount = function selectPlayerCount(count) {
 setPlayerCount(count);
 setScreen(“charSelect”);
 };
-const selectChar = char => {
+var selectChar = function selectChar(_char2) {
 if (playerCount === 1) {
-setP1Char(char);
-setP2Char(char === “rabbit” ? “turtle” : “rabbit”);
+setP1Char(_char2);
+setP2Char(_char2 === “rabbit” ? “turtle” : “rabbit”);
 startGame();
 } else {
 if (!p1Char) {
-setP1Char(char);
+setP1Char(_char2);
 } else {
-setP2Char(char);
-setTimeout(() => startGame(), 100);
+setP2Char(_char2);
+setTimeout(function () {
+return startGame();
+}, 100);
 }
 }
 };
-const resetToTitle = () => {
+var resetToTitle = function resetToTitle() {
 setScreen(“title”);
 setP1Char(null);
 setP2Char(null);
@@ -854,7 +929,7 @@ setWinner(null);
 if (cpuIntervalRef.current) clearInterval(cpuIntervalRef.current);
 gameActiveRef.current = false;
 };
-const btnBase = {
+var btnBase = {
 cursor: “pointer”,
 WebkitTapHighlightColor: “transparent”,
 border: “none”,
@@ -950,10 +1025,11 @@ animation: “wiggle 2s ease-in-out 0.5s infinite”
 }, /*#**PURE***/React.createElement(TurtleCharacter, {
 bouncing: false
 }))), /*#**PURE***/React.createElement(“button”, {
-onClick: () => setScreen(“playerSelect”),
+onClick: function onClick() {
+return setScreen(“playerSelect”);
+},
 className: “tap-btn”,
-style: {
-…btnBase,
+style: _objectSpread(_objectSpread({}, btnBase), {}, {
 padding: “18px 60px”,
 fontSize: “clamp(22px,5.5vw,30px)”,
 fontFamily: “‘Darumadrop One’,cursive”,
@@ -964,7 +1040,7 @@ borderRadius: 60,
 boxShadow: “0 6px 0 #C44E1C,0 8px 20px rgba(0,0,0,0.15)”,
 zIndex: 10,
 animation: titleAnim ? “scaleIn 0.6s ease-out 0.6s both” : “none”
-}
+})
 }, “\u306F\u3058\u3081\u308B\uFF01”), /*#**PURE***/React.createElement(Flower, {
 x: “8%”,
 y: 10,
@@ -1032,10 +1108,11 @@ animation: “slideUp 0.5s ease-out”,
 zIndex: 10
 }
 }, “\u306A\u3093\u306B\u3093\u3067 \u3042\u305D\u3076\uFF1F”), /*#**PURE***/React.createElement(“button”, {
-onClick: () => selectPlayerCount(1),
+onClick: function onClick() {
+return selectPlayerCount(1);
+},
 className: “tap-btn”,
-style: {
-…btnBase,
+style: _objectSpread(_objectSpread({}, btnBase), {}, {
 padding: “24px 40px”,
 width: “75%”,
 maxWidth: 300,
@@ -1048,12 +1125,13 @@ borderRadius: 24,
 boxShadow: “0 6px 0 #1565C0,0 8px 16px rgba(0,0,0,0.12)”,
 zIndex: 10,
 animation: “scaleIn 0.4s ease-out 0.2s both”
-}
+})
 }, “\uD83D\uDE4B \u3072\u3068\u308A\u3067\uFF01”), /*#**PURE***/React.createElement(“button”, {
-onClick: () => selectPlayerCount(2),
+onClick: function onClick() {
+return selectPlayerCount(2);
+},
 className: “tap-btn”,
-style: {
-…btnBase,
+style: _objectSpread(_objectSpread({}, btnBase), {}, {
 padding: “24px 40px”,
 width: “75%”,
 maxWidth: 300,
@@ -1066,11 +1144,10 @@ borderRadius: 24,
 boxShadow: “0 6px 0 #2E7D32,0 8px 16px rgba(0,0,0,0.12)”,
 zIndex: 10,
 animation: “scaleIn 0.4s ease-out 0.4s both”
-}
+})
 }, “\uD83D\uDE4B\u200D\u2642\uFE0F\uD83D\uDE4B\u200D\u2640\uFE0F \u3075\u305F\u308A\u3067\uFF01”), /*#**PURE***/React.createElement(“button”, {
 onClick: resetToTitle,
-style: {
-…btnBase,
+style: _objectSpread(_objectSpread({}, btnBase), {}, {
 marginTop: 8,
 padding: “10px 24px”,
 fontSize: “clamp(14px,3.5vw,18px)”,
@@ -1081,13 +1158,13 @@ border: “2px solid rgba(0,0,0,0.15)”,
 borderRadius: 16,
 color: “#5D4037”,
 zIndex: 10
-}
+})
 }, “\u2190 \u3082\u3069\u308B”));
 }
 
 /* ====== CHARACTER SELECT ====== */
 if (screen === “charSelect”) {
-const isP2Pick = playerCount === 2 && p1Char;
+var isP2Pick = playerCount === 2 && p1Char;
 return /*#**PURE***/React.createElement(“div”, {
 style: {
 width: “100%”,
@@ -1130,10 +1207,11 @@ zIndex: 10,
 animation: “scaleIn 0.5s ease-out 0.2s both”
 }
 }, /*#**PURE***/React.createElement(“button”, {
-onClick: () => selectChar(“rabbit”),
+onClick: function onClick() {
+return selectChar(“rabbit”);
+},
 className: “tap-btn”,
-style: {
-…btnBase,
+style: _objectSpread(_objectSpread({}, btnBase), {}, {
 padding: 16,
 width: “clamp(140px,38vw,170px)”,
 background: “linear-gradient(180deg,#FFF5F5 0%,#FFE0E0 100%)”,
@@ -1144,7 +1222,7 @@ display: “flex”,
 flexDirection: “column”,
 alignItems: “center”,
 gap: 8
-}
+})
 }, /*#**PURE***/React.createElement(RabbitCharacter, {
 sleeping: false,
 bouncing: false,
@@ -1162,10 +1240,11 @@ color: “#999”,
 fontWeight: 700
 }
 }, “\u306F\u3084\u3044\uFF01\u3067\u3082\u2026”)), /*#**PURE***/React.createElement(“button”, {
-onClick: () => selectChar(“turtle”),
+onClick: function onClick() {
+return selectChar(“turtle”);
+},
 className: “tap-btn”,
-style: {
-…btnBase,
+style: _objectSpread(_objectSpread({}, btnBase), {}, {
 padding: 16,
 width: “clamp(140px,38vw,170px)”,
 background: “linear-gradient(180deg,#F1F8E9 0%,#DCEDC8 100%)”,
@@ -1176,7 +1255,7 @@ display: “flex”,
 flexDirection: “column”,
 alignItems: “center”,
 gap: 8
-}
+})
 }, /*#**PURE***/React.createElement(TurtleCharacter, {
 bouncing: false,
 variant: isP2Pick && p1Char === “turtle” ? 2 : 1
@@ -1204,13 +1283,12 @@ borderRadius: 12,
 textAlign: “center”
 }
 }, “P1\u306F “, p1Char === “rabbit” ? “🐰 ウサギ” : “🐢 カメ”, “ \u3092\u3048\u3089\u3093\u3060\u3088\uFF01”, “\n”, “\u304A\u306A\u3058\u30AD\u30E3\u30E9\u3082 \u3048\u3089\u3079\u308B\u3088\u266A”), /*#**PURE***/React.createElement(“button”, {
-onClick: () => {
+onClick: function onClick() {
 setP1Char(null);
 setP2Char(null);
 setScreen(“playerSelect”);
 },
-style: {
-…btnBase,
+style: _objectSpread(_objectSpread({}, btnBase), {}, {
 marginTop: 4,
 padding: “10px 24px”,
 fontSize: “clamp(14px,3.5vw,18px)”,
@@ -1221,16 +1299,16 @@ border: “2px solid rgba(0,0,0,0.15)”,
 borderRadius: 16,
 color: “#5D4037”,
 zIndex: 10
-}
+})
 }, “\u2190 \u3082\u3069\u308B”));
 }
 
 /* ====== RACE ====== */
 if (screen === “race”) {
-const p1BtnBg = p1Sleeping ? “linear-gradient(180deg,#9E9E9E 0%,#757575 100%)” : p1Char === “rabbit” ? p1Variant === 1 ? “linear-gradient(180deg,#FF8A80 0%,#FF5252 100%)” : “linear-gradient(180deg,#8A8AFF 0%,#5252FF 100%)” : p1Variant === 1 ? “linear-gradient(180deg,#69F0AE 0%,#00C853 100%)” : “linear-gradient(180deg,#5CE0E8 0%,#00B8C8 100%)”;
-const p2BtnBg = p2Sleeping ? “linear-gradient(180deg,#9E9E9E 0%,#757575 100%)” : p2Char === “rabbit” ? p2Variant === 1 ? “linear-gradient(180deg,#FF8A80 0%,#FF5252 100%)” : “linear-gradient(180deg,#8A8AFF 0%,#5252FF 100%)” : p2Variant === 1 ? “linear-gradient(180deg,#69F0AE 0%,#00C853 100%)” : “linear-gradient(180deg,#5CE0E8 0%,#00B8C8 100%)”;
-const p1BtnBorder = p1Sleeping ? “#616161” : p1Char === “rabbit” ? p1Variant === 1 ? “#D32F2F” : “#3030CC” : p1Variant === 1 ? “#00962e” : “#008090”;
-const p2BtnBorder = p2Sleeping ? “#616161” : p2Char === “rabbit” ? p2Variant === 1 ? “#D32F2F” : “#3030CC” : p2Variant === 1 ? “#00962e” : “#008090”;
+var p1BtnBg = p1Sleeping ? “linear-gradient(180deg,#9E9E9E 0%,#757575 100%)” : p1Char === “rabbit” ? p1Variant === 1 ? “linear-gradient(180deg,#FF8A80 0%,#FF5252 100%)” : “linear-gradient(180deg,#8A8AFF 0%,#5252FF 100%)” : p1Variant === 1 ? “linear-gradient(180deg,#69F0AE 0%,#00C853 100%)” : “linear-gradient(180deg,#5CE0E8 0%,#00B8C8 100%)”;
+var p2BtnBg = p2Sleeping ? “linear-gradient(180deg,#9E9E9E 0%,#757575 100%)” : p2Char === “rabbit” ? p2Variant === 1 ? “linear-gradient(180deg,#FF8A80 0%,#FF5252 100%)” : “linear-gradient(180deg,#8A8AFF 0%,#5252FF 100%)” : p2Variant === 1 ? “linear-gradient(180deg,#69F0AE 0%,#00C853 100%)” : “linear-gradient(180deg,#5CE0E8 0%,#00B8C8 100%)”;
+var p1BtnBorder = p1Sleeping ? “#616161” : p1Char === “rabbit” ? p1Variant === 1 ? “#D32F2F” : “#3030CC” : p1Variant === 1 ? “#00962e” : “#008090”;
+var p2BtnBorder = p2Sleeping ? “#616161” : p2Char === “rabbit” ? p2Variant === 1 ? “#D32F2F” : “#3030CC” : p2Variant === 1 ? “#00962e” : “#008090”;
 return /*#**PURE***/React.createElement(“div”, {
 style: {
 width: “100%”,
@@ -1335,7 +1413,7 @@ bottom: 20
 }, /*#**PURE***/React.createElement(GoalFlag, null)), /*#**PURE***/React.createElement(“div”, {
 style: {
 position: “absolute”,
-left: `${5 + p1Pos / TRACK_LENGTH * 78}%`,
+left: “”.concat(5 + p1Pos / TRACK_LENGTH * 78, “%”),
 bottom: 22,
 transition: “left 0.15s ease-out”,
 zIndex: 10
@@ -1352,7 +1430,7 @@ showBadge: sameChar
 })), p1Sleeping && /*#**PURE***/React.createElement(“div”, {
 style: {
 position: “absolute”,
-left: `${10 + p1Pos / TRACK_LENGTH * 78}%`,
+left: “”.concat(10 + p1Pos / TRACK_LENGTH * 78, “%”),
 bottom: 85,
 zIndex: 15,
 background: “rgba(100,100,200,0.9)”,
@@ -1410,7 +1488,7 @@ bottom: 20
 }, /*#**PURE***/React.createElement(GoalFlag, null)), /*#**PURE***/React.createElement(“div”, {
 style: {
 position: “absolute”,
-left: `${5 + p2Pos / TRACK_LENGTH * 78}%`,
+left: “”.concat(5 + p2Pos / TRACK_LENGTH * 78, “%”),
 bottom: 22,
 transition: “left 0.15s ease-out”,
 zIndex: 10
@@ -1427,7 +1505,7 @@ showBadge: sameChar
 })), p2Sleeping && /*#**PURE***/React.createElement(“div”, {
 style: {
 position: “absolute”,
-left: `${10 + p2Pos / TRACK_LENGTH * 78}%`,
+left: “”.concat(10 + p2Pos / TRACK_LENGTH * 78, “%”),
 bottom: 85,
 zIndex: 15,
 background: “rgba(100,100,200,0.9)”,
@@ -1466,23 +1544,24 @@ padding: “0 8px”,
 paddingBottom: “max(16px, env(safe-area-inset-bottom))”
 }
 }, /*#**PURE***/React.createElement(“button”, {
-onTouchStart: e => {
+onTouchStart: function onTouchStart(e) {
 e.preventDefault();
 handleTap(1);
 },
-onMouseDown: () => handleTap(1),
+onMouseDown: function onMouseDown() {
+return handleTap(1);
+},
 className: “tap-btn”,
-style: {
-…btnBase,
+style: _objectSpread(_objectSpread({}, btnBase), {}, {
 flex: 1,
 height: playerCount === 2 ? “clamp(140px,28vh,200px)” : “clamp(160px,32vh,220px)”,
 fontSize: “clamp(28px,7vw,40px)”,
 fontFamily: “‘Darumadrop One’,cursive”,
 background: p1BtnBg,
 color: “white”,
-border: `4px solid ${p1BtnBorder}`,
+border: “4px solid “.concat(p1BtnBorder),
 borderRadius: 28,
-boxShadow: p1Sleeping ? “0 6px 0 #616161” : `0 6px 0 ${p1BtnBorder},0 8px 20px rgba(0,0,0,0.15)`,
+boxShadow: p1Sleeping ? “0 6px 0 #616161” : “0 6px 0 “.concat(p1BtnBorder, “,0 8px 20px rgba(0,0,0,0.15)”),
 display: “flex”,
 flexDirection: “column”,
 alignItems: “center”,
@@ -1490,7 +1569,7 @@ justifyContent: “center”,
 gap: 8,
 opacity: p1Sleeping ? 0.7 : 1,
 transition: “background 0.3s,opacity 0.3s”
-}
+})
 }, p1Sleeping ? /*#**PURE***/React.createElement(React.Fragment, null, /*#**PURE***/React.createElement(“span”, {
 style: {
 fontSize: “clamp(36px,9vw,50px)”
@@ -1504,23 +1583,24 @@ style: {
 fontSize: “clamp(14px,3.5vw,18px)”
 }
 }, playerCount === 2 ? “P1 れんだ！” : “れんだ！！”))), playerCount === 2 && /*#**PURE***/React.createElement(“button”, {
-onTouchStart: e => {
+onTouchStart: function onTouchStart(e) {
 e.preventDefault();
 handleTap(2);
 },
-onMouseDown: () => handleTap(2),
+onMouseDown: function onMouseDown() {
+return handleTap(2);
+},
 className: “tap-btn”,
-style: {
-…btnBase,
+style: _objectSpread(_objectSpread({}, btnBase), {}, {
 flex: 1,
 height: “clamp(140px,28vh,200px)”,
 fontSize: “clamp(28px,7vw,40px)”,
 fontFamily: “‘Darumadrop One’,cursive”,
 background: p2BtnBg,
 color: “white”,
-border: `4px solid ${p2BtnBorder}`,
+border: “4px solid “.concat(p2BtnBorder),
 borderRadius: 28,
-boxShadow: p2Sleeping ? “0 6px 0 #616161” : `0 6px 0 ${p2BtnBorder},0 8px 20px rgba(0,0,0,0.15)`,
+boxShadow: p2Sleeping ? “0 6px 0 #616161” : “0 6px 0 “.concat(p2BtnBorder, “,0 8px 20px rgba(0,0,0,0.15)”),
 display: “flex”,
 flexDirection: “column”,
 alignItems: “center”,
@@ -1528,7 +1608,7 @@ justifyContent: “center”,
 gap: 8,
 opacity: p2Sleeping ? 0.7 : 1,
 transition: “background 0.3s,opacity 0.3s”
-}
+})
 }, p2Sleeping ? /*#**PURE***/React.createElement(React.Fragment, null, /*#**PURE***/React.createElement(“span”, {
 style: {
 fontSize: “clamp(36px,9vw,50px)”
@@ -1572,19 +1652,21 @@ background: “rgba(0,0,0,0.5)”,
 zIndex: 50,
 animation: “fadeIn 0.5s ease-out”
 }
-}, […Array(20)].map((_, i) => /*#**PURE***/React.createElement(“div”, {
+}, *toConsumableArray(Array(20)).map(function (*, i) {
+return /*#**PURE***/React.createElement(“div”, {
 key: i,
 style: {
 position: “absolute”,
-left: `${Math.random() * 100}%`,
+left: “”.concat(Math.random() * 100, “%”),
 top: -20,
 width: 10,
 height: 10,
 borderRadius: Math.random() > 0.5 ? “50%” : “2px”,
 background: [”#FF6B35”, “#FFD93D”, “#4CAF50”, “#42A5F5”, “#FF6B9D”, “#9C27B0”][i % 6],
-animation: `confetti ${2 + Math.random() * 2}s ease-in ${Math.random() * 0.5}s forwards`
+animation: “confetti “.concat(2 + Math.random() * 2, “s ease-in “).concat(Math.random() * 0.5, “s forwards”)
 }
-})), /*#**PURE***/React.createElement(“div”, {
+});
+}), /*#**PURE***/React.createElement(“div”, {
 style: {
 background: “rgba(255,255,255,0.95)”,
 borderRadius: 32,
@@ -1626,15 +1708,14 @@ justifyContent: “center”,
 flexWrap: “wrap”
 }
 }, /*#**PURE***/React.createElement(“button”, {
-onClick: () => {
+onClick: function onClick() {
 setP1Char(null);
 setP2Char(null);
 setScreen(“charSelect”);
 setWinner(null);
 },
 className: “tap-btn”,
-style: {
-…btnBase,
+style: _objectSpread(_objectSpread({}, btnBase), {}, {
 padding: “14px 28px”,
 fontSize: “clamp(16px,4vw,22px)”,
 fontFamily: “‘Darumadrop One’,cursive”,
@@ -1643,12 +1724,11 @@ color: “white”,
 border: “3px solid #C44E1C”,
 borderRadius: 20,
 boxShadow: “0 4px 0 #C44E1C”
-}
+})
 }, “\u3082\u3046 \u3044\u3063\u304B\u3044\uFF01”), /*#**PURE***/React.createElement(“button”, {
 onClick: resetToTitle,
 className: “tap-btn”,
-style: {
-…btnBase,
+style: _objectSpread(_objectSpread({}, btnBase), {}, {
 padding: “14px 28px”,
 fontSize: “clamp(16px,4vw,22px)”,
 fontFamily: “‘Darumadrop One’,cursive”,
@@ -1657,13 +1737,13 @@ color: “white”,
 border: “3px solid #37474F”,
 borderRadius: 20,
 boxShadow: “0 4px 0 #37474F”
-}
+})
 }, “\u30BF\u30A4\u30C8\u30EB\u3078”)))));
 }
 return null;
 }
 ReactDOM.createRoot(document.getElementById(“root”)).render(React.createElement(UsagiKameRace));
-</script>
 
+</script>
 </body>
 </html>
