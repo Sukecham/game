@@ -234,7 +234,7 @@ sw: 0.4 + Math.random()*0.3,
 swp: Math.random()*Math.PI*2,
 };
 }
-function makePlayer(){ return { x:W/2, y:H-110, tx:W/2, ty:H-110, r:18, cooldown:0, inv:1.5, flash:0 }; }
+function makePlayer(){ return { x:W/2, y:H-180, tx:W/2, ty:H-180, r:18, cooldown:0, inv:1.5, flash:0 }; }
 
 const ENEMY_COLORS = [
 { hue:0, sat:0 }, { hue:350, sat:80 }, { hue:45, sat:90 },
@@ -389,9 +389,18 @@ el.classList.toggle(‘boss’, isBoss);
 el.classList.remove(‘show’); void el.offsetWidth; el.classList.add(‘show’);
 }
 
-let dragging=false, dragOff={x:0,y:0};
-function pDown(x, y){ if (G.state !== ‘play’) return; const p = G.player; dragging = true; dragOff.x = p.x - x; dragOff.y = p.y - y; }
-function pMove(x, y){ if (!dragging || G.state !== ‘play’) return; const p = G.player; p.tx = clamp(x + dragOff.x, 30, W-30); p.ty = clamp(y + dragOff.y, 80, H-30); }
+let dragging=false;
+function pDown(x, y){
+if (G.state !== ‘play’) return;
+dragging = true;
+G.player.tx = clamp(x, 30, W-30);
+G.player.ty = clamp(y - 60, 80, H-30);
+}
+function pMove(x, y){
+if (!dragging || G.state !== ‘play’) return;
+G.player.tx = clamp(x, 30, W-30);
+G.player.ty = clamp(y - 60, 80, H-30);
+}
 function pUp(){ dragging = false; }
 cv.addEventListener(‘touchstart’, e=>{ e.preventDefault(); const t=e.touches[0]; pDown(t.clientX, t.clientY); ac(); }, {passive:false});
 cv.addEventListener(‘touchmove’,  e=>{ e.preventDefault(); const t=e.touches[0]; pMove(t.clientX, t.clientY); }, {passive:false});
@@ -1714,7 +1723,7 @@ pc.innerHTML = chips.map(c => `<div class="pchip" style="color:${c.col}">${c.lab
 }
 
 function startGame(){
-ac();
+try { ac(); } catch(e){}
 G.state = ‘play’;
 G.score = 0; G.wave = 1; G.lives = 3; G.coin = 0; G.kills = 0;
 G.arrowLv = 1; G.fireRate = 1; G.wing = 0; G.thunder = 0; G.pierce = 0;
@@ -1764,10 +1773,10 @@ last = performance.now();
 }
 
 function bindBtn(id, fn){
-const el = document.getElementById(id);
+var el = document.getElementById(id);
 if (!el) return;
-el.addEventListener(‘click’, e=>{
-e.stopPropagation();
+el.addEventListener(‘click’, function(e){
+if (e) e.stopPropagation();
 try { fn(e); } catch(err){ console.error(err); }
 });
 }
@@ -1775,7 +1784,7 @@ bindBtn(‘startBtn’, startGame);
 bindBtn(‘retryBtn’, startGame);
 bindBtn(‘pauseBtn’, togglePause);
 bindBtn(‘resumeBtn’, togglePause);
-bindBtn(‘quitBtn’, ()=>{
+bindBtn(‘quitBtn’, function(){
 document.getElementById(‘pause’).style.display = ‘none’;
 document.getElementById(‘gameover’).style.display = ‘none’;
 document.getElementById(‘title’).style.display = ‘flex’;
@@ -1783,14 +1792,13 @@ document.getElementById(‘bossbar’).style.display = ‘none’;
 document.body.classList.add(‘modal-open’);
 G.state = ‘title’;
 });
-bindBtn(‘soundBtn’, ()=>{
+bindBtn(‘soundBtn’, function(){
 G.soundOn = !G.soundOn;
-localStorage.setItem(‘ryusho_snd’, G.soundOn ? ‘1’ : ‘0’);
-const sb = document.getElementById(‘soundBtn’);
+try { localStorage.setItem(‘ryusho_snd’, G.soundOn ? ‘1’ : ‘0’); } catch(e){}
+var sb = document.getElementById(‘soundBtn’);
 sb.textContent = G.soundOn ? ‘🔊’ : ‘🔇’;
 sb.classList.toggle(‘muted’, !G.soundOn);
 });
-// 起動時にmodal-openを付けて、タイトル画面の操作を最優先に
 document.body.classList.add(‘modal-open’);
 (function(){
 const sb = document.getElementById(‘soundBtn’);
