@@ -15,6 +15,9 @@ html,body{width:100%;height:100%;background:var(--ink);overflow:hidden;touch-act
 body{font-family:'Shippori Mincho B1',serif;color:var(--ivory)}
 #wrap{position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(200,22,29,0.18) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(107,44,140,0.18) 0%,transparent 55%),linear-gradient(180deg,#0a0810 0%,#050308 100%)}
 canvas{display:block;touch-action:none;position:absolute;inset:0}
+body.modal-open #bombBtn,
+body.modal-open #topbtns,
+body.modal-open canvas { pointer-events:none !important; }
 #hud{position:fixed;top:env(safe-area-inset-top,0);left:0;right:0;padding:12px 14px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10}
 .hud-left,.hud-right{display:flex;flex-direction:column;gap:6px}
 .hud-right{align-items:flex-end}
@@ -1722,6 +1725,7 @@ spawnWave();
 document.getElementById(‘title’).style.display = ‘none’;
 document.getElementById(‘gameover’).style.display = ‘none’;
 document.getElementById(‘pause’).style.display = ‘none’;
+document.body.classList.remove(‘modal-open’);
 updateHUD();
 }
 
@@ -1732,7 +1736,10 @@ document.getElementById(‘goScore’).textContent = G.score.toLocaleString();
 document.getElementById(‘goWave’).textContent = G.wave;
 document.getElementById(‘goKill’).textContent = G.kills;
 document.getElementById(‘goBest’).textContent = G.best.toLocaleString();
-setTimeout(()=>{ document.getElementById(‘gameover’).style.display = ‘flex’; }, 800);
+setTimeout(()=>{
+document.getElementById(‘gameover’).style.display = ‘flex’;
+document.body.classList.add(‘modal-open’);
+}, 800);
 sfxLose();
 }
 
@@ -1740,9 +1747,11 @@ function togglePause(){
 if (G.state === ‘play’){
 G.prev = G.state; G.state = ‘paused’;
 document.getElementById(‘pause’).style.display = ‘flex’;
+document.body.classList.add(‘modal-open’);
 } else if (G.state === ‘paused’){
 G.state = G.prev || ‘play’;
 document.getElementById(‘pause’).style.display = ‘none’;
+document.body.classList.remove(‘modal-open’);
 last = performance.now();
 }
 }
@@ -1750,8 +1759,19 @@ last = performance.now();
 function bindBtn(id, fn){
 const el = document.getElementById(id);
 if (!el) return;
-el.addEventListener(‘click’, fn);
-el.addEventListener(‘touchend’, e => { e.preventDefault(); fn(e); }, {passive:false});
+// pointerdown で即時反応（click遅延・preventDefault問題を回避）
+let triggered = false;
+el.addEventListener(‘pointerdown’, e=>{
+e.stopPropagation();
+triggered = true;
+fn(e);
+setTimeout(()=>{ triggered = false; }, 500);
+});
+el.addEventListener(‘click’, e=>{
+e.stopPropagation();
+if (!triggered) fn(e);
+triggered = false;
+});
 }
 bindBtn(‘startBtn’, startGame);
 bindBtn(‘retryBtn’, startGame);
@@ -1762,6 +1782,7 @@ document.getElementById(‘pause’).style.display = ‘none’;
 document.getElementById(‘gameover’).style.display = ‘none’;
 document.getElementById(‘title’).style.display = ‘flex’;
 document.getElementById(‘bossbar’).style.display = ‘none’;
+document.body.classList.add(‘modal-open’);
 G.state = ‘title’;
 });
 bindBtn(‘soundBtn’, ()=>{
@@ -1771,6 +1792,8 @@ const sb = document.getElementById(‘soundBtn’);
 sb.textContent = G.soundOn ? ‘🔊’ : ‘🔇’;
 sb.classList.toggle(‘muted’, !G.soundOn);
 });
+// 起動時にmodal-openを付けて、タイトル画面の操作を最優先に
+document.body.classList.add(‘modal-open’);
 (function(){
 const sb = document.getElementById(‘soundBtn’);
 sb.textContent = G.soundOn ? ‘🔊’ : ‘🔇’;
