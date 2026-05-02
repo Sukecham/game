@@ -1747,22 +1747,29 @@ last = performance.now();
 }
 }
 
-document.getElementById(‘startBtn’).addEventListener(‘click’, startGame);
-document.getElementById(‘retryBtn’).addEventListener(‘click’, startGame);
-document.getElementById(‘pauseBtn’).addEventListener(‘click’, togglePause);
-document.getElementById(‘resumeBtn’).addEventListener(‘click’, togglePause);
-document.getElementById(‘quitBtn’).addEventListener(‘click’, ()=>{
+function bindBtn(id, fn){
+const el = document.getElementById(id);
+if (!el) return;
+el.addEventListener(‘click’, fn);
+el.addEventListener(‘touchend’, e => { e.preventDefault(); fn(e); }, {passive:false});
+}
+bindBtn(‘startBtn’, startGame);
+bindBtn(‘retryBtn’, startGame);
+bindBtn(‘pauseBtn’, togglePause);
+bindBtn(‘resumeBtn’, togglePause);
+bindBtn(‘quitBtn’, ()=>{
 document.getElementById(‘pause’).style.display = ‘none’;
 document.getElementById(‘gameover’).style.display = ‘none’;
 document.getElementById(‘title’).style.display = ‘flex’;
 document.getElementById(‘bossbar’).style.display = ‘none’;
 G.state = ‘title’;
 });
-document.getElementById(‘soundBtn’).addEventListener(‘click’, e=>{
+bindBtn(‘soundBtn’, ()=>{
 G.soundOn = !G.soundOn;
 localStorage.setItem(‘ryusho_snd’, G.soundOn ? ‘1’ : ‘0’);
-e.currentTarget.textContent = G.soundOn ? ‘🔊’ : ‘🔇’;
-e.currentTarget.classList.toggle(‘muted’, !G.soundOn);
+const sb = document.getElementById(‘soundBtn’);
+sb.textContent = G.soundOn ? ‘🔊’ : ‘🔇’;
+sb.classList.toggle(‘muted’, !G.soundOn);
 });
 (function(){
 const sb = document.getElementById(‘soundBtn’);
@@ -1778,7 +1785,10 @@ G.player = makePlayer();
 updateHUD();
 requestAnimationFrame(loop);
 
-document.addEventListener(‘touchmove’, e => { e.preventDefault(); }, {passive:false});
+document.addEventListener(‘touchmove’, e => {
+// プレイ中のみスクロール抑制（タイトル/ゲームオーバー画面ではボタン操作を妨げない）
+if (G.state === ‘play’) e.preventDefault();
+}, {passive:false});
 document.addEventListener(‘gesturestart’, e => e.preventDefault());
 
 </script>
