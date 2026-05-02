@@ -14,10 +14,17 @@
 html,body{width:100%;height:100%;background:var(--ink);overflow:hidden;touch-action:none;overscroll-behavior:none}
 body{font-family:'Shippori Mincho B1',serif;color:var(--ivory)}
 #wrap{position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(200,22,29,0.18) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(107,44,140,0.18) 0%,transparent 55%),linear-gradient(180deg,#0a0810 0%,#050308 100%)}
-canvas{display:block;touch-action:none;position:absolute;inset:0}
+canvas{display:block;touch-action:none;position:absolute;inset:0;z-index:1}
+body.modal-open canvas,
 body.modal-open #bombBtn,
 body.modal-open #topbtns,
-body.modal-open canvas { pointer-events:none !important; }
+body.modal-open #hud,
+body.modal-open #powers { pointer-events:none !important; }
+body.modal-open #bombBtn,
+body.modal-open #topbtns,
+body.modal-open #hud,
+body.modal-open #powers,
+body.modal-open #bossbar { display:none !important; }
 #hud{position:fixed;top:env(safe-area-inset-top,0);left:0;right:0;padding:12px 14px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10}
 .hud-left,.hud-right{display:flex;flex-direction:column;gap:6px}
 .hud-right{align-items:flex-end}
@@ -53,7 +60,7 @@ body.modal-open canvas { pointer-events:none !important; }
 #wave-announce.show{animation:waveann 2.4s ease-out forwards}
 @keyframes waveann{0%{opacity:0;transform:translateY(40px) scale(0.6)}15%{opacity:1;transform:translateY(0) scale(1)}78%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-30px) scale(1.06)}}
 #wave-announce.boss .kanji,#wave-announce.boss .lat{color:var(--vermilion);text-shadow:0 0 14px var(--vermilion),0 0 36px var(--crimson),0 0 60px rgba(200,22,29,0.6)}
-#title,#gameover,#pause{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;z-index:20;background:radial-gradient(ellipse at 50% 30%,rgba(40,10,15,0.7) 0%,transparent 60%),radial-gradient(ellipse at center,rgba(10,8,16,0.92) 0%,rgba(0,0,0,0.97) 70%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#title,#gameover,#pause{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;z-index:1000;background:rgba(5,3,8,0.97)}
 #title h1{font-family:'Yuji Boku',serif;font-size:88px;letter-spacing:20px;padding-left:20px;color:var(--ivory);text-shadow:0 0 8px var(--gold),0 0 24px var(--vermilion),0 0 48px var(--crimson);margin-bottom:8px;animation:titleglow 3s ease-in-out infinite}
 @keyframes titleglow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
 #title .romaji{font-family:'Cinzel',serif;font-size:13px;letter-spacing:14px;color:var(--gold);text-shadow:0 0 6px var(--gold);margin-bottom:6px}
@@ -61,7 +68,7 @@ body.modal-open canvas { pointer-events:none !important; }
 #title .icons-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:32px;max-width:340px}
 .kic{display:flex;flex-direction:column;align-items:center;gap:5px;font-family:'Shippori Mincho B1',serif;font-size:9px;letter-spacing:1px;color:rgba(245,230,211,0.55)}
 .kic .ic{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid currentColor;border-radius:50%;font-family:'Yuji Boku',serif;font-size:18px;box-shadow:0 0 8px currentColor}
-.btn{padding:14px 48px 14px 62px;border:1px solid var(--gold);background:linear-gradient(180deg,rgba(200,22,29,0.5),rgba(120,12,18,0.5));color:var(--ivory);font-family:'Yuji Boku',serif;font-size:18px;letter-spacing:14px;cursor:pointer;box-shadow:0 0 14px rgba(255,58,58,0.5),inset 0 0 12px rgba(200,22,29,0.3);text-shadow:0 0 6px rgba(255,180,180,0.4);margin-top:6px;position:relative}
+.btn{padding:20px 60px 20px 74px;border:2px solid var(--gold);background:linear-gradient(180deg,rgba(200,22,29,0.7),rgba(120,12,18,0.7));color:var(--ivory);font-family:'Yuji Boku',serif;font-size:22px;letter-spacing:14px;cursor:pointer;box-shadow:0 0 20px rgba(255,58,58,0.7),inset 0 0 12px rgba(200,22,29,0.4);text-shadow:0 0 6px rgba(255,180,180,0.4);margin-top:10px;position:relative;z-index:1001;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
 .btn::before,.btn::after{content:'';position:absolute;width:8px;height:8px;border:1px solid var(--gold)}
 .btn::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
 .btn::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
