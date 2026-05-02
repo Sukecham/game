@@ -1759,18 +1759,9 @@ last = performance.now();
 function bindBtn(id, fn){
 const el = document.getElementById(id);
 if (!el) return;
-// pointerdown で即時反応（click遅延・preventDefault問題を回避）
-let triggered = false;
-el.addEventListener(‘pointerdown’, e=>{
-e.stopPropagation();
-triggered = true;
-fn(e);
-setTimeout(()=>{ triggered = false; }, 500);
-});
 el.addEventListener(‘click’, e=>{
 e.stopPropagation();
-if (!triggered) fn(e);
-triggered = false;
+try { fn(e); } catch(err){ console.error(err); }
 });
 }
 bindBtn(‘startBtn’, startGame);
