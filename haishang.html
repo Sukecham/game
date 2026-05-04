@@ -4,6 +4,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#07151c">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>海上 — Hai-Shang Solitaire</title>
 <style>
 :root {
@@ -24,8 +27,9 @@
 html, body {
 height: 100%;
 font-family: “Hiragino Mincho ProN”, “YuMincho”, “Yu Mincho”, “Noto Serif JP”, serif;
-background: var(–bg-deep);
-color: var(–paper);
+background-color: #07151c;
+background: var(–bg-deep, #07151c);
+color: #f4ead5;
 overflow: hidden;
 user-select: none;
 -webkit-user-select: none;
@@ -35,10 +39,10 @@ user-select: none;
 body {
 display: flex;
 flex-direction: column;
+background-color: #07151c;
 background:
-radial-gradient(ellipse at 50% 0%, var(–bg-mid) 0%, var(–bg-deep) 75%),
-repeating-linear-gradient(45deg, transparent 0 6px, rgba(201,169,97,0.012) 6px 7px),
-var(–bg-deep);
+radial-gradient(ellipse at 50% 0%, #102232 0%, #07151c 75%),
+#07151c;
 position: relative;
 }
 
@@ -1310,33 +1314,38 @@ const VW = 50, VH = 66;
 let _svgCounter = 0;
 
 function tileBase(content) {
-  const id = ++_svgCounter;
+  // iOS Safari等での <linearGradient> id参照バグを回避するため、
+  // <defs> を使わず半透明 rect の重ね合わせで疑似グラデーションを実現
   return `<svg viewBox="0 0 ${VW} ${VH}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="bg${id}" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#fef6e0"/>
-        <stop offset="55%" stop-color="#f0e2bb"/>
-        <stop offset="100%" stop-color="#dac897"/>
-      </linearGradient>
-      <linearGradient id="side${id}" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#a88a4e"/>
-        <stop offset="100%" stop-color="#5e4222"/>
-      </linearGradient>
-      <linearGradient id="bottom${id}" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#7d5d2e"/>
-        <stop offset="100%" stop-color="#4a3216"/>
-      </linearGradient>
-    </defs>
-    <path d="M 47.5 4 L 47.5 60 L 45 62.5 L 45 6.5 Z" fill="url(#side${id})"/>
-    <path d="M 4 62.5 L 47.5 62.5 L 45 60 L 6.5 60 Z" fill="url(#bottom${id})"/>
+    <!-- 牌の側面(右と底) -->
+    <path d="M 47.5 4 L 47.5 60 L 45 62.5 L 45 6.5 Z" fill="#7e5e2c"/>
+    <path d="M 47.5 4 L 47.5 32 L 45 34.5 L 45 6.5 Z" fill="#a88a4e" opacity="0.6"/>
+    <path d="M 4 62.5 L 47.5 62.5 L 45 60 L 6.5 60 Z" fill="#5a3d1a"/>
+
+    <!-- 牌の天面(ベースのクリーム色) -->
     <rect x="1" y="1" width="46" height="60" rx="4.5" ry="4.5"
-          fill="url(#bg${id})" stroke="#9a7d44" stroke-width="0.5"/>
+          fill="#f0e2bb" stroke="#9a7d44" stroke-width="0.5"/>
+
+    <!-- 上半分を明るく(疑似グラデーション上層) -->
+    <rect x="1" y="1" width="46" height="34" rx="4.5" ry="4.5" fill="#fef6e0" opacity="0.75"/>
+    <rect x="1" y="1" width="46" height="18" rx="4.5" ry="4.5" fill="#fff8e8" opacity="0.7"/>
+
+    <!-- 下半分を暗く(疑似グラデーション下層) -->
+    <rect x="1" y="44" width="46" height="17" rx="0" fill="#d8c697" opacity="0.55"/>
+    <rect x="1" y="52" width="46" height="9" rx="0" fill="#c5b384" opacity="0.5"/>
+
+    <!-- 内側の彫り枠 -->
     <rect x="3.5" y="3.5" width="41" height="55" rx="2.5" ry="2.5"
           fill="none" stroke="rgba(120,90,40,0.22)" stroke-width="0.4"/>
+
+    <!-- 上端ハイライト -->
     <path d="M 3 2.5 Q 3 1.5 4 1.5 L 44 1.5 Q 45 1.5 45 2.5"
           fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="0.9" stroke-linecap="round"/>
+    <!-- 左端ハイライト -->
     <path d="M 2.5 3 Q 1.5 3 1.5 4 L 1.5 58"
           fill="none" stroke="rgba(255,255,255,0.32)" stroke-width="0.7"/>
+
+    <!-- 絵柄 -->
     <g>${content}</g>
   </svg>`;
 }
