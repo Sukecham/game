@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<title>終電サラリーマンRPG - 酔拳おっさん都市サバイバル</title>
+<style>
+  :root{ --safe-top: env(safe-area-inset-top); --safe-bottom: env(safe-area-inset-bottom); --safe-left: env(safe-area-inset-left); --safe-right: env(safe-area-inset-right); }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+  html,body{ margin:0; width:100%; height:100%; overflow:hidden; background:#070910; touch-action:none; font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif; }
+  #wrap{ position:fixed; inset:0; overflow:hidden; background:#070910; }
+  canvas{ position:absolute; inset:0; width:100%; height:100%; image-rendering:pixelated; image-rendering:crisp-edges; }
+  .hud{ position:absolute; top:calc(9px + var(--safe-top)); left:calc(9px + var(--safe-left)); right:calc(9px + var(--safe-right)); display:grid; grid-template-columns:1fr auto; gap:8px; color:#fff; pointer-events:none; }
+  .panel{ background:rgba(5,7,12,.64); border:1px solid rgba(255,255,255,.14); box-shadow:0 8px 24px rgba(0,0,0,.27); backdrop-filter:blur(9px); border-radius:14px; padding:9px 10px; font-size:11px; line-height:1.32; }
+  .title{ font-weight:900; font-size:13px; letter-spacing:.02em; }
+  .muted{ color:rgba(255,255,255,.72); }
+  .bars{ display:grid; grid-template-columns:48px 1fr 38px; align-items:center; gap:5px; margin-top:5px; }
+  .bar{ height:8px; border-radius:999px; background:rgba(255,255,255,.15); overflow:hidden; border:1px solid rgba(255,255,255,.16); }
+  .bar > i{ display:block; height:100%; width:0%; border-radius:999px; transition:width .08s linear; }
+  #hpBar{ background:linear-gradient(90deg,#6cff9f,#2fc96f); }
+  #drunkBar{ background:linear-gradient(90deg,#ffd76b,#ff795c,#c15cff); }
+  #staminaBar{ background:linear-gradient(90deg,#61c8ff,#4d7dff); }
+  .mission{ font-weight:800; color:#ffe88b; }
+  #joystick{ position:absolute; left:calc(18px + var(--safe-left)); bottom:calc(24px + var(--safe-bottom)); width:132px; height:132px; border-radius:50%; background:radial-gradient(circle,rgba(255,255,255,.15),rgba(255,255,255,.05)); border:1px solid rgba(255,255,255,.18); box-shadow:0 10px 28px rgba(0,0,0,.35); touch-action:none; }
+  #stick{ position:absolute; left:41px; top:41px; width:50px; height:50px; border-radius:50%; background:rgba(255,255,255,.84); border:2px solid rgba(0,0,0,.25); box-shadow:0 5px 14px rgba(0,0,0,.35); }
+  .buttons{ position:absolute; right:calc(14px + var(--safe-right)); bottom:calc(22px + var(--safe-bottom)); display:grid; grid-template-columns:72px 72px; grid-template-rows:72px 72px; gap:11px; align-items:center; justify-items:center; touch-action:none; }
+  .btn{ width:72px; height:72px; border-radius:23px; display:flex; align-items:center; justify-content:center; text-align:center; color:#fff; font-weight:900; font-size:12px; background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.08)); border:1px solid rgba(255,255,255,.18); box-shadow:0 10px 28px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.22); backdrop-filter:blur(8px); }
+  .btn:active,.btn.active{ transform:translateY(2px) scale(.98); background:linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,255,255,.12)); }
+  #attack{ grid-column:2; grid-row:1; width:82px; height:82px; border-radius:28px; background:linear-gradient(180deg,rgba(255,94,94,.94),rgba(143,30,46,.88)); }
+  #dash{ grid-column:1; grid-row:2; }
+  #water{ grid-column:2; grid-row:2; background:linear-gradient(180deg,rgba(96,190,255,.85),rgba(45,88,164,.82)); }
+  .tip{ position:absolute; left:50%; transform:translateX(-50%); bottom:calc(168px + var(--safe-bottom)); color:rgba(255,255,255,.88); font-size:11px; padding:7px 10px; border-radius:999px; background:rgba(0,0,0,.40); pointer-events:none; white-space:nowrap; }
+  #overlay{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:24px; background:radial-gradient(circle at 50% 35%,rgba(42,55,82,.62),rgba(4,5,9,.88)); color:#fff; z-index:5; }
+  .card{ max-width:430px; width:min(92vw,430px); border-radius:24px; background:rgba(5,8,15,.78); border:1px solid rgba(255,255,255,.16); box-shadow:0 24px 80px rgba(0,0,0,.45); padding:22px; backdrop-filter:blur(12px); }
+  .card h1{ font-size:24px; margin:0 0 8px; line-height:1.18; }
+  .card p{ margin:7px 0; color:rgba(255,255,255,.82); font-size:13px; line-height:1.55; }
+  .card .rule{ background:rgba(255,255,255,.07); border-radius:14px; padding:10px; margin:10px 0; }
+  #startBtn{ margin-top:14px; width:100%; height:52px; border:0; border-radius:16px; color:#1c1010; font-weight:900; font-size:16px; background:linear-gradient(180deg,#ffe88b,#ff9c56); box-shadow:0 12px 30px rgba(0,0,0,.35); }
+  @media (max-width:390px){ #joystick{ width:118px;height:118px;} #stick{ left:36px;top:36px;width:46px;height:46px;} .buttons{ grid-template-columns:66px 66px; grid-template-rows:66px 66px; gap:9px; } .btn{ width:66px;height:66px;border-radius:21px;font-size:11px;} #attack{ width:74px;height:74px;} .panel{font-size:10.5px;} .tip{font-size:10.5px;} }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+  <div class="hud">
+    <div class="panel">
+      <div class="title">終電サラリーマンRPG</div>
+      <div class="mission" id="mission">企画書を集めて駅へ向かえ</div>
+      <div class="bars"><span>体力</span><div class="bar"><i id="hpBar"></i></div><b id="hpTxt">100</b></div>
+      <div class="bars"><span>酔い</span><div class="bar"><i id="drunkBar"></i></div><b id="drunkTxt">0</b></div>
+      <div class="bars"><span>気力</span><div class="bar"><i id="staminaBar"></i></div><b id="staminaTxt">100</b></div>
+    </div>
+    <div class="panel" id="scorePanel">loading...</div>
+  </div>
+  <div id="joystick"><div id="stick"></div></div>
+  <div class="buttons">
+    <div class="btn" id="attack">書類<br>アタック</div>
+    <div class="btn" id="dash">DASH</div>
+    <div class="btn" id="water">お冷<br>0</div>
+  </div>
+  <div class="tip">酒はパワー。飲みすぎは記憶喪失。水で整えて終電へ。</div>
+  <div id="overlay">
+    <div class="card">
+      <h1 id="ovTitle">終電サラリーマンRPG</h1>
+      <p id="ovLead">都会をさまようサラリーマンおっさん。終電までに企画書を6枚回収し、駅へたどり着け。</p>
+      <div class="rule" id="ovRules">
+        <p>🍺 ビール・日本酒：酔いゲージ上昇。速度と書類アタックが強化。</p>
+        <p>💧 お冷：酔いを下げて体力回復。飲みすぎ事故を防ぐ。</p>
+        <p>👔 上司・締切モンスター：接触で体力低下。書類アタックで撃退。</p>
+        <p>🚕 車：道路を走る危険物。避けるか、酔拳で切り抜けろ。</p>
+      </div>
+      <button id="startBtn">ゲーム開始</button>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  const hpBar = document.getElementById('hpBar'), drunkBar = document.getElementById('drunkBar'), staminaBar = document.getElementById('staminaBar');
+  const hpTxt = document.getElementById('hpTxt'), drunkTxt = document.getElementById('drunkTxt'), staminaTxt = document.getElementById('staminaTxt');
+  const scorePanel = document.getElementById('scorePanel'), missionEl = document.getElementById('mission');
+  const overlay = document.getElementById('overlay'), ovTitle = document.getElementById('ovTitle'), ovLead = document.getElementById('ovLead'), ovRules = document.getElementById('ovRules'), startBtn = document.getElementById('startBtn');
+  const waterBtn = document.getElementById('water');
+
+  const FRAME = 128, BLOCK = 520, ROAD = 150;
+  const rowOf = { down:0, left:1, right:2, up:3 };
+  const directions = ['down','left','right','up'];
+  const anims = {
+    idle:{block:0,frames:4,fps:4,loop:true},
+    walk:{block:1,frames:6,fps:8,loop:true},
+    attack:{block:2,frames:5,fps:11,loop:false},
+    hurt:{block:3,frames:3,fps:7,loop:false},
+    dead:{block:4,frames:4,fps:5,loop:false}
+  };
+  const rowsPerAnim = 4;
+  const sheetCanvas = document.createElement('canvas');
+  sheetCanvas.width = 6 * FRAME;
+  sheetCanvas.height = Object.keys(anims).length * rowsPerAnim * FRAME;
+  const sctx = sheetCanvas.getContext('2d');
+  sctx.imageSmoothingEnabled = false;
+
+  const pal = { outline:'#23201e', hair:'#302a23', skin:'#e5b184', shirt:'#eeeee8', suit:'#2d3a4e', suit2:'#1e2737', tie:'#8f222c', shoe:'#191716', bag:'#5c3a20', paper:'#fafaf5', glass:'#f6f8ff' };
+  const rect=(c,x,y,w,h,color)=>{ c.fillStyle=color; c.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h)); };
+  const line=(c,x1,y1,x2,y2,color,w=2)=>{ c.strokeStyle=color; c.lineWidth=w; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke(); };
+
+  function drawSalaryman(c, direction, anim, fi, ox, oy){
+    const cfg=anims[anim]; let bob=0,sway=0,arm=0,leg=0;
+    if(anim==='walk'){ const ph=fi/cfg.frames*Math.PI*2; bob=Math.sin(ph)*2; sway=Math.sin(ph)*3; arm=Math.sin(ph)*6; leg=Math.sin(ph)*5; }
+    if(anim==='idle') bob=(fi===1||fi===2)?1:0;
+    if(anim==='attack'){ arm=[0,6,13,7,0][fi]; sway=[0,2,5,2,0][fi]; }
+    if(anim==='hurt'){ sway=[-5,5,0][fi]; bob=-2; }
+    if(anim==='dead'){
+      c.fillStyle='rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(ox+64,oy+103,34,8,0,0,Math.PI*2); c.fill();
+      rect(c,ox+39,oy+75,52,20,pal.outline); rect(c,ox+42,oy+77,45,14,pal.suit);
+      rect(c,ox+74,oy+65,28,24,pal.outline); rect(c,ox+77,oy+68,21,17,pal.skin); rect(c,ox+78,oy+66,20,7,pal.hair);
+      rect(c,ox+31,oy+86,14,14,pal.outline); rect(c,ox+84,oy+88,20,12,pal.shoe); return;
+    }
+    const cx=ox+64+sway, cy=oy+60+bob; const back=direction==='up', side=direction==='left'||direction==='right';
+    c.fillStyle='rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(cx,cy+52,29,7,0,0,Math.PI*2); c.fill();
+    if(direction==='down'||direction==='up'){
+      rect(c,cx-18-leg/2,cy+40,13,31,pal.outline); rect(c,cx-16-leg/2,cy+42,8,25,pal.suit2);
+      rect(c,cx+6+leg/2,cy+40,13,31,pal.outline); rect(c,cx+8+leg/2,cy+42,8,25,pal.suit2);
+      rect(c,cx-21-leg/2,cy+68,18,9,pal.shoe); rect(c,cx+4+leg/2,cy+68,18,9,pal.shoe);
+    } else {
+      rect(c,cx-8+leg/2,cy+40,14,30,pal.outline); rect(c,cx-6+leg/2,cy+42,9,25,pal.suit2);
+      rect(c,cx-2-leg/2,cy+42,15,29,pal.outline); rect(c,cx,cy+44,10,23,pal.suit); rect(c,cx-14,cy+68,24,9,pal.shoe);
+    }
+    rect(c,cx-25,cy+7,50,42,pal.outline); rect(c,cx-22,cy+10,44,37,pal.suit);
+    if(!back){ rect(c,cx-9,cy+12,18,31,pal.shirt); rect(c,cx-3,cy+14,6,30,pal.tie); rect(c,cx-18,cy+12,9,32,pal.suit2); rect(c,cx+9,cy+12,9,32,pal.suit2); }
+    else { rect(c,cx-20,cy+12,40,33,pal.suit2); rect(c,cx-15,cy+10,30,7,pal.suit); }
+    if(direction==='right'){
+      rect(c,cx+20,cy+25+arm/2,15,33,pal.outline); rect(c,cx+23,cy+29+arm/2,10,25,pal.bag); rect(c,cx-30,cy+16-arm/2,12,33,pal.outline); rect(c,cx-28,cy+19-arm/2,7,27,pal.suit);
+    } else if(direction==='left'){
+      rect(c,cx-35,cy+25+arm/2,15,33,pal.outline); rect(c,cx-32,cy+29+arm/2,10,25,pal.bag); rect(c,cx+18,cy+16-arm/2,12,33,pal.outline); rect(c,cx+21,cy+19-arm/2,7,27,pal.suit);
+    } else {
+      rect(c,cx-36,cy+16+arm/2,12,33,pal.outline); rect(c,cx-34,cy+19+arm/2,7,27,pal.suit); rect(c,cx+24,cy+16-arm/2,12,33,pal.outline); rect(c,cx+27,cy+19-arm/2,7,27,pal.suit); if(direction==='down'){ rect(c,cx+31,cy+44-arm/2,17,23,pal.outline); rect(c,cx+34,cy+48-arm/2,11,16,pal.bag); }
+    }
+    if(anim==='attack'&&(fi===2||fi===3)){
+      if(direction==='right'){ rect(c,cx+38,cy+18,22,15,pal.outline); rect(c,cx+40,cy+20,18,11,pal.paper); }
+      if(direction==='left'){ rect(c,cx-60,cy+18,22,15,pal.outline); rect(c,cx-58,cy+20,18,11,pal.paper); }
+      if(direction==='down'){ rect(c,cx-10,cy+54,23,19,pal.outline); rect(c,cx-8,cy+56,19,15,pal.paper); }
+      if(direction==='up'){ rect(c,cx-10,cy-1,23,17,pal.outline); rect(c,cx-8,cy+1,19,13,pal.paper); }
+    }
+    rect(c,cx-18,cy-25,37,35,pal.outline);
+    if(side){
+      rect(c,cx-15,cy-22,31,30,pal.skin); const sign=direction==='right'?1:-1; rect(c,cx+sign*10-(sign<0?10:0),cy-12,10,11,pal.outline); rect(c,cx+sign*11-(sign<0?9:0),cy-10,8,8,pal.skin); rect(c,cx-16,cy-24,31,10,pal.hair); rect(c,cx-14,cy-25,12,5,pal.hair); rect(c,cx+sign*8,cy-8,3,3,pal.outline); rect(c,cx+sign*10,cy+1,7,2,pal.outline);
+    } else if(back){ rect(c,cx-16,cy-22,33,30,pal.skin); rect(c,cx-18,cy-25,37,16,pal.hair); rect(c,cx-13,cy-23,27,10,pal.hair); }
+    else { rect(c,cx-16,cy-22,33,30,pal.skin); rect(c,cx-17,cy-25,35,10,pal.hair); rect(c,cx-15,cy-19,8,9,pal.hair); rect(c,cx+8,cy-19,8,9,pal.hair); rect(c,cx-6,cy-24,13,4,pal.skin); rect(c,cx-12,cy-9,9,7,pal.outline); rect(c,cx-10,cy-7,5,3,pal.glass); rect(c,cx+4,cy-9,9,7,pal.outline); rect(c,cx+6,cy-7,5,3,pal.glass); line(c,cx-3,cy-6,cx+4,cy-6,pal.outline,1); rect(c,cx-8,cy+2,17,3,pal.hair); rect(c,cx-5,cy+5,11,2,pal.outline); }
+  }
+  function buildSheet(){ Object.keys(anims).forEach(anim=>directions.forEach(dir=>{ for(let i=0;i<anims[anim].frames;i++) drawSalaryman(sctx,dir,anim,i,i*FRAME,(anims[anim].block*rowsPerAnim+rowOf[dir])*FRAME); })); }
+  buildSheet();
+
+  const input={x:0,y:0,active:false};
+  const keys={};
+  const state={ mode:'title', x:0,y:0, dir:'down', anim:'idle', frame:0,timer:0, hp:100, drunk:0, stamina:100, waters:0, docs:0, docsNeed:6, score:0, time:180000, distance:0, dash:false, inv:0, attackTimer:0, attackCooldown:0, message:'', msgT:0, shake:0, blackout:0, kills:0 };
+  const station={x:1520,y:1180};
+  const items=[], enemies=[], particles=[], floats=[];
+
+  function rnd(seed){ return (Math.sin(seed*127.1+311.7)*43758.5453123)%1; }
+  function arnd(seed){ return Math.abs(rnd(seed)); }
+  function resetGame(){
+    Object.assign(state,{mode:'play',x:0,y:0,dir:'down',anim:'idle',frame:0,timer:0,hp:100,drunk:0,stamina:100,waters:0,docs:0,score:0,time:180000,distance:0,dash:false,inv:0,attackTimer:0,attackCooldown:0,message:'企画書を6枚集めて駅へ',msgT:2200,shake:0,blackout:0,kills:0});
+    items.length=0; enemies.length=0; particles.length=0; floats.length=0;
+    seedItems();
+    for(let i=0;i<4;i++) spawnEnemy(true);
+    overlay.style.display='none';
+  }
+  function seedItems(){
+    const docs=[[-620,-420],[620,-360],[-760,610],[640,690],[1180,-720],[-1120,120]];
+    docs.forEach((p,i)=>items.push({type:'doc',x:p[0],y:p[1],got:false,id:'d'+i}));
+    let id=0;
+    for(let gx=-4;gx<=5;gx++) for(let gy=-4;gy<=5;gy++){
+      const bx=gx*420+arnd(id+1)*170-85, by=gy*420+arnd(id+2)*170-85;
+      const r=arnd(id+3); let type=r<.36?'beer':r<.58?'sake':r<.78?'water':r<.90?'coffee':'yakitori';
+      items.push({type,x:bx,y:by,got:false,id:'i'+id,spin:arnd(id+8)*6.28}); id++;
+    }
+  }
+  function spawnEnemy(initial=false){
+    const ang=arnd(enemies.length+state.time/1000+7)*Math.PI*2;
+    const dist=initial?520+arnd(enemies.length+2)*620:520+arnd(enemies.length+3)*420;
+    const type=arnd(enemies.length*9+4)<.38?'boss':(arnd(enemies.length*5+3)<.55?'deadline':'email');
+    enemies.push({type,x:state.x+Math.cos(ang)*dist,y:state.y+Math.sin(ang)*dist,hp:type==='boss'?3:2,stun:0,hit:0,phase:arnd(enemies.length+11)*6.28});
+  }
+
+  function resize(){ const dpr=Math.min(window.devicePixelRatio||1,2); canvas.width=Math.floor(innerWidth*dpr); canvas.height=Math.floor(innerHeight*dpr); canvas.style.width=innerWidth+'px'; canvas.style.height=innerHeight+'px'; ctx.setTransform(dpr,0,0,dpr,0,0); ctx.imageSmoothingEnabled=false; }
+  addEventListener('resize',resize,{passive:false}); resize();
+
+  const joy=document.getElementById('joystick'), stick=document.getElementById('stick'); let joyId=null;
+  function setStick(clientX,clientY){ const r=joy.getBoundingClientRect(); const cx=r.left+r.width/2, cy=r.top+r.height/2; let dx=clientX-cx, dy=clientY-cy; const max=r.width*.33; const len=Math.hypot(dx,dy)||1; if(len>max){dx=dx/len*max; dy=dy/len*max;} input.x=dx/max; input.y=dy/max; input.active=true; stick.style.transform=`translate(${dx}px,${dy}px)`; }
+  function resetStick(){ input.x=0; input.y=0; input.active=false; joyId=null; stick.style.transform='translate(0,0)'; }
+  joy.addEventListener('pointerdown',e=>{ if(state.mode!=='play') return; joyId=e.pointerId; joy.setPointerCapture(joyId); setStick(e.clientX,e.clientY); });
+  joy.addEventListener('pointermove',e=>{ if(e.pointerId===joyId) setStick(e.clientX,e.clientY); });
+  joy.addEventListener('pointerup',resetStick); joy.addEventListener('pointercancel',resetStick);
+  document.getElementById('dash').addEventListener('pointerdown',e=>{ e.preventDefault(); state.dash=true; e.currentTarget.classList.add('active'); });
+  document.getElementById('dash').addEventListener('pointerup',e=>{ state.dash=false; e.currentTarget.classList.remove('active'); });
+  document.getElementById('dash').addEventListener('pointercancel',e=>{ state.dash=false; e.currentTarget.classList.remove('active'); });
+  document.getElementById('attack').addEventListener('pointerdown',e=>{ e.preventDefault(); attack(); });
+  waterBtn.addEventListener('pointerdown',e=>{ e.preventDefault(); useWater(); });
+  startBtn.addEventListener('pointerdown',e=>{ e.preventDefault(); resetGame(); });
+  addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; if(e.key===' ') attack(); if(e.key.toLowerCase()==='e') useWater(); });
+  addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
+  document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+
+  function attack(){
+    if(state.mode!=='play' || state.attackCooldown>0) return;
+    state.anim='attack'; state.frame=0; state.timer=0; state.attackTimer=430; state.attackCooldown=620; state.stamina=Math.max(0,state.stamina-8); spawnBurst(state.x,state.y,'paper');
+  }
+  function useWater(){
+    if(state.mode!=='play' || state.waters<=0) return;
+    state.waters--; state.drunk=Math.max(0,state.drunk-32); state.hp=Math.min(100,state.hp+18); state.message='お冷で整った。酔い -32 / 体力回復'; state.msgT=1800; floatText(state.x,state.y-35,'整った!', '#9ee8ff');
+  }
+  function inputVector(){
+    let vx=input.x, vy=input.y;
+    if(keys['arrowleft']||keys['a']) vx-=1; if(keys['arrowright']||keys['d']) vx+=1; if(keys['arrowup']||keys['w']) vy-=1; if(keys['arrowdown']||keys['s']) vy+=1;
+    const len=Math.hypot(vx,vy); if(len>1){vx/=len; vy/=len;}
+    // 酔いが高いほど入力に揺らぎが出る。メリットだけでなくリスクを作る。
+    if(state.drunk>55 && len>.1){ const wob=Math.sin(performance.now()/260)*(state.drunk-55)/230; const cs=Math.cos(wob), sn=Math.sin(wob); const ox=vx, oy=vy; vx=ox*cs-oy*sn; vy=ox*sn+oy*cs; }
+    return {vx,vy,len:Math.hypot(vx,vy)};
+  }
+  function inputToDir(vx,vy){ if(Math.abs(vx)>Math.abs(vy)) return vx>0?'right':'left'; return vy>0?'down':'up'; }
+
+  function update(dt){
+    if(state.mode!=='play') return;
+    state.time-=dt; state.inv=Math.max(0,state.inv-dt); state.attackTimer=Math.max(0,state.attackTimer-dt); state.attackCooldown=Math.max(0,state.attackCooldown-dt); state.msgT=Math.max(0,state.msgT-dt);
+    state.drunk=Math.max(0,state.drunk-dt*0.0015); state.stamina=Math.min(100,state.stamina+dt*0.018);
+    if(state.drunk>=98){ state.blackout+=dt; state.hp-=dt*0.006; state.message='飲みすぎ危険。お冷を飲め!'; state.msgT=700; } else state.blackout=Math.max(0,state.blackout-dt*2);
+    if(state.blackout>2200) endGame(false,'記憶喪失で路上に倒れた…');
+    const {vx,vy,len}=inputVector(); const moving=len>.12;
+    if(state.dash && state.stamina>3) state.stamina-=dt*0.042;
+    const drunkBoost=1+state.drunk/145;
+    const dashBoost=(state.dash&&state.stamina>2)?1.66:1;
+    if(moving && state.anim!=='attack'){
+      state.dir=inputToDir(vx,vy); const sp=2.35*drunkBoost*dashBoost; state.x+=vx*sp; state.y+=vy*sp; state.distance+=Math.hypot(vx*sp,vy*sp)*.08; state.anim='walk';
+    } else if(state.anim!=='attack') state.anim='idle';
+    const a=anims[state.anim]; state.timer+=dt; if(state.timer>1000/a.fps){ state.timer=0; state.frame++; if(state.frame>=a.frames){ if(a.loop) state.frame=0; else { state.anim=moving?'walk':'idle'; state.frame=0; } } }
+    checkItems(); updateEnemies(dt); updateParticles(dt); checkWinLose();
+  }
+  function checkWinLose(){ if(state.time<=0) endGame(false,'終電を逃した…'); if(state.hp<=0) endGame(false,'社会的体力が尽きた…'); if(state.docs>=state.docsNeed && Math.hypot(state.x-station.x,state.y-station.y)<88) endGame(true,'終電に間に合った!'); }
+  function endGame(clear,reason){ state.mode=clear?'clear':'over'; overlay.style.display='flex'; ovTitle.textContent=clear?'CLEAR! 終電帰宅成功':'GAME OVER'; ovLead.textContent=reason + ` スコア ${state.score} / 撃退 ${state.kills} / 酒 ${Math.round(state.drunk)} / 距離 ${Math.floor(state.distance)}m`; ovRules.innerHTML=clear?'<p>企画書を抱え、酔拳で都会を突破した。明日の会議はたぶん大丈夫。</p>':'<p>酒はパワーだが、飲みすぎと車と上司には勝てない。次はお冷を温存しよう。</p>'; startBtn.textContent='もう一度プレイ'; }
+
+  function checkItems(){
+    for(const it of items){ if(it.got) continue; const d=Math.hypot(it.x-state.x,it.y-state.y); if(d<42){ it.got=true; pickup(it); } }
+  }
+  function pickup(it){
+    let txt='', col='#fff';
+    if(it.type==='doc'){ state.docs++; state.score+=500; txt='企画書 +1'; col='#9ed4ff'; state.message=`企画書 ${state.docs}/${state.docsNeed}`; }
+    if(it.type==='beer'){ state.drunk=Math.min(100,state.drunk+13); state.score+=120; txt='ビール!'; col='#ffd76b'; state.message='ビールで酔拳パワー上昇'; }
+    if(it.type==='sake'){ state.drunk=Math.min(100,state.drunk+25); state.score+=220; txt='日本酒!!'; col='#ffdfef'; state.message='日本酒で大幅パワーアップ'; }
+    if(it.type==='water'){ state.waters++; state.score+=80; txt='お冷ストック'; col='#9ee8ff'; state.message='お冷を入手。右下で使用'; }
+    if(it.type==='coffee'){ state.drunk=Math.max(0,state.drunk-15); state.stamina=Math.min(100,state.stamina+35); state.score+=90; txt='コーヒー'; col='#d7a66b'; state.message='眠気が飛んだ。気力回復'; }
+    if(it.type==='yakitori'){ state.hp=Math.min(100,state.hp+10); state.score+=150; txt='焼き鳥'; col='#ffc56e'; state.message='焼き鳥で体力回復'; }
+    state.msgT=1700; state.shake=it.type==='sake'?10:5; spawnBurst(it.x,it.y,it.type); floatText(it.x,it.y-36,txt,col);
+  }
+  function updateEnemies(dt){
+    if(enemies.length<Math.min(10,4+Math.floor((180000-state.time)/22000))) spawnEnemy(false);
+    for(let i=enemies.length-1;i>=0;i--){
+      const e=enemies[i]; e.stun=Math.max(0,e.stun-dt); e.hit=Math.max(0,e.hit-dt); const dx=state.x-e.x, dy=state.y-e.y, dist=Math.hypot(dx,dy)||1;
+      if(e.stun<=0){ const base=e.type==='boss'?1.05:e.type==='deadline'?1.55:1.25; const sp=base + (180000-state.time)/180000*.55; e.x+=dx/dist*sp; e.y+=dy/dist*sp; if(e.type==='email'){ e.x+=Math.sin(performance.now()/300+e.phase)*.8; e.y+=Math.cos(performance.now()/340+e.phase)*.8; } }
+      if(state.attackTimer>120 && inAttack(e.x,e.y)){ e.hp-=1+Math.floor(state.drunk/55); e.stun=520; e.hit=180; spawnBurst(e.x,e.y,'paper'); floatText(e.x,e.y-30,'HIT!', '#fff2a0'); state.score+=40; state.attackTimer=119; }
+      if(e.hp<=0){ state.score+=e.type==='boss'?450:260; state.kills++; floatText(e.x,e.y-34,e.type==='boss'?'上司撃退!':'撃退!', '#ffef9a'); spawnBurst(e.x,e.y,'ko'); enemies.splice(i,1); continue; }
+      if(dist<34 && state.inv<=0){ damage(e.type==='boss'?17:11, e.type==='boss'?'上司に捕まった!':'締切に追われた!'); e.stun=400; }
+    }
+  }
+  function inAttack(x,y){
+    const p=1+state.drunk/70; const dx=x-state.x, dy=y-state.y; const range=74+32*p, wide=44+10*p;
+    if(state.dir==='right') return dx>12 && dx<range && Math.abs(dy)<wide;
+    if(state.dir==='left') return dx<-12 && -dx<range && Math.abs(dy)<wide;
+    if(state.dir==='down') return dy>12 && dy<range && Math.abs(dx)<wide;
+    return dy<-12 && -dy<range && Math.abs(dx)<wide;
+  }
+  function damage(n,msg){ state.hp-=n; state.inv=900; state.shake=14; state.message=msg; state.msgT=1300; state.anim='hurt'; state.frame=0; state.timer=0; floatText(state.x,state.y-50,'-'+n, '#ff7b7b'); }
+
+  function updateParticles(dt){ for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.life-=dt; p.x+=p.vx; p.y+=p.vy; p.vy-=0.015; if(p.life<=0) particles.splice(i,1); } for(let i=floats.length-1;i>=0;i--){ const f=floats[i]; f.life-=dt; f.y-=.45; if(f.life<=0) floats.splice(i,1); } }
+  function spawnBurst(x,y,type){ for(let i=0;i<12;i++) particles.push({x,y,vx:Math.cos(i/12*Math.PI*2)*(1.2+Math.random()*1.8),vy:Math.sin(i/12*Math.PI*2)*(1.2+Math.random()*1.8),life:480+Math.random()*260,type}); }
+  function floatText(x,y,text,color){ floats.push({x,y,text,color,life:900}); }
+
+  function worldToScreen(x,y){ const wob = state.drunk>60 ? Math.sin(performance.now()/130)*(state.drunk-60)/14 : 0; return {x:x-state.x+innerWidth/2+wob, y:y-state.y+innerHeight*.50}; }
+  function draw(){
+    if(state.shake>0){ state.shake*=.86; ctx.save(); ctx.translate((Math.random()-.5)*state.shake,(Math.random()-.5)*state.shake); }
+    drawCity(); drawStation(); drawItems(); drawCars(); drawEnemies(); drawParticles(); drawPlayer(); drawFloats(); drawAttackHint(); drawArrow(); drawMessage(); drawMiniMap(); drawVignette();
+    if(state.shake>0.2) ctx.restore();
+  }
+  function drawCity(){
+    const w=innerWidth,h=innerHeight; const grad=ctx.createLinearGradient(0,0,0,h); grad.addColorStop(0,'#141d2d'); grad.addColorStop(1,'#090d13'); ctx.fillStyle=grad; ctx.fillRect(0,0,w,h);
+    const sx=Math.floor((state.x-w/2)/BLOCK)-1, ex=Math.floor((state.x+w/2)/BLOCK)+1, sy=Math.floor((state.y-h/2)/BLOCK)-1, ey=Math.floor((state.y+h/2)/BLOCK)+1;
+    for(let gx=sx;gx<=ex;gx++) for(let gy=sy;gy<=ey;gy++){ const wx=gx*BLOCK, wy=gy*BLOCK, p=worldToScreen(wx,wy); ctx.fillStyle='#242936'; ctx.fillRect(p.x-185,p.y-185,370,370); ctx.fillStyle='#3f454f'; ctx.fillRect(p.x-205,p.y-205,410,22); ctx.fillRect(p.x-205,p.y-205,22,410); drawBuilding(p.x-155,p.y-150,105,92,gx*13+gy); drawBuilding(p.x+20,p.y-155,128,112,gx*17+gy*5); drawBuilding(p.x-150,p.y+40,120,112,gx*23+gy*7); ((gx+gy)%4===0)?drawPark(p.x+40,p.y+55):drawStore(p.x+55,p.y+60,gx+gy); }
+    ctx.fillStyle='#2e3138';
+    for(let gx=sx;gx<=ex+1;gx++){ const p=worldToScreen(gx*BLOCK,0); ctx.fillRect(p.x-ROAD/2,0,ROAD,innerHeight); }
+    for(let gy=sy;gy<=ey+1;gy++){ const p=worldToScreen(0,gy*BLOCK); ctx.fillRect(0,p.y-ROAD/2,innerWidth,ROAD); }
+    ctx.strokeStyle='#ddcf78'; ctx.lineWidth=3; ctx.setLineDash([18,18]); for(let gx=sx;gx<=ex+1;gx++){ const p=worldToScreen(gx*BLOCK,0); ctx.beginPath(); ctx.moveTo(p.x,0); ctx.lineTo(p.x,innerHeight); ctx.stroke(); } for(let gy=sy;gy<=ey+1;gy++){ const p=worldToScreen(0,gy*BLOCK); ctx.beginPath(); ctx.moveTo(0,p.y); ctx.lineTo(innerWidth,p.y); ctx.stroke(); } ctx.setLineDash([]);
+    for(let gx=sx;gx<=ex+1;gx++) for(let gy=sy;gy<=ey+1;gy++){ const p=worldToScreen(gx*BLOCK,gy*BLOCK); drawCrosswalk(p.x,p.y); drawTrafficLight(p.x+80,p.y+80,gx+gy); }
+    for(let gx=sx;gx<=ex;gx++) for(let gy=sy;gy<=ey;gy++){ drawVending(...Object.values(worldToScreen(gx*BLOCK+210,gy*BLOCK-215))); drawTree(...Object.values(worldToScreen(gx*BLOCK-210,gy*BLOCK+210))); }
+  }
+  function drawBuilding(x,y,w,h,seed){ ctx.fillStyle=seed%2?'#172033':'#202436'; ctx.fillRect(x,y,w,h); ctx.fillStyle='#0d101a'; ctx.fillRect(x,y,w,7); for(let yy=16;yy<h-16;yy+=24){ for(let xx=10;xx<w-16;xx+=24){ const lit=Math.sin((xx+yy+seed*17+state.y*.015))>-.2; ctx.fillStyle=lit?'#ffd568':'#354257'; ctx.fillRect(x+xx,y+yy,12,14); } } ctx.fillStyle='rgba(255,255,255,.06)'; ctx.fillRect(x+7,y+8,8,h-18); }
+  function drawPark(x,y){ ctx.fillStyle='#1b573d'; ctx.fillRect(x,y,115,90); for(let i=0;i<5;i++) drawTree(x+18+i*20,y+25+(i%2)*28); ctx.fillStyle='rgba(255,255,255,.16)'; ctx.fillRect(x+10,y+76,94,4); }
+  function drawStore(x,y,seed){ ctx.fillStyle=seed%2?'#4b2636':'#24436a'; ctx.fillRect(x,y,118,82); ctx.fillStyle='#f4f0c8'; ctx.fillRect(x+10,y+10,98,20); ctx.fillStyle='#202020'; ctx.fillRect(x+44,y+44,28,38); ctx.fillStyle='rgba(255,255,255,.45)'; ctx.fillRect(x+12,y+42,24,22); ctx.fillRect(x+82,y+42,24,22); }
+  function drawCrosswalk(x,y){ ctx.fillStyle='rgba(245,245,245,.78)'; for(let i=-3;i<=3;i++) ctx.fillRect(x+i*18-6,y-68,12,38); for(let i=-3;i<=3;i++) ctx.fillRect(x-68,y+i*18-6,38,12); }
+  function drawTrafficLight(x,y,seed){ ctx.fillStyle='#101318'; ctx.fillRect(x,y,8,30); ctx.fillStyle=seed%3===0?'#54e07a':'#314538'; ctx.beginPath(); ctx.arc(x+4,y+5,4,0,Math.PI*2); ctx.fill(); ctx.fillStyle=seed%3===1?'#ffe16b':'#514b2a'; ctx.beginPath(); ctx.arc(x+4,y+15,4,0,Math.PI*2); ctx.fill(); ctx.fillStyle=seed%3===2?'#ff5a5a':'#512a2a'; ctx.beginPath(); ctx.arc(x+4,y+25,4,0,Math.PI*2); ctx.fill(); }
+  function drawTree(x,y){ ctx.fillStyle='#392719'; ctx.fillRect(x-3,y+18,6,22); ctx.fillStyle='#1e6b49'; ctx.beginPath(); ctx.arc(x,y+15,15,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#2d895f'; ctx.beginPath(); ctx.arc(x-7,y+8,9,0,Math.PI*2); ctx.fill(); }
+  function drawVending(x,y){ ctx.fillStyle='#8b2030'; ctx.fillRect(x-12,y-28,24,56); ctx.fillStyle='#dbe9ff'; ctx.fillRect(x-8,y-22,16,18); ctx.fillStyle='#222'; ctx.fillRect(x-8,y+3,16,18); }
+  function drawStation(){ const p=worldToScreen(station.x,station.y); ctx.fillStyle='#1d355d'; ctx.fillRect(p.x-92,p.y-70,184,118); ctx.fillStyle='#dce9ff'; ctx.fillRect(p.x-78,p.y-55,156,30); ctx.fillStyle='#17243f'; ctx.font='bold 22px -apple-system'; ctx.textAlign='center'; ctx.fillText('駅',p.x,p.y-32); ctx.fillStyle='#0d1428'; ctx.fillRect(p.x-28,p.y-10,56,58); ctx.textAlign='left'; if(state.docs>=state.docsNeed){ ctx.strokeStyle='#ffe88b'; ctx.lineWidth=5; ctx.strokeRect(p.x-96,p.y-74,192,126); } }
+  function drawItems(){ const t=performance.now()/1000; for(const it of items){ if(it.got) continue; const p=worldToScreen(it.x,it.y); if(p.x<-60||p.y<-60||p.x>innerWidth+60||p.y>innerHeight+60) continue; const bob=Math.sin(t*3+(it.spin||0))*4; ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(p.x,p.y+17,13,4,0,0,Math.PI*2); ctx.fill(); if(it.type==='doc')drawDoc(p.x,p.y+bob); if(it.type==='beer')drawBeer(p.x,p.y+bob); if(it.type==='sake')drawSake(p.x,p.y+bob); if(it.type==='water')drawWater(p.x,p.y+bob); if(it.type==='coffee')drawCoffee(p.x,p.y+bob); if(it.type==='yakitori')drawYakitori(p.x,p.y+bob); } }
+  function drawDoc(x,y){ ctx.fillStyle='#e9f6ff'; ctx.fillRect(x-12,y-15,24,30); ctx.fillStyle='#4a8bd8'; ctx.fillRect(x-9,y-10,18,4); ctx.fillRect(x-9,y-2,14,3); ctx.fillRect(x-9,y+6,17,3); }
+  function drawBeer(x,y){ ctx.fillStyle='#f5c04a'; ctx.fillRect(x-8,y-15,16,28); ctx.fillStyle='#fff1c0'; ctx.fillRect(x-8,y-19,16,6); ctx.strokeStyle='#f5c04a'; ctx.lineWidth=4; ctx.strokeRect(x+7,y-8,9,13); ctx.fillStyle='rgba(255,255,255,.45)'; ctx.fillRect(x-5,y-11,3,20); }
+  function drawSake(x,y){ ctx.fillStyle='#f8f8f2'; ctx.fillRect(x-8,y-18,16,32); ctx.fillStyle='#4b76b8'; ctx.fillRect(x-6,y-7,12,12); ctx.fillStyle='#d13c3c'; ctx.fillRect(x-5,y-4,10,6); ctx.fillStyle='#c7d6e8'; ctx.fillRect(x-5,y-24,10,7); }
+  function drawWater(x,y){ ctx.fillStyle='#9ee8ff'; ctx.fillRect(x-7,y-18,14,32); ctx.fillStyle='#e8fbff'; ctx.fillRect(x-5,y-14,10,11); ctx.fillStyle='#4aa5e8'; ctx.fillRect(x-5,y+2,10,10); }
+  function drawCoffee(x,y){ ctx.fillStyle='#6b3f25'; ctx.fillRect(x-9,y-12,18,23); ctx.fillStyle='#fff'; ctx.fillRect(x-10,y-16,20,6); ctx.fillStyle='#c69358'; ctx.fillRect(x-7,y-8,14,8); }
+  function drawYakitori(x,y){ ctx.strokeStyle='#d49a62'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(x-12,y+12); ctx.lineTo(x+12,y-12); ctx.stroke(); ctx.fillStyle='#9c5424'; for(let i=-1;i<=1;i++){ ctx.beginPath(); ctx.arc(x+i*6,y-i*6,5,0,Math.PI*2); ctx.fill(); } }
+  function drawEnemies(){ for(const e of enemies){ const p=worldToScreen(e.x,e.y); if(p.x<-70||p.y<-70||p.x>innerWidth+70||p.y>innerHeight+70) continue; ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(p.x,p.y+20,18,5,0,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=e.hit>0?.55:1; if(e.type==='boss')drawBoss(p.x,p.y); else if(e.type==='deadline')drawDeadline(p.x,p.y); else drawEmail(p.x,p.y); ctx.globalAlpha=1; } }
+  function drawBoss(x,y){ ctx.fillStyle='#111'; ctx.fillRect(x-13,y-20,26,38); ctx.fillStyle='#e5b184'; ctx.fillRect(x-10,y-35,20,17); ctx.fillStyle='#6b1018'; ctx.fillRect(x-3,y-15,6,22); ctx.fillStyle='#fff'; ctx.font='10px -apple-system'; ctx.textAlign='center'; ctx.fillText('上司',x,y-42); ctx.textAlign='left'; }
+  function drawDeadline(x,y){ ctx.fillStyle='#402450'; ctx.beginPath(); ctx.arc(x,y-12,18,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillRect(x-8,y-17,5,5); ctx.fillRect(x+3,y-17,5,5); ctx.fillStyle='#ff6161'; ctx.fillRect(x-10,y+3,20,5); ctx.fillStyle='#fff'; ctx.font='10px -apple-system'; ctx.textAlign='center'; ctx.fillText('締切',x,y-38); ctx.textAlign='left'; }
+  function drawEmail(x,y){ ctx.fillStyle='#e8f1ff'; ctx.fillRect(x-16,y-14,32,24); ctx.strokeStyle='#4b78bd'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x-16,y-14); ctx.lineTo(x,y+2); ctx.lineTo(x+16,y-14); ctx.stroke(); ctx.fillStyle='#fff'; ctx.font='10px -apple-system'; ctx.textAlign='center'; ctx.fillText('未読',x,y-24); ctx.textAlign='left'; }
+  function drawCars(){ const now=performance.now()/1000; const sx=Math.floor((state.x-innerWidth/2)/BLOCK)-1, ex=Math.floor((state.x+innerWidth/2)/BLOCK)+1, sy=Math.floor((state.y-innerHeight/2)/BLOCK)-1, ey=Math.floor((state.y+innerHeight/2)/BLOCK)+1; for(let gx=sx;gx<=ex+1;gx++){ for(let k=-1;k<=2;k++){ const y=(Math.floor(state.y/BLOCK)+k)*BLOCK + ((now*95+gx*73)%BLOCK)-BLOCK/2; const x=gx*BLOCK+32; drawCarWorld(x,y,'v',gx+k); if(Math.abs(x-state.x)<34&&Math.abs(y-state.y)<46&&state.inv<=0) damage(23,'タクシーに接触!'); } } for(let gy=sy;gy<=ey+1;gy++){ for(let k=-1;k<=2;k++){ const x=(Math.floor(state.x/BLOCK)+k)*BLOCK + ((now*110+gy*61)%BLOCK)-BLOCK/2; const y=gy*BLOCK-32; drawCarWorld(x,y,'h',gy+k); if(Math.abs(x-state.x)<48&&Math.abs(y-state.y)<32&&state.inv<=0) damage(23,'車道は危険!'); } } }
+  function drawCarWorld(x,y,dir,seed){ const p=worldToScreen(x,y); ctx.fillStyle=seed%3?'#3a5f9c':'#8c2d35'; if(dir==='v'){ ctx.fillRect(p.x-17,p.y-31,34,62); ctx.fillStyle='rgba(255,255,255,.45)'; ctx.fillRect(p.x-12,p.y-21,24,13); ctx.fillStyle='#111'; ctx.fillRect(p.x-21,p.y-20,4,13); ctx.fillRect(p.x+17,p.y-20,4,13); ctx.fillRect(p.x-21,p.y+11,4,13); ctx.fillRect(p.x+17,p.y+11,4,13); } else { ctx.fillRect(p.x-31,p.y-17,62,34); ctx.fillStyle='rgba(255,255,255,.45)'; ctx.fillRect(p.x-20,p.y-12,16,24); ctx.fillStyle='#111'; ctx.fillRect(p.x-20,p.y-21,13,4); ctx.fillRect(p.x+11,p.y-21,13,4); ctx.fillRect(p.x-20,p.y+17,13,4); ctx.fillRect(p.x+11,p.y+17,13,4); } }
+  function drawParticles(){ for(const p of particles){ const s=worldToScreen(p.x,p.y); ctx.globalAlpha=Math.max(0,p.life/800); if(p.type==='sake')drawSake(s.x,s.y); else if(p.type==='beer')drawBeer(s.x,s.y); else if(p.type==='water')drawWater(s.x,s.y); else { ctx.fillStyle=p.type==='ko'?'#ffe88b':'#fafaf5'; ctx.fillRect(s.x-5,s.y-3,10,7); } ctx.globalAlpha=1; } }
+  function drawFloats(){ ctx.font='bold 13px -apple-system'; ctx.textAlign='center'; for(const f of floats){ const p=worldToScreen(f.x,f.y); ctx.globalAlpha=Math.max(0,f.life/900); ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fillText(f.text,p.x+1,p.y+1); ctx.fillStyle=f.color; ctx.fillText(f.text,p.x,p.y); ctx.globalAlpha=1; } ctx.textAlign='left'; }
+  function drawPlayer(){ const a=anims[state.anim]; const sx=state.frame*FRAME, sy=(a.block*rowsPerAnim+rowOf[state.dir])*FRAME; const size=Math.max(82,Math.min(108,innerWidth*.25)); const x=innerWidth/2-size/2, y=innerHeight*.50-size*.76; if(state.inv>0 && Math.floor(performance.now()/80)%2===0) ctx.globalAlpha=.45; if(state.drunk>48){ ctx.save(); ctx.globalAlpha=.18; ctx.drawImage(sheetCanvas,sx,sy,FRAME,FRAME,Math.round(x-4),Math.round(y+2),Math.round(size),Math.round(size)); ctx.restore(); } ctx.drawImage(sheetCanvas,sx,sy,FRAME,FRAME,Math.round(x),Math.round(y),Math.round(size),Math.round(size)); ctx.globalAlpha=1; const aura=state.drunk/100; if(aura>.05){ ctx.strokeStyle=`rgba(255,210,90,${0.22+aura*.25})`; ctx.lineWidth=2+aura*5; ctx.beginPath(); ctx.ellipse(innerWidth/2, y+size*.82, 26+aura*18, 9+aura*6, 0,0,Math.PI*2); ctx.stroke(); } }
+  function drawAttackHint(){ if(state.attackTimer<=0) return; const p=1+state.drunk/70, cx=innerWidth/2, cy=innerHeight*.50-6; ctx.save(); ctx.globalAlpha=.22; ctx.fillStyle='#fff2a0'; const len=70+32*p, wide=42+10*p; if(state.dir==='right')ctx.fillRect(cx+24,cy-wide/2,len,wide); if(state.dir==='left')ctx.fillRect(cx-24-len,cy-wide/2,len,wide); if(state.dir==='down')ctx.fillRect(cx-wide/2,cy+24,wide,len); if(state.dir==='up')ctx.fillRect(cx-wide/2,cy-24-len,wide,len); ctx.restore(); }
+  function drawArrow(){ const target = nearestTarget(); const dx=target.x-state.x, dy=target.y-state.y, d=Math.hypot(dx,dy)||1; if(d<160) return; const cx=innerWidth/2, cy=innerHeight*.50, ang=Math.atan2(dy,dx); const r=Math.min(innerWidth,innerHeight)*.38; const x=cx+Math.cos(ang)*r, y=cy+Math.sin(ang)*r; ctx.save(); ctx.translate(x,y); ctx.rotate(ang); ctx.fillStyle=target.kind==='station'?'#ffe88b':'#9ed4ff'; ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(-10,-10); ctx.lineTo(-5,0); ctx.lineTo(-10,10); ctx.closePath(); ctx.fill(); ctx.restore(); ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fillRect(x-32,y+16,64,18); ctx.fillStyle='#fff'; ctx.font='10px -apple-system'; ctx.textAlign='center'; ctx.fillText(target.kind==='station'?'駅':'企画書',x,y+29); ctx.textAlign='left'; }
+  function nearestTarget(){ if(state.docs>=state.docsNeed) return {x:station.x,y:station.y,kind:'station'}; let best=null,bd=1e9; for(const it of items){ if(it.got||it.type!=='doc')continue; const d=(it.x-state.x)**2+(it.y-state.y)**2; if(d<bd){bd=d; best=it;} } return best?{x:best.x,y:best.y,kind:'doc'}:{x:station.x,y:station.y,kind:'station'}; }
+  function drawMessage(){ if(state.msgT<=0) return; ctx.fillStyle='rgba(0,0,0,.48)'; ctx.fillRect(innerWidth/2-139, innerHeight*.125, 278, 31); ctx.fillStyle='#fff'; ctx.font='13px -apple-system'; ctx.textAlign='center'; ctx.fillText(state.message, innerWidth/2, innerHeight*.125+21); ctx.textAlign='left'; }
+  function drawMiniMap(){ const x=innerWidth-104, y=innerHeight-104, s=86; ctx.fillStyle='rgba(0,0,0,.42)'; ctx.fillRect(x,y,s,s); ctx.strokeStyle='rgba(255,255,255,.24)'; ctx.strokeRect(x,y,s,s); const scale=0.018; const drawDot=(wx,wy,col,r=3)=>{ const px=x+s/2+(wx-state.x)*scale, py=y+s/2+(wy-state.y)*scale; if(px<x||py<y||px>x+s||py>y+s)return; ctx.fillStyle=col; ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2); ctx.fill(); }; drawDot(station.x,station.y,'#ffe88b',4); for(const it of items) if(!it.got&&it.type==='doc') drawDot(it.x,it.y,'#9ed4ff',2.5); drawDot(state.x,state.y,'#ffffff',3.5); }
+  function drawVignette(){ const danger=state.drunk>75 || state.hp<30; const g=ctx.createRadialGradient(innerWidth/2,innerHeight*.5,90,innerWidth/2,innerHeight*.5,innerHeight*.78); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,danger?'rgba(95,0,70,.38)':'rgba(0,0,0,.34)'); ctx.fillStyle=g; ctx.fillRect(0,0,innerWidth,innerHeight); }
+
+  function updateHUD(){
+    hpBar.style.width=Math.max(0,state.hp)+'%'; drunkBar.style.width=Math.max(0,state.drunk)+'%'; staminaBar.style.width=Math.max(0,state.stamina)+'%'; hpTxt.textContent=Math.max(0,Math.round(state.hp)); drunkTxt.textContent=Math.round(state.drunk); staminaTxt.textContent=Math.round(state.stamina); waterBtn.innerHTML=`お冷<br>${state.waters}`;
+    const sec=Math.max(0,Math.ceil(state.time/1000)); const m=Math.floor(sec/60), s=String(sec%60).padStart(2,'0');
+    const power=(1+state.drunk/70).toFixed(1);
+    scorePanel.innerHTML=`<b>${m}:${s}</b><br><span class="muted">企画書 ${state.docs}/${state.docsNeed}<br>Power x${power}<br>Score ${state.score}</span>`;
+    missionEl.textContent=state.docs>=state.docsNeed?'駅へ向かえ。終電に乗れ!':`企画書を集めろ ${state.docs}/${state.docsNeed}`;
+  }
+
+  let last=performance.now();
+  function loop(now){ const dt=Math.min(40,now-last); last=now; update(dt); draw(); updateHUD(); requestAnimationFrame(loop); }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
