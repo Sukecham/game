@@ -1,0 +1,3520 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>ER FIRST RESPONSE — 救急外来初期対応シミュレーター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&family=Cormorant+Garamond:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/*
+ * COLOR REFERENCE (do NOT use CSS variables — see rule #1):
+ *   bg          #0a0e14    bg-2         #11161f
+ *   surface     #161c27    surface-2    #1d2532
+ *   border      #2a3447    border-br    #3d4a63
+ *   text        #e6edf3    text-dim     #8b95a7    text-faint #5a6478
+ *   accent      #3ee6c8    accent-dim   #1f7a6b
+ *   critical    #ff4d5e    critical-dim #6e1f29
+ *   warn        #ffb547    info         #4ec3ff
+ *   good        #7ee07a    gold         #d4af37
+ */
+
+- { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+margin: 0;
+padding: 0;
+width: 100%;
+height: 100%;
+background-color: #0a0e14;
+background: #0a0e14;
+color: #e6edf3;
+font-family: ‘Noto Sans JP’, sans-serif;
+overflow: hidden;
+overscroll-behavior: none;
+-webkit-user-select: text;
+user-select: text;
+-webkit-tap-highlight-color: transparent;
+line-height: 1.7;
+font-size: 15px;
+}
+
+.mono { font-family: ‘JetBrains Mono’, monospace; }
+.serif { font-family: ‘Cormorant Garamond’, serif; }
+
+/* App container (12-rule flex template) */
+#app {
+width: 100%;
+height: 100%;
+display: flex;
+flex-direction: column;
+padding-top: env(safe-area-inset-top, 0px);
+padding-left: env(safe-area-inset-left, 0px);
+padding-right: env(safe-area-inset-right, 0px);
+overflow: hidden;
+background-color: #0a0e14;
+background: #0a0e14;
+position: relative;
+}
+
+#topbar {
+flex-shrink: 0;
+position: relative;
+background-color: #0a0e14;
+background: #0a0e14;
+border-bottom: 1px solid #2a3447;
+padding: 0;
+}
+
+/* ECG decoration line — was body::before, now inside #topbar (rule #2: no position:fixed) */
+#topbar::before {
+content: ‘’;
+position: absolute;
+top: 0; left: 0; right: 0;
+height: 2px;
+background-color: #1f7a6b;
+background: linear-gradient(90deg, transparent, #1f7a6b 30%, #3ee6c8 50%, #1f7a6b 70%, transparent);
+opacity: 0.5;
+pointer-events: none;
+z-index: 5;
+}
+
+#content {
+flex: 1;
+min-height: 0;
+position: relative;
+overflow-y: auto;
+overflow-x: hidden;
+-webkit-overflow-scrolling: touch;
+touch-action: pan-y;
+background-color: #0a0e14;
+background: #0a0e14;
+}
+
+#content-inner {
+max-width: 900px;
+margin: 0 auto;
+padding: 20px 16px max(28px, env(safe-area-inset-bottom, 28px));
+position: relative;
+}
+
+.screen { display: none; animation: fadeIn 0.4s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* Header */
+.brand {
+display: flex; align-items: baseline; gap: 12px;
+max-width: 900px;
+margin: 0 auto;
+padding: 14px 16px 12px;
+}
+.brand-tag {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 10px; letter-spacing: 0.2em;
+color: #3ee6c8;
+padding: 3px 8px;
+border: 1px solid #1f7a6b;
+border-radius: 2px;
+}
+.brand-title {
+font-family: ‘Cormorant Garamond’, serif;
+font-size: 22px; font-weight: 600;
+letter-spacing: 0.05em;
+color: #e6edf3;
+}
+.brand-subtitle {
+font-size: 11px; color: #5a6478;
+margin-left: auto;
+}
+
+/* Hero (title screen) */
+.hero {
+text-align: center;
+padding: 40px 20px 30px;
+border: 1px solid #2a3447;
+background: linear-gradient(180deg, #161c27 0%, #11161f 100%);
+margin-bottom: 24px;
+position: relative;
+}
+.hero::before {
+content: ‘EMERGENCY DEPARTMENT // FIRST RESPONSE TRAINER’;
+position: absolute; top: 12px; left: 0; right: 0;
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 9px; letter-spacing: 0.3em;
+color: #5a6478;
+}
+.hero h1 {
+font-family: ‘Cormorant Garamond’, serif;
+font-size: 44px;
+font-weight: 600;
+line-height: 1.15;
+margin: 30px 0 8px;
+letter-spacing: 0.02em;
+}
+.hero h1 .accent { color: #3ee6c8; font-style: italic; }
+.hero .lead {
+font-size: 14px; color: #8b95a7;
+max-width: 480px; margin: 0 auto;
+}
+.hero .vitals-deco {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 11px; color: #5a6478;
+margin-top: 24px;
+letter-spacing: 0.1em;
+}
+.hero .vitals-deco .pulse-dot {
+display: inline-block; width: 6px; height: 6px; background: #ff4d5e;
+border-radius: 50%; margin: 0 6px; animation: pulse 1.2s infinite;
+}
+
+/* Buttons */
+.btn {
+display: inline-block;
+font-family: ‘Noto Sans JP’, sans-serif;
+font-size: 14px;
+font-weight: 700;
+padding: 14px 22px;
+border: 1px solid #3d4a63;
+background-color: #161c27;
+background: #161c27;
+color: #e6edf3;
+cursor: pointer;
+letter-spacing: 0.05em;
+transition: all 0.2s;
+border-radius: 2px;
+width: 100%;
+min-height: 44px;
+text-align: left;
+position: relative;
+}
+.btn:hover, .btn:focus { background-color: #1d2532; background: #1d2532; border-color: #1f7a6b; outline: none; }
+.btn:active { transform: scale(0.98); }
+.btn.primary {
+background-color: #1f7a6b;
+background: #1f7a6b;
+border-color: #3ee6c8;
+color: #e6edf3;
+}
+.btn.primary:hover { background-color: #3ee6c8; background: #3ee6c8; color: #0a0e14; }
+.btn.danger { border-color: #6e1f29; color: #ff4d5e; }
+.btn.danger:hover { background-color: #6e1f29; background: #6e1f29; color: #e6edf3; }
+.btn.ghost { background-color: transparent; background: transparent; border-color: #2a3447; color: #8b95a7; }
+.btn.ghost:hover { color: #e6edf3; border-color: #3d4a63; }
+.btn-stack { display: flex; flex-direction: column; gap: 10px; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-row .btn { flex: 1; min-width: 130px; text-align: center; }
+.btn .arrow { float: right; color: #3ee6c8; }
+.btn small { display: block; font-weight: 400; font-size: 11px; color: #5a6478; margin-top: 4px; letter-spacing: 0; }
+
+/* Panels */
+.panel {
+background: #161c27;
+border: 1px solid #2a3447;
+padding: 18px 18px;
+margin-bottom: 16px;
+border-radius: 2px;
+position: relative;
+}
+.panel.bordered-l { border-left: 3px solid #3ee6c8; }
+.panel.critical { border-left: 3px solid #ff4d5e; }
+.panel.warn { border-left: 3px solid #ffb547; }
+.panel-header {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 10px; letter-spacing: 0.25em;
+color: #5a6478;
+margin-bottom: 12px;
+display: flex; align-items: center; gap: 8px;
+}
+.panel-header .dot {
+width: 6px; height: 6px; background: #3ee6c8; border-radius: 50%;
+}
+.panel-header .dot.critical { background: #ff4d5e; animation: pulse 1.2s infinite; }
+.panel-title {
+font-family: ‘Cormorant Garamond’, serif;
+font-size: 22px;
+font-weight: 600;
+margin-bottom: 4px;
+letter-spacing: 0.02em;
+}
+.panel p { color: #8b95a7; font-size: 14px; }
+.panel p strong { color: #e6edf3; font-weight: 700; }
+
+/* Vitals display */
+.vitals-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 1px;
+background: #2a3447;
+border: 1px solid #2a3447;
+}
+.vital {
+background: #161c27;
+padding: 10px 8px;
+text-align: center;
+}
+.vital-label {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 9px; letter-spacing: 0.15em;
+color: #5a6478;
+margin-bottom: 2px;
+}
+.vital-value {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 18px; font-weight: 700;
+color: #7ee07a;
+}
+.vital-value.warn { color: #ffb547; }
+.vital-value.critical { color: #ff4d5e; animation: blink 1.2s infinite; }
+.vital-unit { font-size: 10px; color: #5a6478; margin-left: 2px; }
+
+/* Triage / scenario presentation */
+.case-brief {
+background: #11161f;
+border: 1px solid #2a3447;
+border-left: 3px solid #4ec3ff;
+padding: 16px 18px;
+margin-bottom: 16px;
+font-family: ‘Cormorant Garamond’, serif;
+font-size: 18px;
+font-style: italic;
+line-height: 1.6;
+color: #e6edf3;
+position: relative;
+}
+.case-brief::before {
+content: ‘◇ TRIAGE NOTE’;
+position: absolute; top: -9px; left: 14px;
+background: #0a0e14;
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 9px; letter-spacing: 0.2em;
+font-style: normal;
+color: #4ec3ff;
+padding: 0 6px;
+}
+
+/* Choice cards */
+.choices { display: flex; flex-direction: column; gap: 8px; }
+.choice {
+background-color: #161c27;
+background: #161c27;
+border: 1px solid #2a3447;
+padding: 12px 14px;
+cursor: pointer;
+transition: all 0.15s;
+border-radius: 2px;
+display: flex; align-items: flex-start; gap: 10px;
+font-size: 14px;
+text-align: left;
+font-family: inherit;
+color: #e6edf3;
+width: 100%;
+min-height: 44px;
+}
+.choice:hover, .choice:focus { background-color: #1d2532; background: #1d2532; border-color: #1f7a6b; outline: none; }
+.choice.selected { border-color: #3ee6c8; background-color: #1d2532; background: #1d2532; }
+.choice.selected .check { background: #3ee6c8; border-color: #3ee6c8; }
+.choice .check {
+flex-shrink: 0;
+width: 16px; height: 16px;
+border: 1.5px solid #3d4a63;
+border-radius: 2px;
+margin-top: 2px;
+display: flex; align-items: center; justify-content: center;
+font-size: 12px; color: #0a0e14; font-weight: 700;
+}
+.choice.selected .check::after { content: ‘✓’; }
+.choice.correct {
+border-color: #7ee07a;
+background: rgba(126, 224, 122, 0.06);
+}
+.choice.incorrect {
+border-color: #ff4d5e;
+background: rgba(255, 77, 94, 0.06);
+}
+.choice.missed {
+border-color: #ffb547;
+background: rgba(255, 181, 71, 0.08);
+border-style: dashed;
+}
+.choice .yield {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 9px; letter-spacing: 0.1em;
+color: #5a6478;
+margin-left: auto;
+align-self: center;
+flex-shrink: 0;
+}
+.choice .yield.high { color: #7ee07a; }
+.choice .yield.mid { color: #ffb547; }
+.choice .yield.low { color: #8b95a7; }
+.choice .yield.none { color: #ff4d5e; }
+
+/* Reveal cards */
+.reveal {
+background: #11161f;
+border-left: 2px solid #3ee6c8;
+padding: 10px 14px;
+margin: 8px 0 14px;
+font-size: 13px;
+color: #8b95a7;
+}
+.reveal strong { color: #e6edf3; }
+.reveal.critical { border-left-color: #ff4d5e; }
+.reveal.warn { border-left-color: #ffb547; }
+
+/* Phase header */
+.phase-header {
+display: flex; align-items: center; gap: 10px;
+margin-bottom: 16px;
+padding-bottom: 10px;
+border-bottom: 1px solid #2a3447;
+}
+.phase-num {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 10px; letter-spacing: 0.15em;
+color: #3ee6c8;
+border: 1px solid #1f7a6b;
+padding: 3px 8px;
+border-radius: 2px;
+}
+.phase-title {
+font-family: ‘Cormorant Garamond’, serif;
+font-size: 24px;
+font-weight: 600;
+letter-spacing: 0.02em;
+}
+.phase-progress {
+margin-left: auto;
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 11px;
+color: #5a6478;
+}
+
+/* Score display */
+.score-display {
+background: linear-gradient(135deg, #161c27 0%, #11161f 100%);
+border: 1px solid #3d4a63;
+padding: 22px;
+text-align: center;
+margin-bottom: 16px;
+}
+.score-num {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 56px;
+font-weight: 700;
+line-height: 1;
+color: #3ee6c8;
+letter-spacing: 0.02em;
+}
+.score-label {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 10px; letter-spacing: 0.25em;
+color: #5a6478;
+margin-top: 6px;
+}
+.score-rank {
+font-family: ‘Cormorant Garamond’, serif;
+font-size: 22px;
+font-style: italic;
+margin-top: 12px;
+color: #e6edf3;
+}
+
+/* Stat bars */
+.stat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; }
+.stat-name { width: 110px; color: #8b95a7; font-size: 12px; }
+.stat-bar { flex: 1; height: 8px; background: #11161f; border: 1px solid #2a3447; position: relative; overflow: hidden; }
+.stat-fill { height: 100%; background: linear-gradient(90deg, #1f7a6b, #3ee6c8); transition: width 0.6s ease; }
+.stat-fill.warn { background: linear-gradient(90deg, #ffb547, #ffd47a); }
+.stat-fill.critical { background: linear-gradient(90deg, #6e1f29, #ff4d5e); }
+.stat-val { font-family: ‘JetBrains Mono’, monospace; font-size: 11px; color: #e6edf3; width: 36px; text-align: right; }
+
+/* Scenario cards */
+.scenario-card {
+background: #161c27;
+border: 1px solid #2a3447;
+padding: 14px;
+margin-bottom: 10px;
+cursor: pointer;
+transition: all 0.15s;
+border-radius: 2px;
+display: block;
+text-align: left;
+width: 100%;
+font-family: inherit;
+color: #e6edf3;
+}
+.scenario-card:hover, .scenario-card:focus {
+border-color: #1f7a6b;
+background: #1d2532;
+outline: none;
+}
+.scenario-card.locked { opacity: 0.4; cursor: not-allowed; }
+.scenario-card.cleared { border-left: 3px solid #7ee07a; }
+.scenario-meta {
+display: flex; gap: 10px; align-items: center; margin-bottom: 6px;
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 10px; letter-spacing: 0.15em;
+color: #5a6478;
+}
+.scenario-meta .lv {
+background: #1f7a6b;
+color: #0a0e14;
+padding: 2px 6px;
+font-weight: 700;
+}
+.scenario-meta .lv.l2 { background: #ffb547; }
+.scenario-meta .lv.l3 { background: #ff4d5e; color: #e6edf3; }
+.scenario-card .title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.scenario-card .desc { font-size: 13px; color: #8b95a7; }
+.scenario-card .best {
+margin-top: 8px;
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 11px;
+color: #d4af37;
+}
+
+/* Save code box */
+.save-code {
+background: #0a0e14;
+border: 1px dashed #1f7a6b;
+padding: 14px;
+margin-bottom: 12px;
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 12px;
+color: #3ee6c8;
+word-break: break-all;
+line-height: 1.6;
+text-align: center;
+user-select: all;
+}
+textarea.code-input {
+width: 100%;
+background: #11161f;
+border: 1px solid #3d4a63;
+color: #3ee6c8;
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 12px;
+padding: 12px;
+min-height: 100px;
+resize: vertical;
+border-radius: 2px;
+}
+textarea.code-input:focus { border-color: #3ee6c8; outline: none; }
+input.text-input {
+width: 100%;
+background: #11161f;
+border: 1px solid #3d4a63;
+color: #e6edf3;
+font-family: inherit;
+font-size: 14px;
+padding: 12px;
+border-radius: 2px;
+}
+input.text-input:focus { border-color: #3ee6c8; outline: none; }
+
+/* Log entries */
+.log-entry {
+display: flex; gap: 12px;
+padding: 10px 0;
+border-bottom: 1px solid #2a3447;
+font-size: 13px;
+}
+.log-entry:last-child { border-bottom: none; }
+.log-time {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 10px;
+color: #5a6478;
+width: 70px;
+flex-shrink: 0;
+}
+.log-event { color: #e6edf3; }
+.log-event strong { color: #3ee6c8; }
+
+/* Hint card */
+.hint {
+font-size: 12px;
+color: #5a6478;
+font-style: italic;
+padding: 8px 12px;
+border-left: 2px solid #3d4a63;
+margin: 8px 0;
+}
+
+/* Outcome display */
+.outcome-banner {
+padding: 24px 18px;
+margin-bottom: 16px;
+text-align: center;
+border: 2px solid #7ee07a;
+background: rgba(126, 224, 122, 0.06);
+}
+.outcome-banner.bad { border-color: #ff4d5e; background: rgba(255, 77, 94, 0.06); }
+.outcome-banner.mid { border-color: #ffb547; background: rgba(255, 181, 71, 0.06); }
+.outcome-icon {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 11px;
+letter-spacing: 0.3em;
+color: #7ee07a;
+margin-bottom: 8px;
+}
+.outcome-banner.bad .outcome-icon { color: #ff4d5e; }
+.outcome-banner.mid .outcome-icon { color: #ffb547; }
+.outcome-headline {
+font-family: ‘Cormorant Garamond’, serif;
+font-size: 26px;
+font-weight: 600;
+font-style: italic;
+}
+.outcome-body { color: #8b95a7; font-size: 14px; margin-top: 10px; }
+
+/* Mobile tweaks */
+@media (max-width: 480px) {
+body { font-size: 14px; }
+.hero h1 { font-size: 32px; }
+.panel-title { font-size: 19px; }
+.phase-title { font-size: 19px; }
+.score-num { font-size: 44px; }
+.vital-value { font-size: 15px; }
+.vital { padding: 8px 4px; }
+.brand-subtitle { display: none; }
+#content-inner { padding: 14px 12px max(24px, env(safe-area-inset-bottom, 24px)); }
+.brand { padding: 10px 12px 8px; }
+}
+
+/* Debrief detailed sections */
+.dbr-block {
+padding: 14px 0;
+border-bottom: 1px solid #2a3447;
+}
+.dbr-block:last-child { border-bottom: none; padding-bottom: 0; }
+.dbr-block:first-of-type { padding-top: 0; }
+.dbr-h {
+font-family: ‘Cormorant Garamond’, serif;
+font-size: 18px;
+font-weight: 600;
+margin-bottom: 10px;
+color: #e6edf3;
+letter-spacing: 0.02em;
+display: flex; align-items: baseline; gap: 10px;
+}
+.dbr-h .ph-score {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 11px;
+color: #5a6478;
+margin-left: auto;
+letter-spacing: 0.1em;
+}
+.dbr-h .ph-score.high { color: #7ee07a; }
+.dbr-h .ph-score.mid { color: #ffb547; }
+.dbr-h .ph-score.low { color: #ff4d5e; }
+.dbr-good {
+color: #7ee07a;
+font-size: 13px;
+margin: 8px 0 4px;
+font-weight: 700;
+letter-spacing: 0.02em;
+}
+.dbr-bad {
+color: #ff4d5e;
+font-size: 13px;
+margin: 8px 0 4px;
+font-weight: 700;
+letter-spacing: 0.02em;
+}
+.dbr-info {
+color: #ffb547;
+font-size: 13px;
+margin: 8px 0 4px;
+font-weight: 700;
+}
+.dbr-warn {
+color: #ffb547;
+font-size: 13px;
+padding: 10px 12px;
+background: rgba(255, 181, 71, 0.06);
+border-left: 2px solid #ffb547;
+margin: 10px 0;
+line-height: 1.6;
+}
+.dbr-fatal {
+color: #ff4d5e;
+font-size: 13px;
+padding: 10px 12px;
+background: rgba(255, 77, 94, 0.08);
+border-left: 2px solid #ff4d5e;
+margin: 10px 0;
+line-height: 1.6;
+font-weight: 500;
+}
+.dbr-list {
+margin: 0 0 10px 0;
+padding-left: 20px;
+font-size: 13px;
+color: #8b95a7;
+line-height: 1.7;
+}
+.dbr-list li { margin-bottom: 6px; }
+.dbr-list li strong { color: #e6edf3; }
+.dbr-faint {
+color: #5a6478;
+font-size: 12px;
+font-style: italic;
+}
+
+.level-up-banner {
+background: linear-gradient(135deg, #1f7a6b 0%, #3ee6c8 100%);
+color: #0a0e14;
+padding: 22px 18px;
+text-align: center;
+margin-bottom: 18px;
+border-radius: 2px;
+position: relative;
+overflow: hidden;
+}
+.level-up-banner::before {
+content: ‘’;
+position: absolute;
+top: -50%; left: -50%;
+width: 200%; height: 200%;
+background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+animation: shine 3s linear infinite;
+}
+@keyframes shine {
+0% { transform: translate(-100%, -100%); }
+100% { transform: translate(100%, 100%); }
+}
+.level-up-banner .lu-tag {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 10px;
+letter-spacing: 0.4em;
+font-weight: 700;
+position: relative; z-index: 1;
+}
+.level-up-banner h3 {
+font-family: ‘Cormorant Garamond’, serif;
+font-size: 30px;
+font-weight: 600;
+font-style: italic;
+margin: 6px 0 4px;
+position: relative; z-index: 1;
+}
+.level-up-banner .lu-sub {
+font-size: 12px;
+opacity: 0.85;
+position: relative; z-index: 1;
+}
+
+.cleared-banner {
+background: rgba(126, 224, 122, 0.08);
+border: 1px solid #7ee07a;
+padding: 12px 14px;
+margin-bottom: 14px;
+font-size: 13px;
+color: #7ee07a;
+text-align: center;
+font-family: ‘JetBrains Mono’, monospace;
+letter-spacing: 0.15em;
+}
+
+/* Util */
+.hidden { display: none !important; }
+.text-dim { color: #8b95a7; }
+.text-faint { color: #5a6478; }
+.text-accent { color: #3ee6c8; }
+.text-critical { color: #ff4d5e; }
+.text-warn { color: #ffb547; }
+.text-good { color: #7ee07a; }
+.spacer-sm { height: 8px; }
+.spacer { height: 16px; }
+.spacer-lg { height: 28px; }
+.center { text-align: center; }
+.section-divider {
+border-top: 1px solid #2a3447;
+margin: 20px 0;
+padding-top: 16px;
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 10px;
+letter-spacing: 0.25em;
+color: #5a6478;
+}
+</style>
+
+</head>
+<body>
+<div id="app">
+
+<!-- ===== TOPBAR (固定ヘッダー) ===== -->
+
+<header id="topbar">
+  <div class="brand">
+    <span class="brand-tag">ER · SIM</span>
+    <span class="brand-title">First Response</span>
+    <span class="brand-subtitle mono" id="brand-status">— STAND BY —</span>
+  </div>
+</header>
+
+<!-- ===== CONTENT (スクロールエリア) ===== -->
+
+<main id="content">
+<div id="content-inner">
+
+<!-- ===== TITLE SCREEN ===== -->
+
+<div class="screen active" id="screen-title">
+  <div class="hero">
+    <h1>救急外来<br><span class="accent">初期対応</span>シミュレーター</h1>
+    <p class="lead">主訴ベース思考、Killer Rule-out、処分判断 ―<br>独り立ちまでの道のりを症例で組み立てる。</p>
+    <div class="vitals-deco">
+      <span class="pulse-dot"></span> SYS · ONLINE <span class="pulse-dot"></span> SCENARIOS · 6 LOADED
+    </div>
+  </div>
+
+  <div class="btn-stack">
+    <button class="btn primary" onclick="startNewGame()">
+      新規研修開始 <span class="arrow">→</span>
+      <small>初期化された状態でLevel 1から始める</small>
+    </button>
+    <button class="btn" onclick="showScreen('continue')">
+      続きから(セーブコード入力) <span class="arrow">→</span>
+      <small>前回出力されたコードで再開</small>
+    </button>
+    <button class="btn ghost" onclick="showScreen('about')">
+      このシミュレーターについて
+    </button>
+  </div>
+</div>
+
+<!-- ===== CONTINUE SCREEN ===== -->
+
+<div class="screen" id="screen-continue">
+  <div class="panel bordered-l">
+    <div class="panel-header"><span class="dot"></span>CONTINUE / セーブ復元</div>
+    <p class="text-dim" style="margin-bottom: 14px;">前回終了時に出力されたセーブコードを貼り付けてください。状態・履歴・ベストスコアが復元されます。</p>
+    <textarea class="code-input" id="continue-input" placeholder="ER1-XXXXXX-XXXXXX-..." spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+    <div class="spacer-sm"></div>
+    <div class="btn-row">
+      <button class="btn primary" onclick="loadFromCode()">復元する</button>
+      <button class="btn ghost" onclick="showScreen('title')">戻る</button>
+    </div>
+    <p id="continue-error" class="text-critical hidden" style="margin-top: 12px; font-size: 13px;"></p>
+  </div>
+</div>
+
+<!-- ===== ABOUT SCREEN ===== -->
+
+<div class="screen" id="screen-about">
+  <div class="panel">
+    <div class="panel-header"><span class="dot"></span>ABOUT</div>
+    <h2 class="panel-title">設計思想</h2>
+    <p style="margin-bottom: 12px;">本シミュレーターは「形だけの診察ができるレジデント」を「不確実性下で安全な処分ができるレジデント」へ移行させることを目的としています。</p>
+    <p style="margin-bottom: 12px;">各症例は <strong>第一印象 → Killer想起 → 問診 → 診察 → 検査 → 再評価 → コンサルト → 処分 → 72時間転帰 → デブリーフ</strong> の10フェーズで構成されています。</p>
+    <p style="margin-bottom: 12px;">スコアは8つの能力軸で計測されます: Killer想起、問診効率、診察効率、検査適切性、再評価、リスク評価、コンサルト判断、処分安全性。</p>
+    <div class="section-divider">LEVEL DESIGN</div>
+    <p><strong>Level 1</strong> — ABCDE実行と基本的な主訴対応<br>
+    <strong>Level 2</strong> — Killer rule-outの内在化、リスクスコア活用<br>
+    <strong>Level 3</strong> — 認知バイアス検出、非典型提示、メタ認知</p>
+    <div class="section-divider">SAVE / RESUME</div>
+    <p>各症例終了時にセーブコードが出力されます。コピーして保存しておけば、後日同じ状態から再開できます。</p>
+  </div>
+  <button class="btn ghost" onclick="showScreen('title')">タイトルへ戻る</button>
+</div>
+
+<!-- ===== HUB / DASHBOARD ===== -->
+
+<div class="screen" id="screen-hub">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="dot"></span>RESIDENT STATUS / 研修医ステータス
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px;">
+      <span class="serif" style="font-size: 28px; font-style: italic;" id="hub-name">研修医</span>
+      <span class="mono" style="font-size: 11px; color: #5a6478;" id="hub-pgy">— PGY-1 —</span>
+    </div>
+    <div class="vitals-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 16px;">
+      <div class="vital">
+        <div class="vital-label">CURRENT LEVEL</div>
+        <div class="vital-value" id="hub-level">1</div>
+      </div>
+      <div class="vital">
+        <div class="vital-label">SCENARIOS CLEARED</div>
+        <div class="vital-value" id="hub-cleared">0 / 6</div>
+      </div>
+    </div>
+    <div id="hub-stats"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="dot"></span>AVAILABLE SCENARIOS</div>
+    <div id="scenario-list"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="dot"></span>SAVE CODE / 進捗保存コード</div>
+    <p class="text-dim" style="font-size: 13px; margin-bottom: 10px;">下記コードを保存してください。次回このコードで再開できます。</p>
+    <div class="save-code" id="hub-save-code">—</div>
+    <div class="btn-row">
+      <button class="btn ghost" onclick="copySaveCode()" id="copy-btn">コードをコピー</button>
+      <button class="btn ghost" onclick="showScreen('log')">ログを見る</button>
+    </div>
+  </div>
+
+<button class="btn ghost" onclick="confirmReset()">セッションを終了してタイトルへ</button>
+
+</div>
+
+<!-- ===== LOG SCREEN ===== -->
+
+<div class="screen" id="screen-log">
+  <div class="panel">
+    <div class="panel-header"><span class="dot"></span>TRAINING LOG / 訓練履歴</div>
+    <div id="log-list"></div>
+  </div>
+  <button class="btn ghost" onclick="showScreen('hub')">ハブへ戻る</button>
+</div>
+
+<!-- ===== SCENARIO SCREEN ===== -->
+
+<div class="screen" id="screen-scenario">
+  <div id="scenario-content"></div>
+</div>
+
+</div><!-- /#content-inner -->
+</main><!-- /#content -->
+
+</div><!-- /#app -->
+
+<script>
+'use strict';
+
+// ============================================================
+// SCENARIO DATA
+// ============================================================
+
+const SCENARIOS = [
+  // ========== SCENARIO 0 (index 0) — L1 chest pain STEMI ==========
+  {
+    id: 0,
+    level: 1,
+    title: '60歳男性 / 突然発症の胸痛',
+    summary: 'Level 1 — 典型的胸痛のABCDE実行とSTEMI認識',
+    triage: '60歳男性、運転中に突然の前胸部痛を自覚。冷汗あり、左上腕への放散痛も訴える。発症から45分。',
+    vitals: { bp: '145/90', hr: 92, rr: 22, spo2: 96, t: 36.5, gcs: 15 },
+    appearance: '冷汗あり、苦悶状。座位を好む。会話可能だが時折言葉が途切れる。',
+    abcde: {
+      A: '気道開通、発声明瞭',
+      B: '呼吸数22、SpO2 96% room air、両側呼吸音問題なし',
+      C: '橈骨動脈触知良好、四肢冷感あり、CRT 3秒、頸静脈軽度怒張なし',
+      D: 'GCS 15、麻痺なし、瞳孔対光反射正常',
+      E: '体温36.5、皮膚冷汗あり、外傷なし'
+    },
+    sickJudgment: 'sick',
+
+    // Phase 2: Killer想起
+    killerOptions: [
+      { id: 'acs', text: '急性冠症候群(ACS)', correct: true },
+      { id: 'dissection', text: '大動脈解離', correct: true },
+      { id: 'pe', text: '肺塞栓症(PE)', correct: true },
+      { id: 'pneumothorax', text: '緊張性気胸', correct: true },
+      { id: 'tamponade', text: '心タンポナーデ', correct: true },
+      { id: 'boerhaave', text: '食道破裂(Boerhaave)', correct: true },
+      { id: 'gerd', text: '逆流性食道炎', correct: false },
+      { id: 'msk', text: '筋骨格痛', correct: false },
+      { id: 'panic', text: 'パニック発作', correct: false },
+      { id: 'shingles', text: '帯状疱疹', correct: false }
+    ],
+
+    // Phase 3: 問診
+    historyOptions: [
+      { id: 'onset', text: '発症様式(突然か、徐々か)', yield: 'high', reveal: '運転中に突然開始。秒単位で痛みがピークに達した。' },
+      { id: 'character', text: '痛みの性状', yield: 'high', reveal: '重く押しつぶされるような感覚、絞られる感じ。' },
+      { id: 'radiation', text: '放散痛の有無', yield: 'high', reveal: '左上腕、左下顎にも違和感あり。' },
+      { id: 'duration', text: '持続時間と推移', yield: 'high', reveal: '発症から45分経過、現在も持続(寛解なし)。' },
+      { id: 'similar', text: '過去の同様エピソード', yield: 'mid', reveal: '1ヶ月前から労作時に軽い胸部圧迫感あり、安静で消失していた。' },
+      { id: 'risk', text: '冠動脈リスク因子(高血圧、糖尿病、脂質、家族歴、喫煙)', yield: 'high', reveal: '高血圧、脂質異常症、喫煙20本/日 × 35年。父親が心筋梗塞で60歳代死亡。' },
+      { id: 'cocaine', text: 'コカイン使用歴', yield: 'mid', reveal: '使用なし。' },
+      { id: 'travel', text: '長距離移動歴', yield: 'mid', reveal: '直近なし。' },
+      { id: 'leg', text: '下肢腫脹・疼痛', yield: 'mid', reveal: 'なし。' },
+      { id: 'tearing', text: '引き裂かれるような痛みか', yield: 'mid', reveal: '「重い」感覚で、引き裂かれる感覚ではない。' },
+      { id: 'anticoag', text: '抗凝固薬・抗血小板薬の服用', yield: 'high', reveal: 'アスピリン100mg服用中(脳梗塞既往なし、予防投与)。' },
+      { id: 'allergy', text: '薬剤アレルギー', yield: 'high', reveal: 'なし。' },
+      { id: 'lastmeal', text: '最終飲食時刻', yield: 'mid', reveal: '2時間前に昼食。' },
+      { id: 'breakfast', text: '今朝の朝食メニュー', yield: 'none', reveal: '関連性に乏しい質問。' },
+      { id: 'family_relation', text: '家族構成の詳細', yield: 'low', reveal: '妻と二人暮らし。' }
+    ],
+    historyExpected: ['onset', 'character', 'radiation', 'risk', 'anticoag', 'tearing'],
+
+    // Phase 4: 身体診察
+    examOptions: [
+      { id: 'bp_both', text: '両上肢血圧の左右差測定', yield: 'high', reveal: '左右差5mmHg未満(解離疑いを下げる所見)。' },
+      { id: 'cardiac', text: '心音・心雑音聴取', yield: 'high', reveal: 'III音聴取、雑音なし。' },
+      { id: 'lung', text: '両肺呼吸音聴取', yield: 'high', reveal: '両側清明、ラ音なし。' },
+      { id: 'jvd', text: '頸静脈怒張', yield: 'mid', reveal: '怒張なし。' },
+      { id: 'pulse', text: '四肢の脈拍触知(全部位)', yield: 'mid', reveal: '左右対称、欠損なし。' },
+      { id: 'leg_swell', text: '下肢の腫脹・圧痛', yield: 'mid', reveal: 'なし、Homans徴候陰性。' },
+      { id: 'abd', text: '腹部診察', yield: 'low', reveal: '平坦軟、圧痛なし。' },
+      { id: 'skin', text: '皮膚色・発汗', yield: 'mid', reveal: '蒼白、冷汗著明。' },
+      { id: 'reflexes', text: '深部腱反射全評価', yield: 'none', reveal: '本症例で優先度低。' },
+      { id: 'neuro', text: '局所神経学的所見の確認', yield: 'mid', reveal: '異常なし(脳血管系を考慮した場合)。' }
+    ],
+    examExpected: ['bp_both', 'cardiac', 'lung', 'skin'],
+
+    // Phase 5: 検査
+    testOptions: [
+      { id: 'ecg', text: '12誘導心電図(即時)', yield: 'high', critical: true, reveal: 'V1-V4でST上昇2-4mm、相反性変化II/III/aVF軽度ST低下 → 前壁STEMI疑い。' },
+      { id: 'trop', text: '高感度トロポニン', yield: 'high', reveal: '初回 145 ng/L(基準値超え)、上昇トレンド予測。' },
+      { id: 'cxr', text: '胸部X線(ポータブル)', yield: 'high', reveal: '心拡大なし、肺野クリア、縦隔拡大なし、気胸なし。' },
+      { id: 'cbc', text: '血算', yield: 'mid', reveal: 'Hb 13.8、WBC 9,800、Plt 240,000(著変なし)。' },
+      { id: 'chem', text: '生化学(電解質・腎機能)', yield: 'mid', reveal: 'Na 138, K 4.2, Cr 1.0(著変なし)。' },
+      { id: 'ddimer', text: 'D-dimer', yield: 'low', reveal: '本症例ではPE/解離前提検査として有用性は限定的(ECG所見が決定的)。' },
+      { id: 'ct_angio', text: '造影CT(大動脈・肺動脈)', yield: 'mid', reveal: 'STEMI診断確定後の追加は遅延リスク。解離疑いが強い場合は別。' },
+      { id: 'echo_pocus', text: 'POCUSによる心臓・大動脈評価', yield: 'high', reveal: '前壁の壁運動低下、心嚢水なし、大動脈基部正常径、IVC普通。' },
+      { id: 'lung_pocus', text: 'POCUS肺評価', yield: 'mid', reveal: 'A線優位、Bライン少数、気胸所見なし。' },
+      { id: 'amylase', text: '血清アミラーゼ', yield: 'none', reveal: '本症例での優先度なし。' }
+    ],
+    testExpected: ['ecg', 'trop', 'cxr', 'echo_pocus'],
+
+    // Phase 6: 再評価
+    reassess: {
+      offer: '初期対応開始から20分経過。再評価しますか?',
+      reveal: '胸痛持続、SpO2 95%に低下、軽度悪心。ECG再検でST上昇悪化。'
+    },
+
+    // Phase 7: リスクスコア(該当時)
+    riskScore: {
+      type: 'HEART',
+      prompt: 'HEARTスコアを算出してください(History/ECG/Age/RiskFactors/Troponin)。',
+      components: [
+        { label: 'History (中等度疑い)', value: 1 },
+        { label: 'ECG (有意なST偏位)', value: 2 },
+        { label: 'Age ≥65', value: 0 },
+        { label: 'Risk factors (3つ以上 or 既知CAD)', value: 2 },
+        { label: 'Troponin (基準値の3倍以上)', value: 2 }
+      ],
+      total: 7,
+      interpretation: 'HEART 7点 = 高リスク群、MACE 30日リスク約50%。即時介入適応。'
+    },
+
+    // Phase 8: コンサルト判断
+    consultOptions: [
+      { id: 'cardio_immediate', text: '循環器即時コール(STEMIプロトコル発動依頼、カテラボ起動)', correct: true },
+      { id: 'senior_first', text: '上級医に相談(所見と暫定方針を共有)', correct: true },
+      { id: 'observe', text: 'まず採血結果を待ってから判断', correct: false },
+      { id: 'generalmed', text: '一般内科コンサルト(後日精査依頼)', correct: false }
+    ],
+    consultIdeal: ['cardio_immediate', 'senior_first'],
+
+    // Phase 9: 処分
+    dispositionOptions: [
+      { id: 'cathlab', text: 'カテラボへ直行(緊急PCI)', correct: true },
+      { id: 'ccu', text: 'CCU入院、抗血小板薬・抗凝固開始', correct: false, note: 'STEMIで再灌流療法可能なら即時カテが優先。' },
+      { id: 'admit_obs', text: '一般病棟経過観察入院', correct: false },
+      { id: 'discharge', text: '帰宅、外来follow', correct: false, fatal: true }
+    ],
+    dispositionCorrect: 'cathlab',
+
+    returnPrecautionsApplicable: false,
+
+    // Phase 10: 72-hour outcome variants
+    outcomes: {
+      good: { headline: '再灌流成功', body: 'door-to-balloon 72分。LAD近位部100%閉塞をPCIで再開通。EF 50%で退院、二次予防導入。' },
+      missed_killer: { headline: '心原性ショックで死亡', body: 'カテへの導入が遅れ、心室細動から心停止。蘇生後ICU管理も多臓器不全で死亡。' },
+      delayed: { headline: '心不全合併で長期入院', body: '再灌流は得たもののdoor-to-balloonが180分超、大きな前壁壊死を残し心不全管理を要する。' }
+    },
+
+    debrief: {
+      teach: '若年でも喫煙・脂質歴があればACSは外せない。「冷汗+突然発症の前胸部圧迫感+放散痛」のクラシック四徴は反射でSTEMIを想起すべき。door-to-balloon 90分以内が鉄則。'
+    }
+  },
+
+  // ========== SCENARIO 1 — L1 dyspnea pulmonary edema ==========
+  {
+    id: 1,
+    level: 1,
+    title: '75歳女性 / 夜間増悪する呼吸困難',
+    summary: 'Level 1 — 急性心不全の認識と気道・呼吸の評価',
+    triage: '75歳女性、深夜に呼吸困難で覚醒、起坐呼吸の状態で家族に連れられて来院。',
+    vitals: { bp: '178/98', hr: 112, rr: 30, spo2: 86, t: 36.8, gcs: 15 },
+    appearance: '前傾姿勢、頻呼吸、湿性の咳、ピンク色泡沫状喀痰あり。会話は単語のみ可能。',
+    abcde: {
+      A: '気道開通、発声短語のみ',
+      B: 'RR 30、SpO2 86% room air、両肺野でラ音聴取',
+      C: 'BP 178/98、HR 112、頸静脈怒張、下肢浮腫++',
+      D: 'GCS 15、不安あり',
+      E: 'T 36.8、四肢冷感、湿潤'
+    },
+    sickJudgment: 'sick',
+
+    killerOptions: [
+      { id: 'pe', text: '肺塞栓症', correct: true },
+      { id: 'pulm_edema', text: '急性肺水腫(心原性)', correct: true },
+      { id: 'pneumothorax', text: '緊張性気胸', correct: true },
+      { id: 'asthma', text: '重症喘息発作', correct: true },
+      { id: 'anaphylaxis', text: 'アナフィラキシー', correct: true },
+      { id: 'silent_acs', text: 'silent ACS / 高齢非典型MI', correct: true },
+      { id: 'sepsis', text: '敗血症(肺炎源)', correct: true },
+      { id: 'common_cold', text: '感冒', correct: false },
+      { id: 'anxiety', text: '不安発作', correct: false },
+      { id: 'gerd', text: 'GERD', correct: false }
+    ],
+
+    historyOptions: [
+      { id: 'orthopnea', text: '起坐呼吸の有無、PND', yield: 'high', reveal: '3日前から枕を3つ重ねて寝ている、夜間に呼吸困難で覚醒。' },
+      { id: 'leg_swell', text: '下肢浮腫の進行', yield: 'high', reveal: '1週間前から増悪。' },
+      { id: 'cardiac_hx', text: '心疾患既往', yield: 'high', reveal: '高血圧、心房細動、3年前に心筋梗塞既往(EF 35%既知)。' },
+      { id: 'med_compliance', text: '内服コンプライアンス、利尿薬', yield: 'high', reveal: 'フロセミドを1週間自己中断していた(浮腫が引いたと判断)。' },
+      { id: 'salt', text: '塩分摂取・食事内容', yield: 'mid', reveal: '前夜にラーメン店で外食。' },
+      { id: 'chest_pain', text: '胸痛の有無', yield: 'high', reveal: '軽い胸部不快感あり、明確な胸痛ではない(silent MI注意)。' },
+      { id: 'cough_sputum', text: '咳嗽・喀痰の性状', yield: 'high', reveal: 'ピンク色泡沫状痰、湿性。' },
+      { id: 'fever', text: '発熱・感冒症状', yield: 'mid', reveal: 'なし。' },
+      { id: 'recent_immobility', text: '長期臥床・最近の手術', yield: 'mid', reveal: 'なし。' },
+      { id: 'allergy', text: 'アレルギー歴', yield: 'high', reveal: 'なし。' },
+      { id: 'asthma_hx', text: '喘息既往', yield: 'mid', reveal: 'なし。' },
+      { id: 'travel', text: '旅行歴', yield: 'low', reveal: 'なし。' }
+    ],
+    historyExpected: ['orthopnea', 'cardiac_hx', 'med_compliance', 'chest_pain', 'cough_sputum'],
+
+    examOptions: [
+      { id: 'lung_aus', text: '両肺野聴診(ラ音/wheeze/減弱)', yield: 'high', reveal: '両肺底部に湿性ラ音、上部にも一部広がる。wheezeも軽度伴う(cardiac asthma)。' },
+      { id: 'cardiac_aus', text: '心音聴取(III音、心雑音)', yield: 'high', reveal: 'III音聴取、心尖部に汎収縮期雑音(僧帽弁逆流)。' },
+      { id: 'jvd', text: '頸静脈怒張', yield: 'high', reveal: '45度坐位で約8cm怒張。' },
+      { id: 'leg_edema', text: '下肢浮腫の評価', yield: 'high', reveal: '両側脛骨前面まで圧痕浮腫++。' },
+      { id: 'skin', text: '皮膚色・湿潤', yield: 'mid', reveal: '末梢冷感、湿潤、蒼白。' },
+      { id: 'lymph', text: '頸部リンパ節', yield: 'none', reveal: '本症例で優先度低。' },
+      { id: 'abd', text: '腹部診察、肝腫大', yield: 'mid', reveal: '肝腫大あり、腹水なし。' },
+      { id: 'reflexes', text: '深部腱反射', yield: 'none', reveal: '本症例で優先度低。' }
+    ],
+    examExpected: ['lung_aus', 'cardiac_aus', 'jvd', 'leg_edema'],
+
+    testOptions: [
+      { id: 'ecg', text: '12誘導心電図', yield: 'high', critical: true, reveal: '心房細動 HR 115、新規ST-T変化なし、Q波(陳旧性下壁梗塞)。' },
+      { id: 'cxr', text: '胸部X線', yield: 'high', reveal: '心拡大、両側肺うっ血、Kerley B線、両側胸水。' },
+      { id: 'bnp', text: 'BNP / NT-proBNP', yield: 'high', reveal: 'BNP 1850 pg/mL(著明高値、心不全急性増悪に矛盾しない)。' },
+      { id: 'trop', text: 'トロポニン', yield: 'high', reveal: '軽度上昇 (45 ng/L)、demand ischemiaか silent MIか判別必要。' },
+      { id: 'lung_pocus', text: 'POCUS肺(B-line評価)', yield: 'high', reveal: '両側でB-line多発(8-line以上/視野)、心原性肺水腫像。' },
+      { id: 'cardiac_pocus', text: 'POCUS心臓・IVC', yield: 'high', reveal: 'EF約30%、IVC拡張・呼吸性変動なし。' },
+      { id: 'abg', text: '動脈血ガス', yield: 'high', reveal: 'pH 7.30, PaO2 52, PaCO2 38, HCO3 19 (代謝性アシドーシス併発、II型呼吸不全傾向)。' },
+      { id: 'cbc_chem', text: '血算・生化学', yield: 'mid', reveal: 'Cr 1.6(基礎値1.2)、K 4.0、Na 136。' },
+      { id: 'ddimer', text: 'D-dimer', yield: 'mid', reveal: 'PE鑑別必要なら(高リスクなら直接CTが優先)。' },
+      { id: 'covid', text: 'COVID/インフル抗原', yield: 'low', reveal: '陰性。' }
+    ],
+    testExpected: ['ecg', 'cxr', 'lung_pocus', 'cardiac_pocus', 'abg'],
+
+    reassess: {
+      offer: '酸素投与・初期治療開始から15分経過。再評価しますか?',
+      reveal: 'NPPV装着後SpO2 93%、RR 24に改善。意識clear維持。BP 158/85へ低下。'
+    },
+
+    riskScore: null,
+
+    consultOptions: [
+      { id: 'senior', text: '上級医を呼び方針共有', correct: true },
+      { id: 'cardio', text: '循環器コンサルト(入院・心不全管理依頼)', correct: true },
+      { id: 'icu_consideration', text: 'ICU/HCU入床交渉', correct: true },
+      { id: 'discharge_followup', text: '症状改善後に外来フォローで帰宅', correct: false, fatal: true },
+      { id: 'pulmonology', text: '呼吸器コンサルト(肺炎想定)', correct: false }
+    ],
+    consultIdeal: ['senior', 'cardio', 'icu_consideration'],
+
+    dispositionOptions: [
+      { id: 'ccu_hcu', text: 'CCU/HCU入院、NPPV継続、ループ利尿、硝酸薬', correct: true },
+      { id: 'general_admit', text: '一般病棟入院', correct: false, note: '酸素化と呼吸状態次第で要モニタ環境' },
+      { id: 'er_obs', text: 'ER経過観察、6時間後再評価', correct: false, fatal: true },
+      { id: 'discharge', text: '症状緩解次第帰宅', correct: false, fatal: true }
+    ],
+    dispositionCorrect: 'ccu_hcu',
+
+    returnPrecautionsApplicable: false,
+
+    outcomes: {
+      good: { headline: '入院加療で安定化', body: 'NPPVと利尿で改善、原因は内服中断と高Na食。HF Aクラスとしての教育を経て退院、地域連携。' },
+      missed_killer: { headline: '心停止に至る', body: 'silent MI見逃し、致死的不整脈で心停止。蘇生後脳症残存。' },
+      delayed: { headline: 'ICU管理長期化', body: '初期対応遅延で挿管に至り、ICU滞在2週間、退院後ADL低下。' }
+    },
+
+    debrief: {
+      teach: '高齢心不全急性増悪の80%以上は内服中断・塩分過多・感染・新規不整脈・新規虚血のいずれか。silent MIを除外する習慣がないと痛い目を見る。NPPVは早期に。'
+    }
+  },
+
+  // ========== SCENARIO 2 — L2 inferior MI presenting as constipation ==========
+  {
+    id: 2,
+    level: 2,
+    title: '78歳男性 / 「便秘」を主訴に来院',
+    summary: 'Level 2 — 高齢者非典型提示の罠。便秘の訴えに隠れた下壁MI',
+    triage: '78歳男性、3日前から便が出ない、なんとなくだるい、食欲不振。妻に勧められて受診。',
+    vitals: { bp: '108/64', hr: 88, rr: 18, spo2: 95, t: 36.4, gcs: 15 },
+    appearance: '見た目は元気、ベッド上座位で会話可能。顔色やや不良、軽度発汗あり。',
+    abcde: {
+      A: '気道問題なし',
+      B: 'RR 18、SpO2 95%、両肺呼吸音問題なし',
+      C: 'BP 108/64(普段130台)、HR 88、四肢温暖だが汗ばむ',
+      D: 'GCS 15、麻痺なし',
+      E: 'T 36.4、皮膚軽度湿潤'
+    },
+    sickJudgment: 'sick',
+    sickHint: '見た目はそれほど悪くないが、78歳でBPが普段より20mmHg低く、軽度の発汗 — これらは非典型presentationのフラグ。',
+
+    killerOptions: [
+      { id: 'inferior_mi', text: '下壁心筋梗塞(ACS)', correct: true },
+      { id: 'mesenteric', text: '腸間膜虚血', correct: true },
+      { id: 'aaa', text: '腹部大動脈瘤(切迫破裂)', correct: true },
+      { id: 'sbo_strangulation', text: '絞扼性イレウス', correct: true },
+      { id: 'perforation', text: '消化管穿孔', correct: true },
+      { id: 'sepsis_uti', text: '敗血症(尿路源など)', correct: true },
+      { id: 'simple_constipation', text: '単純な便秘', correct: false, note: 'これに飛びつくと罠。' },
+      { id: 'anxiety', text: '加齢に伴う体調不良', correct: false },
+      { id: 'fecal_impaction', text: '宿便', correct: false }
+    ],
+
+    historyOptions: [
+      { id: 'chest', text: '胸部症状(圧迫感、不快感、放散痛)', yield: 'high', reveal: '「胃の上が重い」感覚と、軽い顎の違和感あり(本人は重視せず)。' },
+      { id: 'abd_detail', text: '腹痛の性状・部位・推移', yield: 'high', reveal: '上腹部の鈍い不快感あり、腹痛とは認識せず。' },
+      { id: 'nausea', text: '悪心・嘔吐', yield: 'high', reveal: '軽度悪心あり。嘔吐なし。' },
+      { id: 'sweating', text: '冷汗・倦怠感', yield: 'high', reveal: 'ここ数時間軽度発汗、強い倦怠感あり。' },
+      { id: 'cardiac_hx', text: '心血管リスク・既往', yield: 'high', reveal: '高血圧、糖尿病、脂質異常症。喫煙(2年前禁煙、40年喫煙歴)。' },
+      { id: 'med', text: '内服薬', yield: 'high', reveal: 'メトホルミン、アムロジピン、ロスバスタチン、アスピリン100mg。' },
+      { id: 'last_bm', text: '最終排便とその性状', yield: 'mid', reveal: '3日前、普通便、出血なし。' },
+      { id: 'appetite_pattern', text: '食欲・体重変化', yield: 'mid', reveal: '昨日から食欲なし、体重変化なし。' },
+      { id: 'urinary', text: '排尿症状', yield: 'mid', reveal: '異常なし。' },
+      { id: 'recent_meal', text: '最近の食事内容', yield: 'low', reveal: 'いつもの和食。' },
+      { id: 'family_constipation', text: '家族の便秘歴', yield: 'none', reveal: '無関係。' }
+    ],
+    historyExpected: ['chest', 'sweating', 'cardiac_hx', 'nausea', 'med'],
+
+    examOptions: [
+      { id: 'cardiac', text: '心音・心雑音', yield: 'high', reveal: 'III音聴取、雑音なし、軽度頻脈。' },
+      { id: 'lung', text: '両肺呼吸音', yield: 'high', reveal: '軽度肺底部捻髪音(うっ血傾向)。' },
+      { id: 'abd', text: '腹部診察(圧痛・腫瘤・拍動性腫瘤)', yield: 'high', reveal: '上腹部やや膨満、圧痛軽度、拍動性腫瘤なし。' },
+      { id: 'jvd', text: '頸静脈怒張', yield: 'high', reveal: '右房圧軽度上昇所見あり。' },
+      { id: 'pulse_4', text: '四肢の脈拍触知(左右対称性)', yield: 'mid', reveal: '左右対称、欠損なし。' },
+      { id: 'rectal', text: '直腸診', yield: 'mid', reveal: '直腸内便はあるが少量、出血なし。' },
+      { id: 'skin', text: '皮膚診察(発汗・蒼白)', yield: 'high', reveal: '湿潤・軽度蒼白。' },
+      { id: 'leg', text: '下肢浮腫・冷感', yield: 'mid', reveal: '軽度浮腫、冷感なし。' }
+    ],
+    examExpected: ['cardiac', 'abd', 'skin', 'lung'],
+
+    testOptions: [
+      { id: 'ecg', text: '12誘導心電図', yield: 'high', critical: true, reveal: 'II/III/aVF でST上昇 1.5-2mm、I/aVL で相反性変化 → 下壁STEMI。V4Rで右室梗塞合併確認推奨。' },
+      { id: 'right_precordial', text: '右側胸部誘導(V3R-V5R)', yield: 'high', reveal: 'V4R ST上昇 → 右室梗塞合併。輸液とNitro禁忌(BP低下リスク)。' },
+      { id: 'trop', text: 'トロポニン', yield: 'high', reveal: '初回 92 ng/L(軽度上昇)、上昇トレンド予想。' },
+      { id: 'cxr', text: '胸部X線(ポータブル)', yield: 'mid', reveal: '心拡大なし、肺うっ血なし、縦隔正常。' },
+      { id: 'cbc_chem', text: '血算・生化学', yield: 'mid', reveal: 'Hb 13、Cr 1.1、K 4.4、血糖 220(DM既往から)。' },
+      { id: 'lipase', text: 'リパーゼ', yield: 'low', reveal: '正常。' },
+      { id: 'lactate', text: '乳酸値', yield: 'mid', reveal: '2.4 mmol/L(軽度上昇)。' },
+      { id: 'abd_xray', text: '腹部X線(立位・臥位)', yield: 'low', reveal: '軽度ガス像、free airなし。' },
+      { id: 'ct_abd', text: '腹部CT(造影)', yield: 'low', reveal: '心臓を疑う前提では優先度低。AAAや腸間膜虚血の鑑別が必要なら考慮。' }
+    ],
+    testExpected: ['ecg', 'right_precordial', 'trop', 'lactate'],
+
+    reassess: {
+      offer: 'ECG確認後、本人と話している間に5分経過。再評価しますか?',
+      reveal: 'BPが98/55に低下、HR 72に減少(右室梗塞による前負荷依存とAV結節虚血の可能性)。'
+    },
+
+    riskScore: {
+      type: 'HEART',
+      prompt: 'HEARTスコアで層別化を試みてください。',
+      components: [
+        { label: 'History (高齢、非典型だが心血管疑いあり)', value: 1 },
+        { label: 'ECG (有意なST上昇)', value: 2 },
+        { label: 'Age ≥65', value: 2 },
+        { label: 'Risk factors ≥3 or 既知CAD', value: 2 },
+        { label: 'Troponin (1-3倍)', value: 1 }
+      ],
+      total: 8,
+      interpretation: 'HEART 8点 = 高リスク。ただし右室梗塞合併ではNitroは禁忌、輸液+カテラボへ。'
+    },
+
+    consultOptions: [
+      { id: 'cardio_immediate', text: '循環器即時コール(STEMIプロトコル、右室梗塞合併情報添付)', correct: true },
+      { id: 'senior', text: '上級医に方針共有', correct: true },
+      { id: 'gi', text: '消化器コンサルト(便秘加療)', correct: false, note: '主訴に引きずられた誤誘導。' },
+      { id: 'observe_lab', text: '検査結果と便秘加療で経過観察', correct: false, fatal: true }
+    ],
+    consultIdeal: ['cardio_immediate', 'senior'],
+
+    dispositionOptions: [
+      { id: 'cathlab_fluid', text: 'カテラボへ。右室梗塞のため輸液で前負荷確保、Nitro/モルヒネ慎重', correct: true },
+      { id: 'standard_stemi', text: '通常STEMIプロトコル(Nitro/モルヒネ含む)', correct: false, note: '右室梗塞でBP低下リスク高。' },
+      { id: 'admit_obs', text: '一般病棟入院(慎重経過観察)', correct: false, fatal: true },
+      { id: 'discharge_laxative', text: '緩下剤処方し帰宅', correct: false, fatal: true }
+    ],
+    dispositionCorrect: 'cathlab_fluid',
+
+    returnPrecautionsApplicable: false,
+
+    outcomes: {
+      good: { headline: '右室梗塞合併STEMIで救命', body: 'RCA近位部閉塞をPCIで再開通。前負荷管理に注意し、退院時EF 45%。教訓:「便秘」の訴えにECGを撮らないと殺す。' },
+      missed_killer: { headline: 'Nitro投与で循環虚脱', body: '右室梗塞合併を見逃しNitro/モルヒネで急激なBP低下。蘇生したが脳症残存。' },
+      delayed: { headline: '消化器入院で発見遅延', body: '便秘として消化器入院、夜間に致死性不整脈で急変、ICUで蘇生。心機能著しく低下。' }
+    },
+
+    debrief: {
+      teach: '高齢者の腹部・上腹部不快感では必ずECGを撮る。下壁MIは「胃の症状」「だるさ」「便秘」で来院する。下壁STEMIには右側胸部誘導(V4R)で右室梗塞を必ず除外。Nitro/モルヒネが致命傷になりうる。'
+    }
+  },
+
+  // ========== SCENARIO 3 — L2 SAH thunderclap ==========
+  {
+    id: 3,
+    level: 2,
+    title: '45歳女性 / 突然発症の最強の頭痛',
+    summary: 'Level 2 — Thunderclap headache、SAHのrule-out戦略',
+    triage: '45歳女性、テニス中に突然発症の激しい頭痛。「今までで最強」の表現。1回嘔吐あり。来院時は痛みやや軽減。',
+    vitals: { bp: '168/92', hr: 90, rr: 18, spo2: 99, t: 36.7, gcs: 15 },
+    appearance: '会話可能、項部硬直は明らかではない。神経学的局所所見は乏しい。',
+    abcde: {
+      A: '気道問題なし',
+      B: 'RR 18、SpO2 99% RA',
+      C: 'BP 168/92、HR 90',
+      D: 'GCS 15、麻痺なし、瞳孔正円同大対光反射正常',
+      E: 'T 36.7'
+    },
+    sickJudgment: 'sick',
+    sickHint: 'GCS 15で会話可能でも、thunderclap発症と1回嘔吐 = HIGH RISKカテゴリ。「見た目はピンピンしているSAH」が最も見逃される。',
+
+    killerOptions: [
+      { id: 'sah', text: 'くも膜下出血(SAH)', correct: true },
+      { id: 'meningitis', text: '髄膜炎・脳炎', correct: true },
+      { id: 'ich', text: '脳出血', correct: true },
+      { id: 'cvt', text: '脳静脈洞血栓症', correct: true },
+      { id: 'dissection', text: '椎骨脳底動脈解離', correct: true },
+      { id: 'gca', text: '巨細胞性動脈炎', correct: true, note: '通常は60歳以上だが鑑別に挙げる' },
+      { id: 'glaucoma', text: '急性閉塞隅角緑内障', correct: true },
+      { id: 'rcvs', text: '可逆性脳血管攣縮症候群', correct: true },
+      { id: 'co_poisoning', text: '一酸化炭素中毒', correct: true },
+      { id: 'tension', text: '緊張型頭痛', correct: false },
+      { id: 'migraine_simple', text: '通常の片頭痛', correct: false }
+    ],
+
+    historyOptions: [
+      { id: 'thunderclap', text: '発症の急峻さ(秒単位か分単位か)', yield: 'high', reveal: '「いきなりバットで殴られたような」、ピーク到達は数秒以内。' },
+      { id: 'worst_ever', text: '今までで最強の頭痛か', yield: 'high', reveal: '「明らかに今までで最も強い」と本人明言。' },
+      { id: 'activity', text: '発症時の活動(運動、性交、努責、咳嗽)', yield: 'high', reveal: 'テニスのサーブ動作中に発症。' },
+      { id: 'similar_recent', text: '直近のsentinel headache', yield: 'high', reveal: '2週間前に短時間の強い頭痛あり、自然軽快した(警告漏出疑い)。' },
+      { id: 'fever', text: '発熱・項部硬直症状', yield: 'high', reveal: '発熱なし、首は「少し動かしにくい」。' },
+      { id: 'visual', text: '視力障害・視野障害', yield: 'mid', reveal: 'なし。' },
+      { id: 'med', text: '抗凝固薬服用', yield: 'high', reveal: 'なし。' },
+      { id: 'pregnancy', text: '妊娠の可能性', yield: 'mid', reveal: '本人は「ない」と回答。' },
+      { id: 'family_aneurysm', text: '家族の脳動脈瘤・SAH歴', yield: 'high', reveal: '母親が55歳でSAH既往。' },
+      { id: 'smoking', text: '喫煙歴', yield: 'mid', reveal: '15本/日 × 20年。' },
+      { id: 'migraine_hx', text: '片頭痛既往', yield: 'mid', reveal: '若い頃に軽い片頭痛あり、最近10年は無症状。' },
+      { id: 'recent_trauma', text: '最近の頭部外傷', yield: 'mid', reveal: 'なし。' }
+    ],
+    historyExpected: ['thunderclap', 'worst_ever', 'activity', 'similar_recent', 'family_aneurysm'],
+
+    examOptions: [
+      { id: 'gcs_detail', text: 'GCS詳細評価、見当識', yield: 'high', reveal: 'GCS 15、見当識保たれている。' },
+      { id: 'pupils', text: '瞳孔径・対光反射', yield: 'high', reveal: '正円同大、対光反射迅速。' },
+      { id: 'neuro_full', text: '局所神経所見(顔面・四肢麻痺、構音、協調)', yield: 'high', reveal: '麻痺なし、構音明瞭、指鼻試験正常。' },
+      { id: 'meningeal', text: '髄膜刺激徴候(項部硬直、Kernig、Brudzinski)', yield: 'high', reveal: '項部硬直は軽度、Kernig陰性。' },
+      { id: 'fundus', text: '眼底検査(乳頭浮腫、Terson症候群)', yield: 'mid', reveal: '可能なら有用。本症例では機会窓狭く非実施でも可。' },
+      { id: 'temporal_artery', text: '側頭動脈の圧痛・拍動', yield: 'low', reveal: '本症例ではGCAは年齢的に低い。' },
+      { id: 'lung', text: '肺音聴取', yield: 'low', reveal: '清明。' },
+      { id: 'cardiac', text: '心音聴取', yield: 'low', reveal: '正常。' },
+      { id: 'abd', text: '腹部診察', yield: 'none', reveal: '本症例では優先度低。' }
+    ],
+    examExpected: ['gcs_detail', 'pupils', 'neuro_full', 'meningeal'],
+
+    testOptions: [
+      { id: 'ct_head', text: '頭部CT(非造影、即時)', yield: 'high', critical: true, reveal: '基底槽周囲に高吸収域 → 急性くも膜下出血(Fisher Group 3)。' },
+      { id: 'ct_angio', text: '頭部CTA(動脈瘤探索)', yield: 'high', reveal: '前交通動脈瘤8mm検出。' },
+      { id: 'lp', text: '腰椎穿刺(CT陰性かつ高臨床的疑いの場合)', yield: 'high', reveal: '本症例ではCT陽性のため不要だが、CT陰性なら必須選択肢。発症6時間超では特に重要。' },
+      { id: 'ecg', text: '12誘導心電図', yield: 'mid', reveal: '広範なT波変化(神経原性心筋障害)、QT延長傾向。' },
+      { id: 'cbc_chem', text: '血算・生化学・凝固', yield: 'mid', reveal: '著変なし。' },
+      { id: 'glucose', text: '即時血糖測定', yield: 'high', reveal: '110 mg/dL(意識障害ではないがroutineで施行)。' },
+      { id: 'tox', text: '中毒スクリーニング', yield: 'low', reveal: '陰性。' },
+      { id: 'mri', text: '頭部MRI/MRV', yield: 'mid', reveal: 'CVT鑑別では有用だがSAHの初療では時間ロスのリスク。' },
+      { id: 'co_check', text: 'CO-Hb測定', yield: 'low', reveal: '本症例では家族や同伴者に同様症状なく可能性低い。' }
+    ],
+    testExpected: ['ct_head', 'ct_angio', 'glucose'],
+
+    reassess: {
+      offer: 'CT撮像中に状態変化を確認しますか?',
+      reveal: '頭痛は「波がある」と訴え、嘔気軽度持続。意識clear、神経学的所見不変。'
+    },
+
+    riskScore: {
+      type: 'Ottawa SAH',
+      prompt: 'Ottawa SAH Ruleで層別化(年齢、運動誘発、首の痛み・硬直、雷鳴頭痛、最大強度頭痛、目撃された意識消失)。',
+      components: [
+        { label: 'Age 40-49 (≥40)', value: 1 },
+        { label: '運動誘発性', value: 1 },
+        { label: '首の痛み・硬直', value: 1 },
+        { label: '雷鳴頭痛(瞬時にピーク)', value: 1 },
+        { label: '最大強度頭痛', value: 1 },
+        { label: '目撃された意識消失', value: 0 }
+      ],
+      total: 5,
+      interpretation: 'Ottawa SAH 5項目陽性 → 精査適応(感度100%、特異度低い)。CT撮像必須、CT陰性ならLP検討。'
+    },
+
+    consultOptions: [
+      { id: 'neurosurgery', text: '脳神経外科即時コール(動脈瘤クリッピング/コイリング検討)', correct: true },
+      { id: 'senior', text: '上級医に共有', correct: true },
+      { id: 'icu_pre', text: 'NCU/ICU入床交渉', correct: true },
+      { id: 'analgesia_dc', text: '鎮痛剤処方し帰宅、外来神経内科', correct: false, fatal: true },
+      { id: 'neurology_consult', text: '神経内科コンサルト(後日精査)', correct: false }
+    ],
+    consultIdeal: ['neurosurgery', 'senior', 'icu_pre'],
+
+    dispositionOptions: [
+      { id: 'transfer_neuro', text: '脳血管センターへ緊急転送(自院に脳外科緊急対応なき場合)', correct: true, note: '自院capability次第' },
+      { id: 'admit_ncu', text: 'NCU/ICUへ入室、脳外科指示の下で血圧管理・再出血予防', correct: true },
+      { id: 'admit_general', text: '一般病棟入院、脳神経外科明日対診', correct: false, fatal: true },
+      { id: 'discharge_followup', text: '頭痛軽快のため帰宅、外来follow', correct: false, fatal: true }
+    ],
+    dispositionCorrect: 'admit_ncu',
+
+    returnPrecautionsApplicable: false,
+
+    outcomes: {
+      good: { headline: '動脈瘤コイリング成功', body: '前交通動脈瘤に対しコイル塞栓術施行。Hunt-Hess II、退院時神経学的後遺症なし。' },
+      missed_killer: { headline: '再出血で死亡', body: '帰宅後12時間で再出血、家族発見時心停止。蘇生されず。CT撮らずに帰したことが致命的。' },
+      delayed: { headline: '再出血で重度後遺症', body: '一般病棟で経過観察中に再破裂、緊急手術も後遺症残存。' }
+    },
+
+    debrief: {
+      teach: 'Thunderclap headache、worst-ever、運動誘発、家族歴 — どれか1つでもあれば必ずCT。CT陰性かつ発症6時間以上経過していればLP閾値を下げる。「来院時には頭痛軽快しているSAH」が最大のトラップ。'
+    }
+  },
+
+  // ========== SCENARIO 4 — L3 CVT in postpartum migraine sufferer ==========
+  {
+    id: 4,
+    level: 3,
+    title: '32歳女性産後3ヶ月 / 「いつもの片頭痛」',
+    summary: 'Level 3 — 認知バイアスの罠。アンカリングを破れるか',
+    triage: '32歳女性、片頭痛持ち。産後3ヶ月。本日朝から「いつもの片頭痛が悪化したような頭痛」を訴え受診。本人は「片頭痛薬がほしいだけ」と話す。',
+    vitals: { bp: '132/82', hr: 88, rr: 16, spo2: 99, t: 36.9, gcs: 15 },
+    appearance: 'やや疲れた様子、しかし会話流暢。「来るほどではなかったかも」と自嘲気味。母親が同伴。',
+    abcde: {
+      A: '気道問題なし',
+      B: 'RR 16、SpO2 99%',
+      C: 'BP 132/82、HR 88',
+      D: 'GCS 15、構音明瞭、四肢麻痺なし',
+      E: 'T 36.9'
+    },
+    sickJudgment: 'sick',
+    sickHint: 'バイタル正常で会話流暢でも、産後3ヶ月+「いつもの片頭痛が違う」は脳静脈洞血栓症(CVT)のred flag。本人の「軽症アピール」に流されないこと。',
+
+    killerOptions: [
+      { id: 'cvt', text: '脳静脈洞血栓症(CVT)', correct: true },
+      { id: 'pres', text: '可逆性後頭葉白質脳症(PRES)', correct: true },
+      { id: 'sah', text: 'くも膜下出血', correct: true },
+      { id: 'meningitis', text: '髄膜炎', correct: true },
+      { id: 'pe', text: '肺塞栓症(妊娠/産褥期にリスク高)', correct: true },
+      { id: 'preeclampsia_late', text: '遅発性子癇前症(産後)', correct: true },
+      { id: 'rcvs', text: '可逆性脳血管攣縮症候群', correct: true },
+      { id: 'simple_migraine', text: '単純な片頭痛発作', correct: false, note: '本症例ではanchoringの罠。' },
+      { id: 'tension', text: '緊張型頭痛', correct: false },
+      { id: 'sleep_dep', text: '睡眠不足による頭痛', correct: false }
+    ],
+
+    historyOptions: [
+      { id: 'character_diff', text: 'いつもの片頭痛との「違い」', yield: 'high', reveal: '「片頭痛は片側拍動性だが、今回は両側で重い感じ」「効く薬が効かない」。' },
+      { id: 'progression', text: '経時的増悪パターン', yield: 'high', reveal: '昨日から徐々に悪化、今朝は嘔吐あり。' },
+      { id: 'postpartum', text: '産後経過、授乳状況', yield: 'high', reveal: '産後3ヶ月、自己分娩、産後出血なし。完全母乳。' },
+      { id: 'thrombo_risk', text: '血栓リスク(避妊薬、家族歴、肥満、脱水)', yield: 'high', reveal: 'BMI 29、産後脱水傾向、家族にDVT歴あり。' },
+      { id: 'visual', text: '視覚症状(暗点、複視、視野欠損)', yield: 'high', reveal: '時々「目がぼやける」、特に前傾時に増悪。' },
+      { id: 'seizure', text: '発作・痙攣の有無', yield: 'high', reveal: '本人は否定。母親が「昨日朝、変な動きをしていた」と一瞬指摘するが本人は覚えていない。' },
+      { id: 'fever', text: '発熱・全身症状', yield: 'high', reveal: '発熱なし、全身倦怠感軽度。' },
+      { id: 'med_oc', text: '内服薬・経口避妊薬', yield: 'high', reveal: '片頭痛時にトリプタン頓用、避妊薬なし(授乳中)。' },
+      { id: 'thunderclap', text: '雷鳴頭痛様の発症か', yield: 'high', reveal: '違う、徐々に悪化。' },
+      { id: 'neck_stiff', text: '項部硬直自覚', yield: 'mid', reveal: '軽度。' },
+      { id: 'baby_health', text: '児の健康・育児ストレス', yield: 'low', reveal: '元気。育児疲労はあり。' },
+      { id: 'recent_travel', text: '最近の長距離移動', yield: 'mid', reveal: '産後の里帰りで先週6時間車移動。' }
+    ],
+    historyExpected: ['character_diff', 'progression', 'postpartum', 'thrombo_risk', 'seizure', 'visual'],
+
+    examOptions: [
+      { id: 'gcs_detail', text: 'GCS・見当識・higher cortical functions', yield: 'high', reveal: 'GCS 15、軽度の集中力低下、見当識保たれる。' },
+      { id: 'pupils_eom', text: '瞳孔・眼球運動・複視確認', yield: 'high', reveal: '右外転神経軽度麻痺の疑い、複視自覚あり。' },
+      { id: 'fundus', text: '眼底(乳頭浮腫)', yield: 'high', reveal: '両側乳頭浮腫あり(頭蓋内圧亢進所見)。' },
+      { id: 'neuro_motor', text: '四肢運動・感覚・協調', yield: 'high', reveal: '左下肢にごく軽度の脱力(本人気づかず)。' },
+      { id: 'meningeal', text: '髄膜刺激徴候', yield: 'high', reveal: '項部軽度抵抗、Kernig陰性。' },
+      { id: 'leg_dvt', text: '下肢DVT所見(腫脹・圧痛)', yield: 'mid', reveal: '左下腿軽度腫脹、明確な圧痛なし。' },
+      { id: 'cardiac', text: '心音聴取', yield: 'low', reveal: '正常。' },
+      { id: 'lung', text: '肺音聴取', yield: 'low', reveal: '清明。' }
+    ],
+    examExpected: ['gcs_detail', 'pupils_eom', 'fundus', 'neuro_motor', 'meningeal'],
+
+    testOptions: [
+      { id: 'ct_head', text: '頭部CT(非造影)', yield: 'high', reveal: '右横S字状静脈洞にdense triangle sign疑い。脳実質に小血腫像。' },
+      { id: 'ct_venous', text: '頭部CT静脈造影(CTV) または MRV', yield: 'high', critical: true, reveal: '右横S字状静脈洞〜上矢状静脈洞に充填欠損 → 脳静脈洞血栓症確定。' },
+      { id: 'mri_brain', text: '頭部MRI/MRV', yield: 'high', reveal: 'CVT診断のgold standard。CTVと同等の感度。' },
+      { id: 'ddimer', text: 'D-dimer', yield: 'mid', reveal: '上昇(産後+CVTで非特異的だが補助情報)。' },
+      { id: 'pregnancy', text: '妊娠検査', yield: 'high', reveal: '陰性。' },
+      { id: 'cbc_chem', text: '血算・生化学・凝固', yield: 'mid', reveal: '著変なし。' },
+      { id: 'lp_first', text: '即時LP', yield: 'low', reveal: 'CVTでは初手としてLPは適切でない。腫瘤性病変・占拠性病変鑑別が先。' },
+      { id: 'tox', text: '中毒スクリーニング', yield: 'none', reveal: '本症例で優先度なし。' }
+    ],
+    testExpected: ['ct_head', 'ct_venous', 'pregnancy'],
+
+    reassess: {
+      offer: 'CT待ち時間中、状態変化を確認しますか?',
+      reveal: '視野の「キラキラ」が増悪、軽度嘔気持続。本人はやや過敏に物音に反応。'
+    },
+
+    riskScore: null,
+
+    consultOptions: [
+      { id: 'neurology', text: '神経内科コンサルト(CVT管理依頼)', correct: true },
+      { id: 'neurosurgery', text: '脳神経外科コンサルト(出血合併・占拠性病変ある場合)', correct: true },
+      { id: 'senior', text: '上級医共有', correct: true },
+      { id: 'admit_ncu', text: 'NCU/HCU入床交渉', correct: true },
+      { id: 'simple_migraine_dc', text: 'トリプタン処方で帰宅', correct: false, fatal: true },
+      { id: 'sleep_clinic', text: '睡眠外来照会', correct: false }
+    ],
+    consultIdeal: ['neurology', 'senior', 'admit_ncu'],
+
+    dispositionOptions: [
+      { id: 'admit_anticoag', text: 'NCU/HCU入院、抗凝固開始(ヘパリン静注 or LMWH)', correct: true },
+      { id: 'admit_observe', text: '一般病棟入院、明日精査', correct: false, fatal: true },
+      { id: 'discharge_neurology', text: '神経内科外来予約し帰宅', correct: false, fatal: true },
+      { id: 'discharge_med', text: '片頭痛発作と診断し処方帰宅', correct: false, fatal: true }
+    ],
+    dispositionCorrect: 'admit_anticoag',
+
+    returnPrecautionsApplicable: false,
+
+    outcomes: {
+      good: { headline: '抗凝固で改善、後遺症なく退院', body: '抗凝固療法で症状改善。原因精査で軽度トロンボフィリア検出。授乳中対応可能なLMWHで6ヶ月継続。' },
+      missed_killer: { headline: '帰宅後痙攣・出血合併', body: '「片頭痛」と診断し帰宅。3日後にてんかん重積で再来、CTで広範な脳静脈梗塞・出血合併。意識戻らず。' },
+      delayed: { headline: '出血合併で長期入院', body: '初期判断遅延でCVTが進行、脳出血合併。長期リハビリを要し復職困難。' }
+    },
+
+    debrief: {
+      teach: '「片頭痛持ちの患者の片頭痛悪化」「本人が軽症アピール」「家族が同伴」は anchor + dismissalの罠。産褥期は最大のCVTリスクtimepoint。「いつもと違う頭痛」「効く薬が効かない」「視覚異常」「目撃された一過性の異常行動」のいずれかがあればCVTを除外する。'
+    }
+  },
+
+  // ========== SCENARIO 5 — L3 cardiac syncope mistaken for vasovagal ==========
+  {
+    id: 5,
+    level: 3,
+    title: '65歳男性 / 立ち上がりで失神',
+    summary: 'Level 3 — 「迷走神経反射でしょう」を疑え',
+    triage: '65歳男性、自宅で立ち上がろうとした際に意識消失。約20秒で自然回復。本人は「立ちくらみ」と話す。家族同伴で受診。',
+    vitals: { bp: '132/80', hr: 74, rr: 16, spo2: 98, t: 36.5, gcs: 15 },
+    appearance: '見た目元気、独歩可能、会話明瞭。「もう大丈夫、帰りたい」と訴える。',
+    abcde: {
+      A: '問題なし',
+      B: 'RR 16、SpO2 98%',
+      C: 'BP 132/80、HR 74',
+      D: 'GCS 15',
+      E: 'T 36.5'
+    },
+    sickJudgment: 'sick',
+    sickHint: '「もう元気」と帰りたがるが、65歳男性の失神は心原性が約30%。心原性失神の1年死亡率は20%。「迷走神経反射」とラベリングするのは早計。',
+
+    killerOptions: [
+      { id: 'arrhythmia', text: '致死的不整脈(VT/VF, AVB)', correct: true },
+      { id: 'as_hcm', text: '大動脈弁狭窄症 / HCM', correct: true },
+      { id: 'pe', text: '肺塞栓症', correct: true },
+      { id: 'aaa', text: '腹部大動脈瘤(切迫破裂)', correct: true },
+      { id: 'silent_acs', text: 'silent ACS', correct: true },
+      { id: 'sah_sub', text: 'くも膜下出血', correct: true },
+      { id: 'gi_bleed', text: '消化管出血(隠れた)', correct: true },
+      { id: 'hypoglycemia', text: '低血糖', correct: true },
+      { id: 'vasovagal_simple', text: '単純な迷走神経反射', correct: false, note: '排他しないとアウト。' },
+      { id: 'orthostatic_simple', text: '単なる起立性低血圧', correct: false }
+    ],
+
+    historyOptions: [
+      { id: 'preceding', text: '失神直前の状況、前駆症状', yield: 'high', reveal: '「特に前触れなく、急にスッと意識が」と本人。家族「真っ青になって倒れた」。' },
+      { id: 'exertion', text: '労作時失神か、安静時か', yield: 'high', reveal: '今回は立ち上がりだが、過去2週間で「階段を上がっている時に胸が押される感じで休んだ」エピソードあり。' },
+      { id: 'palpitation', text: '動悸・胸痛の自覚', yield: 'high', reveal: '時々短時間の動悸あり、本人「気のせいと思っていた」。' },
+      { id: 'witness', text: '目撃者の観察(顔色、けいれん、嘔吐)', yield: 'high', reveal: '家族「数秒間ガクッと体が硬直したように見えた、目がひっくり返っていた」(けいれん性失神疑い)。' },
+      { id: 'duration', text: '意識消失時間と覚醒様式', yield: 'high', reveal: '20秒程度、覚醒は速やか、混乱なし。' },
+      { id: 'cardiac_hx', text: '心疾患既往、家族歴(SCD)', yield: 'high', reveal: '本人:糖尿病、高血圧、脂質異常。家族:父親が55歳で突然死(原因不明)。' },
+      { id: 'med', text: '内服薬(QT延長、抗不整脈、利尿)', yield: 'high', reveal: 'メトホルミン、アムロジピン、ロスバスタチン。最近上気道炎でクラリスロマイシン1週間処方中(QT延長注意)。' },
+      { id: 'similar', text: '過去の同様エピソード', yield: 'high', reveal: '半年前に1回、運転中に「ぼうっとして」運転を停めた経験。' },
+      { id: 'gi_blood', text: '黒色便・吐血', yield: 'mid', reveal: 'なし。' },
+      { id: 'fluid_status', text: '直近の水分摂取・脱水', yield: 'mid', reveal: 'いつも通り。' },
+      { id: 'pain', text: '頭痛・腹痛・背部痛', yield: 'mid', reveal: 'なし。' },
+      { id: 'social', text: '一日のスケジュール', yield: 'low', reveal: 'いつも通り。' }
+    ],
+    historyExpected: ['exertion', 'palpitation', 'witness', 'cardiac_hx', 'med', 'similar'],
+
+    examOptions: [
+      { id: 'cardiac_aus', text: '心音・心雑音聴取(AS、HCM)', yield: 'high', reveal: '右上胸骨縁に駆出性収縮期雑音 4/6、頸部放散あり(AS疑い)。' },
+      { id: 'orthostatic', text: '体位性血圧測定(臥位→起立)', yield: 'mid', reveal: '臥位 132/80、起立3分 124/78、症状再発なし。' },
+      { id: 'jvd', text: '頸静脈所見、肝頸反射', yield: 'mid', reveal: '異常なし。' },
+      { id: 'pulse_4', text: '四肢の脈拍触知(左右、上下肢)', yield: 'high', reveal: '左右対称。' },
+      { id: 'neuro', text: '神経学的所見', yield: 'mid', reveal: '局所所見なし。' },
+      { id: 'rectal', text: '直腸診(消化管出血スクリーニング)', yield: 'mid', reveal: '便潜血陰性。' },
+      { id: 'abd_pulsation', text: '腹部拍動性腫瘤', yield: 'mid', reveal: 'なし。' },
+      { id: 'lung', text: '肺音聴取', yield: 'low', reveal: '清明。' }
+    ],
+    examExpected: ['cardiac_aus', 'orthostatic', 'pulse_4', 'rectal'],
+
+    testOptions: [
+      { id: 'ecg', text: '12誘導心電図(即時)', yield: 'high', critical: true, reveal: '完全左脚ブロック新規出現、QTc 510ms延長(クラリスロマイシン併用、AS、左室肥大)。run of NSVT 5連発。' },
+      { id: 'monitoring', text: '心電図モニタ装着・継続', yield: 'high', reveal: '15分以内にnonsustained VT 6連発を再度記録。' },
+      { id: 'trop', text: 'トロポニン', yield: 'high', reveal: '軽度上昇 (38 ng/L)、demand or silent ischemiaか。' },
+      { id: 'echo_pocus', text: 'POCUS心臓(EF、AS、HCM)', yield: 'high', reveal: 'AS疑い所見、EF 50%、左室肥大、IVC拡張なし。' },
+      { id: 'cbc_chem', text: '血算・生化学(K, Mg含む)', yield: 'high', reveal: 'K 3.4、Mg 1.6 (low)、Cr 1.1。電解質補正適応。' },
+      { id: 'glucose', text: '即時血糖測定', yield: 'high', reveal: '108 mg/dL。' },
+      { id: 'd_dimer', text: 'D-dimer', yield: 'mid', reveal: '本症例ではPEリスク評価次第。' },
+      { id: 'ct_head', text: '頭部CT', yield: 'mid', reveal: '神経学的所見なければ初療では優先度低。' },
+      { id: 'cxr', text: '胸部X線', yield: 'mid', reveal: '心拡大、肺うっ血なし。' }
+    ],
+    testExpected: ['ecg', 'monitoring', 'trop', 'echo_pocus', 'cbc_chem'],
+
+    reassess: {
+      offer: '心電図確認後、モニタを30分継続観察しますか?',
+      reveal: 'モニタ中にNSVT 8連発を2回記録。本人は症状なし。'
+    },
+
+    riskScore: {
+      type: 'Canadian Syncope Risk Score',
+      prompt: 'Canadian Syncope Risk Scoreで層別化を行ってください。',
+      components: [
+        { label: '心血管疾患既往', value: 1 },
+        { label: 'ED初回測定収縮期血圧 <90 or >180', value: 0 },
+        { label: 'トロポニン上昇', value: 2 },
+        { label: 'QRS軸異常 or QRS幅 >130 or QTc >480', value: 2 },
+        { label: '前駆症状なし(predisposition乏しい)', value: 1 },
+        { label: 'ED医師の暫定診断(心原性疑い)', value: 2 }
+      ],
+      total: 8,
+      interpretation: 'CSRS 8点 = 非常に高リスク(30日有害事象 > 30%)。入院モニタリング必須。'
+    },
+
+    consultOptions: [
+      { id: 'cardio', text: '循環器コンサルト(入院モニタリング+ASとQT延長精査依頼)', correct: true },
+      { id: 'senior', text: '上級医共有(クラリスロマイシン中止、Mg補正)', correct: true },
+      { id: 'discharge_holter', text: '帰宅して外来Holter予約', correct: false, fatal: true },
+      { id: 'neurology_eeg', text: '神経内科EEG検査依頼', correct: false }
+    ],
+    consultIdeal: ['cardio', 'senior'],
+
+    dispositionOptions: [
+      { id: 'admit_telemetry', text: 'テレメトリ可能な病棟へ入院、Mg補正、QT延長薬中止、循環器依頼', correct: true },
+      { id: 'er_obs_long', text: 'ER 12時間モニタ後判断', correct: false, note: '高リスクは即入院が安全' },
+      { id: 'discharge', text: '症状ないため帰宅、外来精査', correct: false, fatal: true },
+      { id: 'discharge_holter', text: 'Holter貸し出して帰宅', correct: false, fatal: true }
+    ],
+    dispositionCorrect: 'admit_telemetry',
+
+    returnPrecautionsApplicable: false,
+
+    outcomes: {
+      good: { headline: 'AS+QT延長診断、ICDとTAVI予定で退院', body: '入院翌日にsustained VTを記録、AS重症と判明。Mg補正・薬剤調整・ICD植込み。家族の突然死歴も併せて家族スクリーニング進行。' },
+      missed_killer: { headline: '帰宅後VFで急死', body: '「迷走神経反射」と診断し帰宅。翌日朝、トイレで倒れ家族発見。蘇生されず。心電図と家族歴を聞き取れていれば防げた症例。' },
+      delayed: { headline: '再失神し脳挫傷併発', body: '外来精査予約のみで帰宅。数日後の再失神時に転倒し脳挫傷。長期入院。' }
+    },
+
+    debrief: {
+      teach: '失神=迷走神経反射と決めつけない。労作時失神、目撃された硬直、家族のSCD歴、QT延長薬、新規左脚ブロック — どれか1つでもあれば心原性疑いに切り替える。Canadian Syncope Risk Scoreは年齢・症状だけで判断するクセを破る道具。'
+    }
+  },
+
+  // ========== SCENARIO 6 (idx 6) — L1 elderly UTI sepsis ==========
+  {
+    id: 6,
+    level: 1,
+    title: '82歳女性 / 高熱と意識朦朧',
+    summary: 'Level 1 — 高齢者敗血症の認識と Time-Zero 対応',
+    triage: '82歳女性、デイサービス職員に「今朝から会話がぼんやり、活気が無い」と気付かれて連れられ受診。発熱あり、家族「昨日から元気がなかった」。',
+    vitals: { bp: '92/58', hr: 118, rr: 26, spo2: 91, t: 39.4, gcs: 13 },
+    appearance: '顔面紅潮、傾眠傾向だが呼名で開眼。皮膚乾燥、口唇荒れ。会話は単語のみで一貫性に欠ける。',
+    abcde: {
+      A: '気道開通、発声短語のみ',
+      B: 'RR 26、SpO2 91% room air、両肺軽度ラ音',
+      C: 'BP 92/58、HR 118、CRT 4秒、四肢冷感',
+      D: 'GCS 13(E3V4M6)、麻痺なし、瞳孔正常',
+      E: 'T 39.4、皮膚乾燥、仙骨部やや発赤'
+    },
+    sickJudgment: 'sick',
+    sickHint: '高齢+発熱+頻呼吸+意識変容 = qSOFA 3点。「ベッドサイドで5秒で診断」できる敗血症。Time-Zeroでの介入が予後を決める。',
+
+    killerOptions: [
+      { id: 'sepsis_uti', text: '敗血症(尿路源)', correct: true },
+      { id: 'sepsis_pneumonia', text: '敗血症(肺炎源)', correct: true },
+      { id: 'meningitis', text: '髄膜炎・脳炎', correct: true },
+      { id: 'endocarditis', text: '感染性心内膜炎', correct: true },
+      { id: 'intra_abd', text: '腹腔内感染(胆管炎・腹膜炎)', correct: true },
+      { id: 'skin_soft', text: '壊死性軟部組織感染', correct: true },
+      { id: 'cva', text: '脳血管障害(意識変容として)', correct: true },
+      { id: 'silent_mi_sep', text: '意識変容を呈するsilent MI', correct: true },
+      { id: 'benign_uti', text: '軽症膀胱炎で外来処方可', correct: false, note: '高齢者ではUTIから一気にseptic shockに進む。' },
+      { id: 'dehydration_simple', text: '単純な脱水、加齢', correct: false },
+      { id: 'aging_decline', text: '年齢相応の活気不良', correct: false }
+    ],
+
+    historyOptions: [
+      { id: 'onset_progression', text: '発症経過(日数・進行速度)', yield: 'high', reveal: '昨日から徐々に活気不良、本日朝は会話困難。' },
+      { id: 'urine_sxs', text: '排尿症状(頻尿・残尿感・混濁)', yield: 'high', reveal: '3日前から尿の混濁あり、家族気づく。本人は訴えなし。' },
+      { id: 'cough_sputum', text: '咳・喀痰', yield: 'high', reveal: 'なし。' },
+      { id: 'abd_pain', text: '腹痛・側腹部痛', yield: 'high', reveal: '本人「お腹が変」と曖昧、左側腹部叩打で表情変化。' },
+      { id: 'recent_abx', text: '直近の抗菌薬使用', yield: 'high', reveal: '2週間前に膀胱炎で内服。' },
+      { id: 'catheter', text: '尿カテーテル・デバイス留置', yield: 'high', reveal: '尿カテはなし。1ヶ月前まで一時留置あり。' },
+      { id: 'dm_immuno', text: '糖尿病・免疫抑制状態', yield: 'high', reveal: '糖尿病歴 15年、HbA1c 7.5。ステロイド常用なし。' },
+      { id: 'last_well', text: '最後に元気だった時刻', yield: 'high', reveal: '一昨日夕食までは普通だった。' },
+      { id: 'med_list', text: '内服薬・新規薬剤', yield: 'mid', reveal: 'メトホルミン、アムロジピン、ロスバスタチン、PPI。' },
+      { id: 'recent_op', text: '直近の手術・処置', yield: 'mid', reveal: 'なし。' },
+      { id: 'travel_food', text: '旅行歴・食事内容', yield: 'low', reveal: 'いつも通り。' },
+      { id: 'vaccinations', text: 'インフル・肺炎ワクチン歴', yield: 'low', reveal: '昨秋接種済。' }
+    ],
+    historyExpected: ['onset_progression', 'urine_sxs', 'recent_abx', 'dm_immuno', 'last_well', 'abd_pain'],
+
+    examOptions: [
+      { id: 'general_appearance', text: '全身状態(toxic appearanceの評価)', yield: 'high', reveal: 'toxic appearance、応答鈍く呼吸促迫。' },
+      { id: 'cva_tenderness', text: 'CVA(肋骨脊柱角)叩打痛', yield: 'high', reveal: '左CVA叩打で明らかな疼痛反応。' },
+      { id: 'meningeal', text: '髄膜刺激徴候', yield: 'high', reveal: '項部硬直なし、Kernig陰性。' },
+      { id: 'lung_aus', text: '肺野聴診', yield: 'high', reveal: '両側下肺軽度ラ音、明らかなconsolidationなし。' },
+      { id: 'abd_exam', text: '腹部触診(圧痛・腹膜刺激)', yield: 'high', reveal: '左側腹部圧痛あり、腹膜刺激徴候なし、肝脾腫なし。' },
+      { id: 'skin_inspection', text: '皮膚診察(発疹・蜂窩織炎・褥瘡)', yield: 'high', reveal: '仙骨部Stage I褥瘡、その他壊死所見なし。' },
+      { id: 'cardiac_aus', text: '心音(雑音・心内膜炎所見)', yield: 'mid', reveal: '正常、雑音なし。' },
+      { id: 'neuro_focal', text: '局所神経所見', yield: 'mid', reveal: '麻痺なし、瞳孔正常。' }
+    ],
+    examExpected: ['general_appearance', 'cva_tenderness', 'meningeal', 'lung_aus', 'skin_inspection'],
+
+    testOptions: [
+      { id: 'lactate', text: '乳酸値(動脈血ガスまたは静脈)', yield: 'high', critical: true, reveal: '乳酸 4.2 mmol/L → severe sepsis criteria。組織灌流低下示唆。' },
+      { id: 'blood_culture', text: '血液培養2セット(抗菌薬投与前)', yield: 'high', critical: true, reveal: '抗菌薬投与前に2セット採取。' },
+      { id: 'urinalysis_culture', text: '尿検査+尿培養', yield: 'high', critical: true, reveal: '尿混濁、白血球多数、亜硝酸塩陽性、グラム染色でグラム陰性桿菌 → 尿路源敗血症。' },
+      { id: 'cbc_chem', text: '血算・生化学・凝固', yield: 'high', reveal: 'WBC 18,500 (左方移動)、Plt 8.5万 (低下)、Cr 1.8 (基礎1.0)、AST/ALT軽度上昇、CRP 22。' },
+      { id: 'glucose', text: '即時血糖測定', yield: 'high', reveal: '血糖 205 mg/dL(感染による高血糖)。' },
+      { id: 'cxr', text: '胸部X線', yield: 'high', reveal: '心拡大なし、両側下肺軽度浸潤影、肺うっ血なし。' },
+      { id: 'ecg', text: '12誘導心電図', yield: 'mid', reveal: '洞性頻脈、ST-T著変なし。' },
+      { id: 'ct_abd', text: '腹部CT(尿路系評価)', yield: 'mid', reveal: '左腎盂拡張あり、膿瘍は明らかでない。閉塞性は否定的。' },
+      { id: 'procalcitonin', text: 'プロカルシトニン', yield: 'mid', reveal: '1.8 ng/mL(細菌感染示唆)。' },
+      { id: 'amylase', text: 'アミラーゼ・リパーゼ', yield: 'low', reveal: '正常範囲。' }
+    ],
+    testExpected: ['lactate', 'blood_culture', 'urinalysis_culture', 'cbc_chem', 'cxr'],
+
+    reassess: {
+      offer: '血液培養採取後、抗菌薬投与+輸液を開始してから30分。再評価しますか?',
+      reveal: 'BP 105/65に上昇、HR 102に低下、意識やや改善で会話文長くなる。乳酸再検 3.0 mmol/L(下降傾向)。'
+    },
+
+    riskScore: {
+      type: 'qSOFA',
+      prompt: 'qSOFAスコアを算出してください。',
+      components: [
+        { label: '呼吸数 ≥22/min', value: 1 },
+        { label: '収縮期血圧 ≤100 mmHg', value: 1 },
+        { label: '意識変容(GCS<15)', value: 1 }
+      ],
+      total: 3,
+      interpretation: 'qSOFA 3点+乳酸>2 = severe sepsis criteria。院内死亡リスク高。Time-Zeroでの3-hour bundle完遂が予後を決める。'
+    },
+
+    consultOptions: [
+      { id: 'senior', text: '上級医に即時共有', correct: true },
+      { id: 'icu', text: 'ICU/HCU入床交渉', correct: true },
+      { id: 'infectious', text: '感染症コンサルト(抗菌薬選択・source control)', correct: true },
+      { id: 'general_admit', text: '一般内科入院相談(モニタなし病棟)', correct: false, note: 'severe sepsisにモニタ無し病棟は不適。' },
+      { id: 'discharge_oral', text: '内服抗菌薬で帰宅', correct: false, fatal: true }
+    ],
+    consultIdeal: ['senior', 'icu', 'infectious'],
+
+    dispositionOptions: [
+      { id: 'icu_3hbundle', text: 'ICU/HCU入院、3-hour bundle完遂(乳酸測定・血培・抗菌薬・30 mL/kg輸液)', correct: true },
+      { id: 'ward_iv_abx', text: '一般病棟入院、IV抗菌薬', correct: false, note: 'モニタリング環境が必要。' },
+      { id: 'er_obs_wait', text: 'ER 6時間経過観察、改善なら入院', correct: false, fatal: true },
+      { id: 'discharge_oral', text: '解熱剤と内服抗菌薬で帰宅、外来follow', correct: false, fatal: true }
+    ],
+    dispositionCorrect: 'icu_3hbundle',
+
+    returnPrecautionsApplicable: false,
+
+    outcomes: {
+      good: { headline: '早期介入で救命', body: 'Time-Zeroでの抗菌薬・輸液で乳酸正常化、解熱、ICU 4日後一般病棟転棟、退院。' },
+      missed_killer: { headline: '帰宅後ショックで死亡', body: '内服処方で帰宅 → 8時間後に家族発見時意識レベル低下、救急搬送。蘇生及ばず。' },
+      delayed: { headline: 'AKI遷延でICU長期化', body: '抗菌薬投与遅延で乳酸下降せず、AKI悪化、CRRT導入。10日間ICU管理。' }
+    },
+
+    debrief: {
+      teach: '高齢者敗血症は教科書のように来ない。発熱が低い、痛みを訴えない、意識変容だけで来ることもある。qSOFA(RR≥22, SBP≤100, GCS<15)を反射として覚え、陽性なら3-hour bundle(乳酸・血培・抗菌薬・輸液)を時間で動かす。「なんとなく元気がない高齢者」は敗血症のred flag。'
+    }
+  },
+
+  // ========== SCENARIO 7 (idx 7) — L2 DKA initial presentation ==========
+  {
+    id: 7,
+    level: 2,
+    title: '22歳男性 / 嘔吐と意識朦朧',
+    summary: 'Level 2 — 意識障害TIPS-AEIOU、代謝性原因の見落とし罠',
+    triage: '22歳男性、3日前から嘔気・倦怠感、本日朝に「頭がふらつく」と訴え一過性意識消失。家族発見時数秒で覚醒、現在は会話可能だが応答鈍く、独歩困難。',
+    vitals: { bp: '102/62', hr: 122, rr: 28, spo2: 99, t: 36.8, gcs: 13 },
+    appearance: '痩せ型、顔面乾燥、口唇荒れ。呼気に独特の甘酸臭(アセトン臭)。Kussmaul様の深く速い呼吸。家族「最近1ヶ月で5kg痩せた」「やたら水を飲むようになった」。',
+    abcde: {
+      A: '気道開通、発声明瞭だが応答緩慢、呼気にアセトン臭',
+      B: 'RR 28、深く規則的(Kussmaul様)、SpO2 99%',
+      C: 'BP 102/62、HR 122、CRT 3秒、皮膚turgor低下',
+      D: 'GCS 13(E3V4M6)、麻痺なし、瞳孔正常',
+      E: 'T 36.8、皮膚・口腔粘膜乾燥、痩せ'
+    },
+    sickJudgment: 'sick',
+    sickHint: '若年22歳でこの状態は緊急。Kussmaul呼吸+アセトン臭+体重減少+多飲多尿エピソードは古典的所見。「画像で考える前にベッドサイドで考える」。',
+
+    killerOptions: [
+      { id: 'dka', text: '糖尿病性ケトアシドーシス(DKA)', correct: true },
+      { id: 'hhs', text: '高浸透圧高血糖症候群(HHS)', correct: true },
+      { id: 'hypoglycemia', text: '低血糖', correct: true },
+      { id: 'meningitis', text: '髄膜炎・脳炎', correct: true },
+      { id: 'ich_sah', text: '頭蓋内出血(ICH/SAH)', correct: true },
+      { id: 'intoxication', text: '中毒(エタノール・メタノール・サリチル酸等)', correct: true },
+      { id: 'adrenal_crisis', text: '副腎クリーゼ', correct: true },
+      { id: 'sepsis', text: '敗血症(感染源不明)', correct: true },
+      { id: 'thyroid_storm', text: '甲状腺クリーゼ', correct: true },
+      { id: 'viral_gastro', text: 'ウイルス性胃腸炎(脱水のみ)', correct: false, note: 'Kussmaul呼吸とアセトン臭はウイルス性胃腸炎では説明できない。' },
+      { id: 'food_poisoning', text: '食中毒', correct: false },
+      { id: 'anxiety_simple', text: '不安発作・過換気症候群', correct: false }
+    ],
+
+    historyOptions: [
+      { id: 'thirst_polyuria', text: '多飲多尿の有無', yield: 'high', reveal: '1ヶ月前から異常な口渇・大量飲水(1日5L以上)、夜間頻尿。' },
+      { id: 'weight_loss', text: '体重変化', yield: 'high', reveal: '1-2ヶ月で5kg体重減少(自覚あり、食事は通常量)。' },
+      { id: 'dm_history', text: '糖尿病既往・家族歴', yield: 'high', reveal: '本人は否定。父親が50代で2型糖尿病。' },
+      { id: 'recent_infection', text: '直近の感染症エピソード', yield: 'high', reveal: '1週間前に風邪様症状あり、自然軽快。' },
+      { id: 'medication', text: '内服薬・サプリ・ステロイド', yield: 'high', reveal: 'なし。' },
+      { id: 'substance_use', text: '飲酒・薬物使用歴', yield: 'high', reveal: '飲酒社会的、薬物使用否定。' },
+      { id: 'diet_recent', text: '最近の食事・水分摂取', yield: 'mid', reveal: '3日前から嘔気で食事量低下、水分のみ大量摂取。' },
+      { id: 'last_void', text: '最終排尿(乏尿の評価)', yield: 'high', reveal: '今朝は排尿あり、その後なし。' },
+      { id: 'mental_health', text: '精神疾患・自殺企図歴', yield: 'mid', reveal: 'なし。' },
+      { id: 'recent_travel', text: '旅行歴', yield: 'low', reveal: 'なし。' },
+      { id: 'occupation', text: '職業・暴露歴', yield: 'low', reveal: '大学生、特殊暴露なし。' },
+      { id: 'sexual_hx', text: '性生活歴', yield: 'low', reveal: '本症例で優先度低。' }
+    ],
+    historyExpected: ['thirst_polyuria', 'weight_loss', 'dm_history', 'recent_infection', 'substance_use', 'last_void'],
+
+    examOptions: [
+      { id: 'breath_smell', text: '呼気の臭い(アセトン臭の確認)', yield: 'high', reveal: 'アセトン臭(果実様甘酸臭)あり。' },
+      { id: 'skin_turgor', text: '皮膚turgor、粘膜乾燥', yield: 'high', reveal: 'turgor著明低下、口腔粘膜・舌乾燥、結膜乾燥。' },
+      { id: 'gcs_detail', text: 'GCS詳細・見当識', yield: 'high', reveal: 'GCS 13、見当識軽度障害(時間×、場所○、人○)、思考緩慢。' },
+      { id: 'abd_exam', text: '腹部診察', yield: 'high', reveal: '上腹部軽度圧痛、腹膜刺激なし(DKAでは腹痛は典型症状)。' },
+      { id: 'meningeal', text: '髄膜刺激徴候', yield: 'high', reveal: '陰性。' },
+      { id: 'neuro_focal', text: '局所神経所見', yield: 'high', reveal: '麻痺なし、構音明瞭、瞳孔正常。' },
+      { id: 'fundus', text: '眼底所見', yield: 'mid', reveal: '異常なし(乳頭浮腫なし)。' },
+      { id: 'thyroid', text: '甲状腺触診', yield: 'mid', reveal: '腫大なし、発汗・振戦なし。' },
+      { id: 'skin_lesion', text: '皮膚病変・色素沈着', yield: 'mid', reveal: '軽度色素沈着なし(副腎皮質機能低下示唆所見なし)。' }
+    ],
+    examExpected: ['breath_smell', 'skin_turgor', 'gcs_detail', 'abd_exam', 'meningeal', 'neuro_focal'],
+
+    testOptions: [
+      { id: 'glucose_immediate', text: '即時血糖測定(指先)', yield: 'high', critical: true, reveal: '血糖 HI(>500 mg/dL、簡易測定の上限超え)。' },
+      { id: 'abg_full', text: '動脈血ガス(pH, HCO3, anion gap)', yield: 'high', critical: true, reveal: 'pH 7.05、PaCO2 18(代償)、HCO3 6、Anion Gap 28 → 高アニオンギャップ代謝性アシドーシス。' },
+      { id: 'electrolytes', text: '電解質(Na, K, Cl, BUN, Cr)+ 血糖', yield: 'high', critical: true, reveal: 'Na 130(高血糖補正後138)、K 5.2(細胞外)、Cl 95、BUN 38、Cr 1.4、血糖 612 mg/dL。' },
+      { id: 'ketones_urine', text: '尿中ケトン体・血中ケトン', yield: 'high', reveal: '尿ケトン3+、血中βヒドロキシ酪酸 5.8 mmol/L → DKA確定。' },
+      { id: 'urinalysis', text: '尿一般(尿糖含む)', yield: 'high', reveal: '尿糖4+、ケトン3+、白血球少数。' },
+      { id: 'cbc_chem', text: '血算・肝機能', yield: 'high', reveal: 'WBC 16,000(stress)、Hb 14.2、Plt 280,000、AST/ALT軽度上昇。' },
+      { id: 'lactate', text: '乳酸値', yield: 'mid', reveal: '2.4 mmol/L(軽度上昇、組織灌流影響)。' },
+      { id: 'ecg', text: '心電図(高K血症評価含む)', yield: 'high', reveal: '洞性頻脈、テント状T波軽度(K 5.2)、QT正常。' },
+      { id: 'ct_head', text: '頭部CT(意識障害として)', yield: 'mid', reveal: '異常なし(構造的原因除外として有用、ただし血糖・ガス先行)。' },
+      { id: 'lp', text: '腰椎穿刺', yield: 'low', reveal: 'DKA確定後は不要。発熱・髄膜刺激なければ初手で出さない。' },
+      { id: 'tox_screen', text: '中毒スクリーニング', yield: 'mid', reveal: 'エタノール陰性、薬物陰性。' }
+    ],
+    testExpected: ['glucose_immediate', 'abg_full', 'electrolytes', 'ketones_urine', 'ecg'],
+
+    reassess: {
+      offer: '生食輸液+insulin開始後45分。再評価しますか?',
+      reveal: 'BP 110/68、HR 108、意識clear化、Kussmaul呼吸軽減。血糖 480 mg/dL、K 4.4(insulin効果で低下傾向)。脳浮腫所見(若年DKAのリスク)に注意し続ける。'
+    },
+
+    riskScore: null,
+
+    consultOptions: [
+      { id: 'senior', text: '上級医に共有', correct: true },
+      { id: 'endocrine', text: '内分泌コンサルト(初発DKA、教育・退院後管理)', correct: true },
+      { id: 'icu_hcu', text: 'ICU/HCU入床交渉', correct: true },
+      { id: 'neurology_first', text: '神経内科コンサルト(意識障害として最初に)', correct: false, note: 'アンカリングの罠。代謝性原因をまず除外。' },
+      { id: 'discharge_with_iv', text: '輸液後改善次第帰宅', correct: false, fatal: true }
+    ],
+    consultIdeal: ['senior', 'endocrine', 'icu_hcu'],
+
+    dispositionOptions: [
+      { id: 'icu_dka_protocol', text: 'ICU/HCU入院、DKAプロトコル(輸液→K確認→insulin持続点滴、ガス・K経時測定)', correct: true },
+      { id: 'ward_iv_only', text: '一般病棟入院、輸液のみ', correct: false, note: 'insulinとK補正の経時管理が必須。' },
+      { id: 'er_obs', text: 'ER 4時間経過観察、改善なら入院', correct: false, fatal: true },
+      { id: 'discharge_oral', text: '改善次第帰宅、外来精査', correct: false, fatal: true }
+    ],
+    dispositionCorrect: 'icu_dka_protocol',
+
+    returnPrecautionsApplicable: false,
+
+    outcomes: {
+      good: { headline: '初発1型DKAで救命、退院教育', body: '24時間でアシドーシス補正、72時間でinsulin持続→皮下注切替。1型糖尿病初発と診断、退院前にinsulin自己注射・血糖測定・低血糖対応・シックデイルール教育を完了。' },
+      missed_killer: { headline: '脳浮腫合併で重度後遺症', body: '輸液速度過剰または「神経内科で精査」のみで時間ロス。脳浮腫進行で意識消失、挿管・浸透圧療法。覚醒したが高次機能障害残存。' },
+      delayed: { headline: '低K血症で致死的不整脈', body: '一般病棟でinsulin開始後にKモニタが遅れ、K 2.5となりVTで心停止。蘇生されたがICU長期。' }
+    },
+
+    debrief: {
+      teach: '意識障害ではTIPS-AEIOU(Trauma/Temp, Insulin/lowGlc, Psychogenic/Poison, Stroke/Shock, Alcohol, Epilepsy/Endocrine, Infection, Overdose/Opiate, Uremia)を網羅。CT頭部は「構造性除外」の道具に過ぎず、代謝性原因(血糖・ガス・電解質)はベッドサイドで5秒で出す。Kussmaul呼吸+アセトン臭+多飲多尿+体重減少 → 反射でDKA。輸液はゆっくり、insulin前に必ずK確認、若年・小児では脳浮腫リスクに常時警戒。'
+    }
+  },
+
+  // ========== SCENARIO 8 (idx 8) — L3 ectopic rupture in psych patient ==========
+  {
+    id: 8,
+    level: 3,
+    title: '28歳女性(双極性障害既往)/ 「いつもの腹痛と不安発作」',
+    summary: 'Level 3 — 精神疾患併存患者のラベリング・ディスミッサル罠',
+    triage: '28歳女性、近医心療内科で双極性障害通院中。「またパニック発作と腹痛が起きた」と独歩で来院。「不安が強くて」「お腹が痛くて」「目が回る」と訴え。バイタル測定中に立位で崩れる。家族なし、独居。',
+    vitals: { bp: '88/52', hr: 132, rr: 24, spo2: 98, t: 36.7, gcs: 14 },
+    appearance: '蒼白、顔面冷汗、痩せ型。受け答え悪く感情表出鈍い。「もういい、薬だけください」と帰りたがる。トリアージナースは「精神科の常連」と申し送り。',
+    abcde: {
+      A: '気道問題なし',
+      B: 'RR 24、SpO2 98%',
+      C: 'BP 88/52、HR 132、四肢冷感、CRT 4秒、橈骨動脈やや弱い',
+      D: 'GCS 14(E4V4M6)、応答緩慢',
+      E: 'T 36.7、皮膚冷汗、蒼白'
+    },
+    sickJudgment: 'sick',
+    sickHint: 'バイタルがすでに語っている。「精神疾患既往」のラベルを外して数値だけを見れば、HR 132+SBP 88はショックの始まり。「もういい」と帰りたがる患者ほど危険、という反転認識を持つ。',
+
+    killerOptions: [
+      { id: 'ectopic_rupture', text: '異所性妊娠破裂', correct: true },
+      { id: 'ovarian_torsion', text: '卵巣茎捻転・卵巣出血', correct: true },
+      { id: 'aaa_young', text: '腹部大動脈瘤(若年でもMarfan等)', correct: true },
+      { id: 'splenic_rupture', text: '脾破裂(外傷既往or自然)', correct: true },
+      { id: 'gi_bleed', text: '消化管出血(隠れた)', correct: true },
+      { id: 'peritonitis', text: '消化管穿孔・腹膜炎', correct: true },
+      { id: 'sepsis_pid', text: '敗血症(骨盤内感染源)', correct: true },
+      { id: 'pulmonary_embolism', text: '肺塞栓症', correct: true },
+      { id: 'drug_overdose', text: '薬物過量摂取(自殺企図)', correct: true },
+      { id: 'panic_only', text: '単純なパニック発作・身体表現性障害', correct: false, note: 'ショックバイタルをパニックで説明するのは医療放棄。' },
+      { id: 'med_seeking', text: '薬剤目的の常習者(精神科ラベル)', correct: false, note: '医療倫理的にも危険。バイタルを優先。' },
+      { id: 'somatic_disorder', text: '身体表現性障害', correct: false }
+    ],
+
+    historyOptions: [
+      { id: 'last_menstrual', text: '最終月経(LMP)', yield: 'high', reveal: '「3週間ほど前」、最近周期不順を自覚するもクリニックで月経不順と説明されていた。' },
+      { id: 'pregnancy_possibility', text: '妊娠の可能性', yield: 'high', reveal: '本人「ない」と即答。性交渉あり、避妊コンドームのみ・不規則。' },
+      { id: 'pain_character', text: '腹痛の部位・性状・経過', yield: 'high', reveal: '右下腹部の鋭い痛み、突然増悪、現在は鈍痛+広がり。' },
+      { id: 'shoulder_pain', text: '肩・頸部痛(横隔膜刺激)', yield: 'high', reveal: '実は右肩が違和感あり、本人は気にしていない。' },
+      { id: 'pv_bleed', text: '性器出血の有無', yield: 'high', reveal: '少量の異常出血が2日前から、「月経不順かと思った」。' },
+      { id: 'prior_ectopic_pid', text: '異所性妊娠歴・PID既往', yield: 'high', reveal: '20歳時にchlamydia感染で治療歴あり。' },
+      { id: 'iud_contraception', text: 'IUD・避妊方法', yield: 'high', reveal: 'IUDなし、コンドームのみ。' },
+      { id: 'substance_use', text: '飲酒・薬物・処方薬の過量摂取', yield: 'high', reveal: 'リチウム・ラモトリジン服用中、過量摂取は否定。' },
+      { id: 'psych_history', text: '精神科病名と症状経過', yield: 'mid', reveal: '双極II型、現在は寛解期。今回の症状は「いつものパニックと違う」と本人。' },
+      { id: 'recent_trauma', text: '最近の外傷', yield: 'mid', reveal: 'なし。' },
+      { id: 'eating_pattern', text: '食事・体重変化', yield: 'mid', reveal: '体重減少なし、食事普通。' },
+      { id: 'occupation_stress', text: '職場ストレス・きっかけ', yield: 'low', reveal: '特に変化なし。' },
+      { id: 'family_psych', text: '家族の精神疾患', yield: 'low', reveal: '関連性低い。' }
+    ],
+    historyExpected: ['last_menstrual', 'pregnancy_possibility', 'pain_character', 'shoulder_pain', 'pv_bleed', 'prior_ectopic_pid'],
+
+    examOptions: [
+      { id: 'skin_color', text: '皮膚色・末梢循環', yield: 'high', reveal: '蒼白、四肢冷感、CRT延長、橈骨脈弱。' },
+      { id: 'abd_exam', text: '腹部診察(圧痛・腹膜刺激・拍動)', yield: 'high', reveal: '右下腹部に板状硬+反跳痛、Blumberg陽性。腫瘤触知不明。' },
+      { id: 'pelvic_exam', text: '内診(子宮頸部痛・後膣円蓋圧痛)', yield: 'high', reveal: 'Cervical motion tenderness陽性、後膣円蓋膨隆+圧痛(腹腔内出血示唆)。' },
+      { id: 'ortho_static_bp', text: '体位性血圧変化', yield: 'mid', reveal: '臥位 88/52、起立試みで失神様、中止。' },
+      { id: 'conjunctival_pallor', text: '眼瞼結膜貧血所見', yield: 'high', reveal: '結膜蒼白、貧血所見明らか。' },
+      { id: 'rectal_exam', text: '直腸診(消化管出血・Douglas窩圧痛)', yield: 'mid', reveal: 'Douglas窩圧痛+、便潜血陰性。' },
+      { id: 'lung_aus', text: '肺野聴診', yield: 'low', reveal: '清明。' },
+      { id: 'mental_status', text: '精神状態評価(うつ・自殺念慮)', yield: 'low', reveal: '本症例の緊急時優先度低。後刻ソーシャルワーク介入。' }
+    ],
+    examExpected: ['skin_color', 'abd_exam', 'pelvic_exam', 'conjunctival_pallor', 'rectal_exam'],
+
+    testOptions: [
+      { id: 'bhcg_immediate', text: '尿または血清βHCG(全女性絶対化)', yield: 'high', critical: true, reveal: 'βHCG陽性、定量 4,200 mIU/mL → 妊娠確定。本人は否定していたが妊娠成立。' },
+      { id: 'pocus_fast', text: 'POCUS腹腔(FAST含むfree fluid評価)', yield: 'high', critical: true, reveal: 'Morrison窩・脾周囲・Douglas窩に明らかなfree fluid → 腹腔内出血。' },
+      { id: 'pocus_pelvic', text: 'POCUS骨盤・経腹超音波(子宮内胎嚢確認)', yield: 'high', critical: true, reveal: '子宮内胎嚢なし、右付属器に複雑性腫瘤+周囲液貯留 → 異所性妊娠破裂。' },
+      { id: 'cbc_type_cross', text: '血算+血液型+クロスマッチ', yield: 'high', critical: true, reveal: 'Hb 7.8(基礎12と推定)、Plt 240,000、A型Rh+、緊急輸血準備。' },
+      { id: 'coag', text: '凝固系(PT/PTT/フィブリノゲン)', yield: 'high', reveal: 'PT軽度延長、フィブリノゲン軽度低下。' },
+      { id: 'chem_lactate', text: '生化学・乳酸', yield: 'high', reveal: '乳酸 4.5 mmol/L(組織灌流低下)、Cr 1.0、肝機能正常。' },
+      { id: 'urinalysis', text: '尿一般', yield: 'mid', reveal: '潜血陰性、白血球少数。' },
+      { id: 'abd_ct', text: '腹部CT(造影)', yield: 'mid', reveal: '妊娠陽性確定後の造影CTは胎児被曝・腎機能・時間ロスから優先度低。POCUSで方針決定。' },
+      { id: 'ecg', text: '心電図', yield: 'mid', reveal: '洞性頻脈、ST-T著変なし。' },
+      { id: 'urine_drug', text: '尿薬物スクリーニング', yield: 'low', reveal: '陰性(医学的優先度低、ラベリング要因にしない)。' },
+      { id: 'psych_eval_now', text: '即時精神科評価', yield: 'none', reveal: 'ショック患者の救急時に優先度なし。' }
+    ],
+    testExpected: ['bhcg_immediate', 'pocus_fast', 'pocus_pelvic', 'cbc_type_cross', 'coag', 'chem_lactate'],
+
+    reassess: {
+      offer: '輸液開始30分後、状態確認しますか?',
+      reveal: 'BP 78/48に低下、HR 138、意識やや混濁。Hb再検 6.8(出血進行)、輸血開始判断。'
+    },
+
+    riskScore: null,
+
+    consultOptions: [
+      { id: 'ob_gyn_emergent', text: '産婦人科即時コール(緊急開腹/腹腔鏡)', correct: true },
+      { id: 'senior_share', text: '上級医共有・OR室確保', correct: true },
+      { id: 'icu_or_post', text: 'ICU術後管理交渉', correct: true },
+      { id: 'psych_consult_first', text: '精神科コンサルト先行(精神症状ありとして)', correct: false, fatal: true },
+      { id: 'discharge_psych_clinic', text: '心療内科外来へ紹介し帰宅', correct: false, fatal: true }
+    ],
+    consultIdeal: ['ob_gyn_emergent', 'senior_share', 'icu_or_post'],
+
+    dispositionOptions: [
+      { id: 'emergency_or', text: '緊急手術室(腹腔鏡または開腹)、輸血開始', correct: true },
+      { id: 'gyn_admit_obs', text: '婦人科入院・経過観察', correct: false, note: 'ショック+腹腔内出血で観察は致死的。' },
+      { id: 'er_iv_obs', text: 'ER輸液で経過観察し再判断', correct: false, fatal: true },
+      { id: 'discharge_psych', text: '精神科外来予約し帰宅', correct: false, fatal: true }
+    ],
+    dispositionCorrect: 'emergency_or',
+
+    returnPrecautionsApplicable: false,
+
+    outcomes: {
+      good: { headline: '緊急開腹で救命、両側卵管温存', body: '右卵管異所性妊娠破裂を腹腔鏡的に処置、出血コントロール、3単位輸血。卵管温存で術後経過良好。退院前に妊娠と精神科治療の調整、次回避妊指導、ソーシャルサポート連携。' },
+      missed_killer: { headline: '帰宅後ショックで救急搬送、心停止', body: '「精神科外来へ」と帰宅させ、1時間後に意識消失で救急搬送。蘇生時に出血性ショック確定、両側卵管摘出、低酸素脳症残存。後にmedical errorとしてレビュー。' },
+      delayed: { headline: '精神科コンサルト経由で時間ロス', body: '精神科医から「身体疾患の可能性」と指摘されるまで2時間ロス、ショック深化。緊急手術にこぎつけたが大量輸血、卵管両側摘出、ICU長期。' }
+    },
+
+    debrief: {
+      teach: '精神疾患併存患者では「症状を訴える」こと自体が病気のせいにされる強烈なバイアスが働く(医師・看護師・トリアージナースの三者で重なる)。バイタルだけが嘘をつかない。HR 132+SBP 88は「ショック」と読む、それ以上でもそれ以下でもない。生殖年齢女性の腹痛・ショックでは「全例βHCG」を絶対化(本人の妊娠否定を信じない訓練)。POCUSのfree fluid 1分検査が診断装置になる。「精神科の常連」というラベルは、医療提供者側の認知ショートカットであり、患者の現病態を説明する根拠にはならない。'
+    }
+  }
+];
+
+// ============================================================
+// SCENARIO-LEVEL RICH FEEDBACK
+// ============================================================
+
+const FEEDBACK = {
+  // ========== Case 1: STEMI ==========
+  0: {
+    bias: null,
+    metaPoint: 'ABCDEを反射として習慣化する。冷汗+突然発症の前胸部圧迫感+放散痛は、考える前に手がECGに伸びる状態を作る。',
+    nextStep: 'Lv1のもう一例(75歳女性 夜間呼吸困難)で、ABCDE→鑑別→即時介入の流れをもう一度体感してください。Lv1の全2症例を60点以上でクリアするとLv2が解放されます。',
+    killerWhy: {
+      acs: '胸痛主訴で常に第一候補。「ECGはまず撮る」を反射に。',
+      dissection: '左右上肢血圧差・脈圧異常・引き裂かれる痛みでスクリーニング。CTAが診断のgold standard。',
+      pe: '頻呼吸+SpO2低下+下肢腫脹+片側性所見。Wells/PERCで層別化。',
+      tamponade: 'Beck三徴(低BP・JVD・心音減弱)+POCUS。Pulsus paradoxusも鍵。',
+      pneumothorax: '片側呼吸音減弱+気管偏位+ショック=緊急脱気。CXR待たず手を動かす。',
+      boerhaave: '嘔吐後の胸痛+縦隔気腫(CXR)。見逃せば敗血症で死ぬ。'
+    },
+    dispChoiceWhy: {
+      cathlab: 'STEMI診断下でdoor-to-balloon 90分以内が金科玉条。再灌流できる施設にいる以上、これ一択。',
+      ccu: 'CCUは「再灌流不能 or PCI後管理」の場所。再灌流可能なら遅延になる。',
+      admit_obs: '一般病棟ではモニタ密度・反応速度が不足。VFで死ぬ。',
+      discharge: '致死的判断ミス。胸痛を帰すには明確な除外プロセスが必要。'
+    }
+  },
+
+  // ========== Case 2: Acute pulmonary edema ==========
+  1: {
+    bias: null,
+    metaPoint: '高齢心不全急性増悪の8割は5つの誘因のいずれか — 内服中断・塩分過多・感染・新規不整脈・新規虚血。Silent MIを毎回鑑別から外さない。',
+    nextStep: 'NPPVは「考える前に当てる」。挿管に至る前のwindowを作るのが研修医の腕。Lv1全2症例クリアでLv2が解放され、Killer rule-outの内在化と非典型提示の罠が中心になります。',
+    killerWhy: {
+      pe: '頻脈+低酸素+片側性所見。WellsスコアとD-dimerで層別化。',
+      pulm_edema: 'JVD+両側湿性ラ音+III音+下肢浮腫。POCUSのB-line多発が決定的。',
+      pneumothorax: '突然発症+片側呼吸音減弱+気管偏位。緊張性ならCXR待たない。',
+      asthma: '若年・喘鳴・既往歴。ただし高齢心不全のcardiac asthmaと混同しない。',
+      anaphylaxis: '皮膚所見+気道狭窄+ショック=反射でアドレナリン筋注。',
+      silent_acs: '高齢者・糖尿病ではsilent MIが普通。「胸痛なし」を除外材料にしない。',
+      sepsis: '発熱+頻呼吸+意識変容+qSOFA。発熱がない高齢敗血症もある。'
+    },
+    dispChoiceWhy: {
+      ccu_hcu: 'NPPV継続+利尿+硝酸薬+モニタリング環境。EF低下+silent MI疑いも併せて評価。',
+      general_admit: 'NPPV継続にはHCUが安全。一般床は反応速度が遅い。',
+      er_obs: '心不全急性増悪に「6時間後再評価」は非現実的。',
+      discharge: '致死的。NPPV装着・利尿剤投与で見かけ上良くなっても入院。'
+    }
+  },
+
+  // ========== Case 3: Inferior MI as "constipation" ==========
+  2: {
+    bias: 'アンカリング+トリアージ・ラベリング',
+    biasDesc: '「便秘」というトリアージのラベルが思考を消化器系に誘導する。高齢者の上腹部不快・倦怠感・冷汗は、心血管系の「epigastric presentation」の典型。主訴を信じすぎないトレーニングが必要。',
+    biasCounter: '高齢者の上腹部・腹部不快感では「ECGを撮るまで便秘と決めない」。これを病院の文化レベルで実装する。',
+    metaPoint: '高齢者では「主訴=実病態」ではない。「何か違う」「普段と違う」「家族が連れてきた」をフラグとして使う。SBPがいつもより20mmHg低い・冷汗がある — これは見た目の元気さに優先する。',
+    nextStep: '下壁STEMIには右側胸部誘導(V4R)を必ず追加。Nitro/モルヒネが致命傷になる症例があることを記憶に焼き付けてください。次は45歳女性の雷鳴頭痛(SAH)で、別軸の致死的疾患の見逃し罠を体験します。',
+    killerWhy: {
+      inferior_mi: '高齢者・糖尿病で胸部主訴がなくても下壁MIは「便秘」「胃の重さ」「肩こり」で来る。ECGが診断装置。',
+      mesenteric: '「腹痛と所見の解離」+乳酸上昇+心房細動歴。CT造影で診断。',
+      aaa: '腹部・背部痛+拍動性腫瘤+ショック。70歳以上喫煙男性は常に念頭に。',
+      sbo_strangulation: '腹痛+嘔吐+ガス停止+腹部所見。立位X線+CT。',
+      perforation: '突然の腹痛+腹膜刺激+free air。',
+      sepsis_uti: '高齢者は意識変容・倦怠感だけで来る。発熱なくても尿検査・乳酸。'
+    },
+    dispChoiceWhy: {
+      cathlab_fluid: '右室梗塞合併では前負荷依存。Nitro禁忌、まず生食輸液。カテラボ直行。',
+      standard_stemi: 'Nitro/モルヒネで急激にBP低下 → ショック。右室梗塞では絶対禁忌。',
+      admit_obs: '一般病棟入院は致死的不整脈に対応できない。',
+      discharge_laxative: '最も致命的な選択。「便秘」と帰した患者は数時間以内にVFで戻ってくる。'
+    }
+  },
+
+  // ========== Case 4: SAH (thunderclap) ==========
+  3: {
+    bias: '正常化バイアス+「来院時には軽快している」罠',
+    biasDesc: 'Sentinel headache・thunderclap発症の患者は、来院時にはよくなっていることが多い。「もう大丈夫」「鎮痛剤で楽になった」に合わせると再出血で死なせる。',
+    biasCounter: 'SAH除外プロセスは「症状が良くなった」では止めない。CT(発症6時間以内なら感度ほぼ100%)、CT陰性かつ6時間超ならLP。Ottawa SAH Ruleで形式的に層別化する習慣を。',
+    metaPoint: 'Worst-ever, 突然発症, 運動誘発, 家族歴, sentinel headache(2週間以内の同様頭痛) — どれか1つでも該当すれば「とりあえずCT」のスイッチを入れる。「いつもの片頭痛じゃない」は最強のred flag。',
+    nextStep: '次の症例(32歳産後女性)はもう一段難しい — 認知バイアスの罠を更に深く体験します。「片頭痛持ちの片頭痛悪化」と「軽症アピール」が同時に来るとき、頭の中で何が起きるか。',
+    killerWhy: {
+      sah: '雷鳴頭痛+運動誘発+家族歴 = CT絶対適応。CT陰性でもLP閾値を下げる。',
+      meningitis: '発熱+項部硬直+意識変容。Kernig/Brudzinskiは特異度高いが感度低。LP閾値を下げる。',
+      ich: '高血圧+突然発症+局所所見。CT非造影で十分。',
+      cvt: '若年女性・産褥期・経口避妊薬・脱水・血栓素因。CTV/MRVで診断。',
+      dissection: '頸部痛+頭痛+若年。突然発症。CTAで診断。',
+      gca: '50歳以上・側頭部圧痛・顎跛行・視覚異常・ESR/CRP高値。',
+      glaucoma: '突然の頭痛+視力低下+眼痛+眼充血。眼圧測定。',
+      rcvs: '反復性thunderclap発作。Reversible vasoconstriction、画像で診断。',
+      co_poisoning: '同居者・職場で複数人同時症状。COHb測定。'
+    },
+    dispChoiceWhy: {
+      admit_ncu: 'SAH確定例は再出血予防(BP管理・安静・鎮痛)とclipping/coiling準備。一般病棟は不可。',
+      transfer_neuro: '自院で脳血管内治療不能なら速やか転送。「明日対診」は再出血で間に合わない。',
+      admit_general: '一般病棟では再出血時の対応が遅れる。致死率高い。',
+      discharge_followup: '最も致命的。「頭痛軽快」を理由に帰すと再破裂で死亡。'
+    }
+  },
+
+  // ========== Case 5: CVT in postpartum migraine sufferer ==========
+  4: {
+    bias: 'アンカリング+ディスミッサル(双方向の軽症化バイアス)',
+    biasDesc: '「片頭痛持ちの片頭痛悪化」+「本人の軽症アピール」+「鎮痛剤希望」 — 医師の脳は強烈に「片頭痛」に固定される。さらに本人が「来るほどではなかった」と謙遜する。これは医師と患者の認知が共謀して致死的疾患を見逃す典型。',
+    biasCounter: '「いつもと違う」「効く薬が効かない」「家族からの異常情報(目撃された一過性異常行動)」をtrigger wordとして登録する。同伴者が来ているという事実自体がred flag。',
+    metaPoint: '産褥期は脳静脈洞血栓症の最大リスク時点。「片頭痛診断」を保留にする条件を明文化:① 性状が違う ② 効く薬が効かない ③ 視覚異常 ④ 目撃された異常行動 ⑤ 産後/避妊薬/血栓素因 — どれかあれば必ず画像。',
+    nextStep: '本症例で「アンカリングを破る」感覚が掴めたか。次の症例(65歳男性失神)では、別の認知バイアス(プレマチュア・クロージャー=早期収束)を相手にします。「迷走神経反射で帰宅」を疑う訓練です。',
+    killerWhy: {
+      cvt: '産褥期・経口避妊薬・脱水・トロンボフィリア。「いつもと違う頭痛」+ 局所神経所見 + 痙攣の報告でCTV/MRV。',
+      pres: '高血圧変動+視覚症状+意識変容+けいれん。MRIで診断。',
+      sah: '雷鳴頭痛・突然発症。詳細はCase 4参照。',
+      meningitis: '発熱+項部硬直+意識変容。',
+      pe: '産褥期・帝王切開後・長時間移動はリスク。頻呼吸+低酸素+下肢腫脹。',
+      preeclampsia_late: '産後数週間でも発症。高血圧+蛋白尿+頭痛+視覚症状。',
+      rcvs: '産褥期・血管作動薬使用。反復性thunderclap。'
+    },
+    dispChoiceWhy: {
+      admit_anticoag: 'CVT確定例は出血合併でも抗凝固が標準治療(出血予防よりも血栓進展抑制が優先)。NCU/HCU管理。',
+      admit_observe: '「明日精査」では血栓進展・痙攣・出血合併に対応できない。',
+      discharge_neurology: '外来予約のみは致命的。CVTは数日で重度後遺症になる。',
+      discharge_med: 'トリプタン処方は最悪。血管収縮で病態悪化の可能性も。'
+    }
+  },
+
+  // ========== Case 6: Cardiac syncope ==========
+  5: {
+    bias: 'プレマチュア・クロージャー(早期収束)+正常化バイアス',
+    biasDesc: '失神患者の30%が心原性、その1年死亡率は20%。「迷走神経反射」とラベリングして思考を停止するのは典型的なプレマチュア・クロージャー。本人の「もう大丈夫、帰りたい」に流されず、家族のSCD歴・労作時失神・新規ECG変化を体系的に拾う。',
+    biasCounter: '失神では必ず6つを聞く:① 労作中だったか ② 目撃者が見た硬直・顔色 ③ 家族のSCD歴 ④ QT延長薬 ⑤ ECGで新規所見はあるか ⑥ Canadian Syncope Risk Scoreで何点か — このチェックリストを「流れ作業」にする。',
+    metaPoint: '本人の「軽症アピール」は危険信号。65歳男性が自分から救急に来る時点で、何かが普段と違う。家族の証言(「真っ青になって倒れた」「数秒間硬直していた」)は本人の証言より重い。',
+    nextStep: 'Lv3 全2症例(CVT・心原性失神)で認知バイアスを2つ体験しました。これらは「臨床で繰り返し戻ってくる罠」です。クリア後は実際の自院症例で「自分が今どのバイアスにかかっているか」を意識的に問う習慣を。',
+    killerWhy: {
+      arrhythmia: '労作時失神・前駆症状なし・短時間の硬直は不整脈性失神の典型。新規LBBB・QT延長・NSVTがあれば確定的。',
+      as_hcm: '駆出性収縮期雑音・労作時失神・突然死家族歴。POCUS+心エコー。',
+      pe: '失神は massive PE の表現の一つ。頻脈・低酸素・S1Q3T3。',
+      aaa: '失神+腹部/背部痛+ショック。70歳以上喫煙男性。',
+      silent_acs: 'silent MIで失神することがある。トロポニン・ECG。',
+      sah_sub: '頭痛がなくても突然意識消失でSAHの場合あり。',
+      gi_bleed: '黒色便を見落とすと致命的。直腸診・Hb比較。',
+      hypoglycemia: '糖尿病薬・経口血糖降下薬・絶食。即時BS測定。'
+    },
+    dispChoiceWhy: {
+      admit_telemetry: '高リスクCSRS・新規ECG変化・NSVT記録 → モニタ環境必須。クラリスロマイシン中止+Mg補正。',
+      er_obs_long: '12時間ER観察は「VFを目の前で起こすかどうか待つ」のと同じ。確実に入院。',
+      discharge: '最も致命的。失神を「迷走神経反射」と帰した症例は突然死で戻ってくる。',
+      discharge_holter: 'Holter貸し出して帰すのは責任転嫁。高リスクは入院モニタリング。'
+    }
+  },
+
+  // ========== Case 7: Elderly UTI sepsis ==========
+  6: {
+    bias: null,
+    metaPoint: '高齢者敗血症は教科書のように来ない — 発熱が低い、痛みを訴えない、意識変容だけで来ることがある。「なんとなく元気がない」「会話がぼんやり」を看護師・家族から拾う耳を持つ。qSOFA(RR≥22、SBP≤100、GCS<15)は「ベッドサイドで5秒」のスクリーニング道具。',
+    nextStep: 'Time-Zeroが命を救う領域です。3-hour bundle(乳酸・血培2セット・抗菌薬・30 mL/kg輸液)を時間で動かす習慣を。Lv1全3症例クリアでLv2解放。',
+    killerWhy: {
+      sepsis_uti: '高齢女性の発熱・意識変容では尿路源敗血症が最頻。CVA叩打痛+尿混濁で確定的。',
+      sepsis_pneumonia: '誤嚥性肺炎は症状乏しく来る。聴診+CXRで除外。',
+      meningitis: '高齢者は項部硬直が出にくい。発熱+意識変容で閾値下げてLP検討。',
+      endocarditis: '不明熱+心雑音+塞栓所見。発熱遷延例で念頭に。',
+      intra_abd: '高齢者の腹部所見は乏しい。胆管炎・腹膜炎は造影CTで除外。',
+      skin_soft: '糖尿病・寝たきり患者の褥瘡・蜂窩織炎。皮膚の隅々まで観察。',
+      cva: '局所神経所見が出る。頭部CT。',
+      silent_mi_sep: '高齢者のMIは意識変容で来る。ECG・トロポニンを反射に。'
+    },
+    dispChoiceWhy: {
+      icu_3hbundle: 'severe sepsisはモニタ環境+早期介入で予後改善。3-hour bundleは生存を左右。',
+      ward_iv_abx: 'バイタル不安定症例には反応遅すぎ。',
+      er_obs_wait: '「6時間後再評価」は敗血症で時間ロス。',
+      discharge_oral: '帰宅は致命的。高齢者敗血症は数時間でショックに進む。'
+    }
+  },
+
+  // ========== Case 8: DKA initial presentation ==========
+  7: {
+    bias: '代謝性原因の見落とし(構造性原因への固着)+ availability bias',
+    biasDesc: '若年男性の意識消失で「とりあえずCT頭部」に飛びつくのは典型的なavailability bias。研修医は「教科書で見た所見」を実物として認識できないことがある。Kussmaul呼吸とアセトン臭は古典所見だが、初遭遇では気づきにくい。',
+    biasCounter: '意識障害では「血糖・ガス・電解質」をベッドサイドで5秒で出す習慣を。CT頭部は構造性除外の道具であり、代謝性除外には無力。「画像で考える前にベッドサイドで考える」を徹底。',
+    metaPoint: '意識障害の鑑別はTIPS-AEIOU(Trauma/Temp, Insulin, Psychogenic/Poison, Stroke/Shock, Alcohol, Epilepsy/Endocrine, Infection, Overdose, Uremia)を網羅。鑑別は「除外の順番」を考える練習。代謝性は最も簡単に除外できる。',
+    nextStep: 'DKA管理の三原則: ① 輸液を先(ゆっくり)② Kを必ず確認してからinsulin ③ 若年・小児は脳浮腫リスクに常時警戒。本症例はLv2の集大成。Lv2全3症例クリアでLv3(認知バイアスの罠)解放。',
+    killerWhy: {
+      dka: '多飲多尿+体重減少+Kussmaul呼吸+アセトン臭+若年=DKA initial presentation。1型糖尿病の初発は若年に多い。',
+      hhs: '高齢2型糖尿病の意識障害+著明高血糖。アシドーシスは軽度。',
+      hypoglycemia: '糖尿病薬・経口血糖降下薬・絶食・敗血症で起こる。即時BS測定で5秒除外。',
+      meningitis: '発熱+項部硬直+意識変容。LP閾値を下げる。',
+      ich_sah: '突然発症+局所所見+頭痛。CTで除外。',
+      intoxication: 'エタノール・メタノール・サリチル酸・エチレングリコール。Anion gap+osmolar gap+毒物スクリーニング。',
+      adrenal_crisis: 'ステロイド長期使用後の中断、敗血症等stress時。Na低下・K上昇・低血圧・低血糖。経験的ヒドロコルチゾン投与。',
+      sepsis: 'DKAの誘因は感染が最頻。源同定が必要。',
+      thyroid_storm: '頻脈+発熱+精神症状+甲状腺腫。'
+    },
+    dispChoiceWhy: {
+      icu_dka_protocol: '初発DKAは輸液速度・K補正・insulin持続・脳浮腫監視のためICU/HCU必須。',
+      ward_iv_only: 'insulin抜きの輸液はアシドーシス補正にならず、脳浮腫リスクを高める可能性も。',
+      er_obs: 'DKAは時間で進行。経過観察ではなく、ICUで補正する。',
+      discharge_oral: '初発DKAを帰すのは致命的。'
+    }
+  },
+
+  // ========== Case 9: Ectopic rupture in psychiatric patient ==========
+  8: {
+    bias: 'ラベリング・ディスミッサル(精神疾患併存患者の身体所見軽視)+ availability bias of the team',
+    biasDesc: '「双極性障害」「パニック発作既往」のラベルは、医師の脳に強烈なショートカットを作る。さらに患者の「もういい、薬だけください」という訴えがディスミッサルを誘発し、トリアージナースの「精神科の常連」という申し送りで認知が固定される。三者の認知が共謀して身体疾患を見落とす。これは医療倫理的・法的にも危険なエラー。',
+    biasCounter: '「バイタルだけが嘘をつかない」を合言葉に。HR 132+SBP 88はショック、それ以上でもそれ以下でもない。患者の言葉(自覚症状)に重みづけする前に、客観データ(バイタル・身体所見・検査値)で判断する訓練を。「精神疾患併存患者ほど丁寧にフィジカル」が原則。',
+    metaPoint: '生殖年齢女性の腹痛・ショック=「全例βHCG」を絶対化する(本人の妊娠否定は信じない)。これは性的虐待・自覚なき妊娠・避妊失敗等の存在を想定したセーフティネットルール。POCUSのfree fluidスキャンは1分で診断装置になる。「精神科の常連」というラベルは、医療提供者側の認知ショートカットであり、患者の現病態を説明する根拠ではない。',
+    nextStep: 'Lv3 全3症例で「アンカリング」「正常化バイアス」「ラベリング・ディスミッサル」の3つの主要バイアスを体験しました。これは臨床で繰り返し出会う罠です。今後は実際の自院症例で「自分は今どのバイアスにかかっているか」を毎症例自問する習慣を。Lv3全クリアで初期研修医独り立ちレベルの基本セットは完成です。',
+    killerWhy: {
+      ectopic_rupture: '生殖年齢女性のショック+腹痛=異所性妊娠破裂を最初に除外。LMP不明・少量性器出血・PID既往はリスク。βHCG+POCUSで5分。',
+      ovarian_torsion: '突然発症の片側下腹部痛+嘔気。超音波ドップラーで卵巣血流評価。',
+      aaa_young: 'Marfan、Ehlers-Danlos、結合組織病既往なら若年でも。腹部拍動性腫瘤・背部痛+ショック。',
+      splenic_rupture: '左肩痛(Kehr徴候)+左上腹部痛+ショック+貧血。外傷既往or自然発症(感染性・血液疾患)。',
+      gi_bleed: '黒色便・吐血を見逃さない。直腸診・Hb比較。',
+      peritonitis: '腹膜刺激徴候+発熱+ショック。穿孔は緊急手術。',
+      sepsis_pid: 'PID歴+発熱+下腹部痛。骨盤膿瘍を疑い超音波・CT。',
+      pulmonary_embolism: 'ショック+頻呼吸+低酸素。Wells score・D-dimer。',
+      drug_overdose: '精神疾患既往患者では自殺企図を必ず除外。意識・瞳孔・薬物スクリーニング。'
+    },
+    dispChoiceWhy: {
+      emergency_or: 'ショック+腹腔内出血+異所性妊娠 → 緊急手術室で止血。輸血並行。',
+      gyn_admit_obs: '出血進行中の経過観察は致命的。',
+      er_iv_obs: '輸液で見かけ上改善しても、出血源を断たない限り破綻する。',
+      discharge_psych: '医療事故の典型。法的・倫理的問題に直結。'
+    }
+  }
+};
+
+// ============================================================
+// STATE & PASSWORD
+// ============================================================
+
+const VERSION = 1;
+
+const COMPETENCY_LABELS = ['Killer想起', '問診効率', '診察効率', '検査適切性', '再評価', 'リスク評価', 'コンサルト', '処分安全性'];
+
+function newState() {
+  return {
+    v: VERSION,
+    n: '',                                    // name
+    l: 1,                                     // unlocked level
+    c: 0,                                     // completed scenarios bitmask
+    s: SCENARIOS.map(() => 0),                // best scores per scenario (0..100)
+    st: [0, 0, 0, 0, 0, 0, 0, 0],             // competency averages
+    stc: 0,                                   // count for averaging
+    log: [],                                  // log entries
+    cd: Date.now()                            // created at
+  };
+}
+
+let state = newState();
+let currentScenario = null;
+let currentPhase = 0;
+let phaseChoices = {};   // accumulated player choices for current scenario
+let scoreBreakdown = {}; // accumulated scores
+
+function encodeState(s) {
+  // Compact JSON
+  const compact = {
+    v: s.v,
+    n: s.n,
+    l: s.l,
+    c: s.c,
+    s: s.s,
+    st: s.st.map(x => Math.round(x)),
+    stc: s.stc,
+    log: s.log.slice(-30),
+    cd: s.cd
+  };
+  const json = JSON.stringify(compact);
+  // UTF-8 → base64 (handles Japanese names)
+  const bytes = new TextEncoder().encode(json);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  const b64 = btoa(binary).replace(/=/g, '');
+  // Checksum
+  let sum = 0;
+  for (let i = 0; i < b64.length; i++) sum = (sum * 31 + b64.charCodeAt(i)) >>> 0;
+  const ck = (sum % 1296).toString(36).padStart(2, '0').toUpperCase();
+  // Format with hyphens for readability
+  const segmented = b64.match(/.{1,6}/g).join('-');
+  return 'ER1-' + segmented + '-' + ck;
+}
+
+function decodeState(code) {
+  code = code.trim();
+  if (!code.startsWith('ER1-')) throw new Error('コード形式が違います(ER1-で始まる必要があります)');
+  const body = code.slice(4);
+  const parts = body.split('-');
+  if (parts.length < 2) throw new Error('コード形式が不正です');
+  const ck = parts.pop();
+  const b64 = parts.join('');
+  // Verify checksum
+  let sum = 0;
+  for (let i = 0; i < b64.length; i++) sum = (sum * 31 + b64.charCodeAt(i)) >>> 0;
+  const expectedCk = (sum % 1296).toString(36).padStart(2, '0').toUpperCase();
+  if (ck !== expectedCk) throw new Error('コードが破損しています(チェックサム不一致)');
+  // Pad base64
+  let padded = b64;
+  while (padded.length % 4) padded += '=';
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const json = new TextDecoder().decode(bytes);
+  const compact = JSON.parse(json);
+  if (compact.v !== VERSION) throw new Error('バージョンが異なります');
+  return {
+    v: compact.v,
+    n: compact.n || '',
+    l: compact.l || 1,
+    c: compact.c || 0,
+    s: compact.s || SCENARIOS.map(() => 0),
+    st: compact.st || [0,0,0,0,0,0,0,0],
+    stc: compact.stc || 0,
+    log: compact.log || [],
+    cd: compact.cd || Date.now()
+  };
+}
+
+function logEvent(text) {
+  state.log.push({ t: Date.now(), e: text });
+  if (state.log.length > 30) state.log.shift();
+}
+
+// ============================================================
+// SCREEN MANAGEMENT
+// ============================================================
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const screen = document.getElementById('screen-' + name);
+  if (screen) screen.classList.add('active');
+  // Rule #2/#3: scroll the #content area (body has overflow:hidden)
+  const content = document.getElementById('content');
+  if (content) content.scrollTop = 0;
+  if (name === 'hub') renderHub();
+  if (name === 'log') renderLog();
+  document.getElementById('brand-status').textContent = {
+    'title': '— STAND BY —',
+    'continue': '— LOAD CODE —',
+    'about': '— INFO —',
+    'hub': '— ON DUTY —',
+    'log': '— TRAINING LOG —',
+    'scenario': '— ACTIVE CASE —'
+  }[name] || '— STAND BY —';
+}
+
+function startNewGame() {
+  state = newState();
+  // Ask name once at start
+  const name = prompt('研修医のお名前を入力してください(空白でも可)', '');
+  if (name !== null) state.n = name.slice(0, 20);
+  logEvent('研修開始');
+  showScreen('hub');
+}
+
+function loadFromCode() {
+  const code = document.getElementById('continue-input').value;
+  const errEl = document.getElementById('continue-error');
+  errEl.classList.add('hidden');
+  try {
+    state = decodeState(code);
+    logEvent('セーブから再開');
+    showScreen('hub');
+  } catch (e) {
+    errEl.textContent = '✗ ' + e.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+function copySaveCode() {
+  const code = encodeState(state);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => {
+      const btn = document.getElementById('copy-btn');
+      const orig = btn.textContent;
+      btn.textContent = '✓ コピーしました';
+      setTimeout(() => btn.textContent = orig, 1500);
+    });
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = code;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('コピーしました');
+  }
+}
+
+function confirmReset() {
+  if (confirm('セッションを終了してタイトルに戻ります。セーブコードはコピー済みですか?')) {
+    showScreen('title');
+  }
+}
+
+// ============================================================
+// HUB RENDER
+// ============================================================
+
+function renderHub() {
+  document.getElementById('hub-name').textContent = state.n || '研修医';
+  document.getElementById('hub-pgy').textContent = `— Level ${state.l} 在籍 —`;
+  document.getElementById('hub-level').textContent = state.l;
+  let cleared = 0;
+  for (let i = 0; i < SCENARIOS.length; i++) if (state.c & (1 << i)) cleared++;
+  document.getElementById('hub-cleared').textContent = `${cleared} / ${SCENARIOS.length}`;
+
+  // Stats
+  const statsEl = document.getElementById('hub-stats');
+  statsEl.innerHTML = '<div class="panel-header" style="margin-top: 16px;"><span class="dot"></span>COMPETENCY METRICS</div>';
+  for (let i = 0; i < 8; i++) {
+    const val = state.stc > 0 ? state.st[i] : 0;
+    const cls = val >= 75 ? '' : val >= 50 ? 'warn' : 'critical';
+    statsEl.innerHTML += `
+      <div class="stat-row">
+        <span class="stat-name">${COMPETENCY_LABELS[i]}</span>
+        <div class="stat-bar"><div class="stat-fill ${cls}" style="width: ${val}%"></div></div>
+        <span class="stat-val">${val}</span>
+      </div>`;
+  }
+
+  // Scenario list — grouped by level for clarity
+  const listEl = document.getElementById('scenario-list');
+  listEl.innerHTML = '';
+  const byLevel = {};
+  SCENARIOS.forEach((sc, i) => {
+    if (!byLevel[sc.level]) byLevel[sc.level] = [];
+    byLevel[sc.level].push({ sc, i });
+  });
+  const levelTitles = {
+    1: 'LEVEL 1 — ABCDE実行と基本主訴対応',
+    2: 'LEVEL 2 — Killer rule-out内在化、リスクスコア活用',
+    3: 'LEVEL 3 — 認知バイアス検出、非典型提示、メタ認知'
+  };
+  Object.keys(byLevel).sort().forEach(lv => {
+    const lvNum = parseInt(lv);
+    const cases = byLevel[lv];
+    const clearedCount = cases.filter(c => state.c & (1 << c.i)).length;
+    const isLevelLocked = lvNum > state.l;
+    listEl.innerHTML += `
+      <div style="margin: ${lvNum === 1 ? '0' : '20px'} 0 10px; padding-bottom: 6px; border-bottom: 1px solid #2a3447; display: flex; align-items: baseline; gap: 10px;">
+        <span class="mono" style="font-size: 10px; letter-spacing: 0.2em; color: ${isLevelLocked ? '#5a6478' : '#3ee6c8'};">${levelTitles[lv] || ('LEVEL ' + lv)}</span>
+        <span class="mono" style="font-size: 10px; color: #5a6478; margin-left: auto;">${clearedCount}/${cases.length}${isLevelLocked ? ' 🔒' : ''}</span>
+      </div>`;
+    cases.forEach(({ sc, i }) => {
+      const isCleared = !!(state.c & (1 << i));
+      const isLocked = sc.level > state.l;
+      const best = state.s[i] || 0;
+      const lvClass = sc.level === 1 ? '' : sc.level === 2 ? 'l2' : 'l3';
+      listEl.innerHTML += `
+        <button class="scenario-card ${isCleared ? 'cleared' : ''} ${isLocked ? 'locked' : ''}" 
+                ${isLocked ? 'disabled' : `onclick="startScenario(${i})"`}>
+          <div class="scenario-meta">
+            <span class="lv ${lvClass}">L${sc.level}</span>
+            <span>CASE ${String(i+1).padStart(2,'0')}</span>
+            ${isCleared ? '<span class="text-good">✓ CLEARED</span>' : ''}
+            ${isLocked ? '<span class="text-faint">🔒 Lv'+sc.level+'解放後</span>' : ''}
+          </div>
+          <div class="title">${sc.title}</div>
+          <div class="desc">${sc.summary}</div>
+          ${best > 0 ? `<div class="best">BEST SCORE: ${best}</div>` : ''}
+        </button>`;
+    });
+  });
+
+  // Save code
+  document.getElementById('hub-save-code').textContent = encodeState(state);
+}
+
+function renderLog() {
+  const el = document.getElementById('log-list');
+  if (state.log.length === 0) {
+    el.innerHTML = '<p class="text-dim">まだログがありません。</p>';
+    return;
+  }
+  el.innerHTML = '';
+  for (let i = state.log.length - 1; i >= 0; i--) {
+    const e = state.log[i];
+    const d = new Date(e.t);
+    const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    el.innerHTML += `<div class="log-entry"><div class="log-time mono">${dateStr}</div><div class="log-event">${e.e}</div></div>`;
+  }
+}
+
+// ============================================================
+// SCENARIO ENGINE
+// ============================================================
+
+function startScenario(idx) {
+  currentScenario = SCENARIOS[idx];
+  currentPhase = 0;
+  phaseChoices = { idx: idx };
+  scoreBreakdown = {};
+  showScreen('scenario');
+  renderPhase();
+}
+
+const PHASES = [
+  'intro',         // 0: triage + appearance + ABCDE + sick judgment
+  'killer',        // 1: killer rule-out selection
+  'history',       // 2: history taking
+  'exam',          // 3: physical examination
+  'tests',         // 4: investigations
+  'reassess',      // 5: re-evaluation
+  'risk',          // 6: risk score (optional)
+  'consult',       // 7: consultation decision
+  'disposition',   // 8: disposition + return precautions
+  'outcome',       // 9: 72-hour outcome
+  'debrief'        // 10: scoring + save code
+];
+
+function renderPhase() {
+  const phase = PHASES[currentPhase];
+  const sc = currentScenario;
+  const root = document.getElementById('scenario-content');
+  const pn = (currentPhase + 1).toString().padStart(2, '0');
+
+  if (phase === 'intro') {
+    // First impression / ABCDE / sick or not sick
+    root.innerHTML = `
+      <div class="phase-header">
+        <span class="phase-num">PHASE ${pn}</span>
+        <span class="phase-title">第一印象</span>
+        <span class="phase-progress">${currentPhase+1} / ${PHASES.length}</span>
+      </div>
+      <div class="case-brief">${sc.triage}</div>
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>BEDSIDE OBSERVATION / 視診印象</div>
+        <p>${sc.appearance}</p>
+      </div>
+      <div class="panel bordered-l">
+        <div class="panel-header"><span class="dot"></span>VITALS / バイタルサイン</div>
+        ${renderVitals(sc.vitals)}
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>ABCDE QUICK SURVEY</div>
+        <p style="font-size: 13px; line-height: 1.8;">
+          <strong class="mono">A:</strong> ${sc.abcde.A}<br>
+          <strong class="mono">B:</strong> ${sc.abcde.B}<br>
+          <strong class="mono">C:</strong> ${sc.abcde.C}<br>
+          <strong class="mono">D:</strong> ${sc.abcde.D}<br>
+          <strong class="mono">E:</strong> ${sc.abcde.E}
+        </p>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>FIRST CALL / 第一印象タグ付け</div>
+        <p style="margin-bottom: 14px;">この患者は <strong>Sick</strong>(致死的経過に向かいうる)か <strong>Not Sick</strong>(緊急性が低い)か?</p>
+        <div class="btn-row">
+          <button class="btn ${sc.sickJudgment === 'sick' ? 'primary' : 'danger'}" onclick="judgeSick(true)">SICK と判断</button>
+          <button class="btn ${sc.sickJudgment === 'not_sick' ? 'primary' : 'danger'}" onclick="judgeSick(false)">NOT SICK と判断</button>
+        </div>
+        ${sc.sickHint ? `<div class="hint">💡 ${sc.sickHint}</div>` : ''}
+      </div>
+    `;
+  } else if (phase === 'killer') {
+    root.innerHTML = `
+      <div class="phase-header">
+        <span class="phase-num">PHASE ${pn}</span>
+        <span class="phase-title">Killer想起</span>
+        <span class="phase-progress">${currentPhase+1} / ${PHASES.length}</span>
+      </div>
+      <div class="panel critical">
+        <div class="panel-header"><span class="dot critical"></span>WORST-FIRST PROTOCOL</div>
+        <p>この主訴・状況で <strong>除外すべき致死的疾患</strong>を全て選択してください。漏らした分は減点、関係ない疾患を選ぶと減点。</p>
+      </div>
+      <div class="choices" id="killer-choices">
+        ${shuffleStable(sc.killerOptions, sc.id).map(opt => `
+          <button class="choice" onclick="toggleChoice(this, 'killer', '${opt.id}')">
+            <span class="check"></span>
+            <span>${opt.text}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div class="spacer"></div>
+      <button class="btn primary" onclick="submitKiller()">確定して次へ →</button>
+    `;
+  } else if (phase === 'history') {
+    root.innerHTML = `
+      <div class="phase-header">
+        <span class="phase-num">PHASE ${pn}</span>
+        <span class="phase-title">問診</span>
+        <span class="phase-progress">${currentPhase+1} / ${PHASES.length}</span>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>FOCUSED HISTORY</div>
+        <p>仮説を絞るために有効な質問を選んでください(最大8項目推奨)。質問ごとに回答が表示されます。低利得/無関係な質問が多いと減点。</p>
+      </div>
+      <div class="choices" id="history-choices">
+        ${shuffleStable(sc.historyOptions, sc.id + 100).map(opt => `
+          <button class="choice" onclick="askHistory(this, '${opt.id}')">
+            <span class="check"></span>
+            <span>${opt.text}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div id="history-reveals"></div>
+      <div class="spacer"></div>
+      <button class="btn primary" onclick="submitHistory()">問診を終了して次へ →</button>
+    `;
+    phaseChoices.history = phaseChoices.history || [];
+  } else if (phase === 'exam') {
+    root.innerHTML = `
+      <div class="phase-header">
+        <span class="phase-num">PHASE ${pn}</span>
+        <span class="phase-title">身体診察</span>
+        <span class="phase-progress">${currentPhase+1} / ${PHASES.length}</span>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>HYPOTHESIS-DRIVEN EXAM</div>
+        <p>仮説を検証/除外するための診察項目を選んでください。網羅的に取りすぎると時間ロスとして減点。</p>
+      </div>
+      <div class="choices" id="exam-choices">
+        ${shuffleStable(sc.examOptions, sc.id + 200).map(opt => `
+          <button class="choice" onclick="doExam(this, '${opt.id}')">
+            <span class="check"></span>
+            <span>${opt.text}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div id="exam-reveals"></div>
+      <div class="spacer"></div>
+      <button class="btn primary" onclick="submitExam()">診察を終了して次へ →</button>
+    `;
+    phaseChoices.exam = phaseChoices.exam || [];
+  } else if (phase === 'tests') {
+    root.innerHTML = `
+      <div class="phase-header">
+        <span class="phase-num">PHASE ${pn}</span>
+        <span class="phase-title">検査</span>
+        <span class="phase-progress">${currentPhase+1} / ${PHASES.length}</span>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>INVESTIGATIONS</div>
+        <p>必要な検査を選んでください。critical(必須)を漏らすと致命的減点。無駄な検査も減点。</p>
+      </div>
+      <div class="choices" id="test-choices">
+        ${shuffleStable(sc.testOptions, sc.id + 300).map(opt => `
+          <button class="choice" onclick="orderTest(this, '${opt.id}')">
+            <span class="check"></span>
+            <span>${opt.text}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div id="test-reveals"></div>
+      <div class="spacer"></div>
+      <button class="btn primary" onclick="submitTests()">検査を終了して次へ →</button>
+    `;
+    phaseChoices.tests = phaseChoices.tests || [];
+  } else if (phase === 'reassess') {
+    root.innerHTML = `
+      <div class="phase-header">
+        <span class="phase-num">PHASE ${pn}</span>
+        <span class="phase-title">再評価</span>
+        <span class="phase-progress">${currentPhase+1} / ${PHASES.length}</span>
+      </div>
+      <div class="panel warn">
+        <div class="panel-header"><span class="dot"></span>RE-ASSESSMENT</div>
+        <p>${sc.reassess.offer}</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="doReassess(true)">再評価する</button>
+        <button class="btn ghost" onclick="doReassess(false)">スキップ(時間節約)</button>
+      </div>
+    `;
+  } else if (phase === 'risk') {
+    if (!sc.riskScore) {
+      // Skip
+      currentPhase++;
+      renderPhase();
+      return;
+    }
+    root.innerHTML = `
+      <div class="phase-header">
+        <span class="phase-num">PHASE ${pn}</span>
+        <span class="phase-title">リスクスコア</span>
+        <span class="phase-progress">${currentPhase+1} / ${PHASES.length}</span>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>${sc.riskScore.type}</div>
+        <p>${sc.riskScore.prompt}</p>
+      </div>
+      <div class="panel bordered-l">
+        ${sc.riskScore.components.map(c => `
+          <div class="stat-row">
+            <span class="stat-name" style="width: auto; flex: 1;">${c.label}</span>
+            <span class="stat-val mono" style="width: auto;">${c.value}点</span>
+          </div>
+        `).join('')}
+        <div class="section-divider">SUM</div>
+        <div style="text-align: center;">
+          <div class="score-num" style="font-size: 36px; color: #ffb547;">${sc.riskScore.total}</div>
+          <p style="margin-top: 10px;">${sc.riskScore.interpretation}</p>
+        </div>
+      </div>
+      <button class="btn primary" onclick="nextPhase()">理解した、次へ →</button>
+    `;
+  } else if (phase === 'consult') {
+    root.innerHTML = `
+      <div class="phase-header">
+        <span class="phase-num">PHASE ${pn}</span>
+        <span class="phase-title">コンサルト</span>
+        <span class="phase-progress">${currentPhase+1} / ${PHASES.length}</span>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>ESCALATION DECISION</div>
+        <p>誰に、何を相談しますか?(複数選択可)</p>
+      </div>
+      <div class="choices" id="consult-choices">
+        ${sc.consultOptions.map(opt => `
+          <button class="choice" onclick="toggleChoice(this, 'consult', '${opt.id}')">
+            <span class="check"></span>
+            <span>${opt.text}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div class="spacer"></div>
+      <button class="btn primary" onclick="submitConsult()">確定して次へ →</button>
+    `;
+    phaseChoices.consult = [];
+  } else if (phase === 'disposition') {
+    root.innerHTML = `
+      <div class="phase-header">
+        <span class="phase-num">PHASE ${pn}</span>
+        <span class="phase-title">処分</span>
+        <span class="phase-progress">${currentPhase+1} / ${PHASES.length}</span>
+      </div>
+      <div class="panel critical">
+        <div class="panel-header"><span class="dot critical"></span>FINAL DISPOSITION</div>
+        <p>最終的な処分を1つ選択してください。誤判断は致命的になりうる。</p>
+      </div>
+      <div class="choices" id="disp-choices">
+        ${sc.dispositionOptions.map(opt => `
+          <button class="choice" onclick="selectDisp('${opt.id}')">
+            <span class="check"></span>
+            <span>${opt.text}</span>
+          </button>
+        `).join('')}
+      </div>
+    `;
+  } else if (phase === 'outcome') {
+    // Compute outcome based on choices
+    const outcomeKey = computeOutcome();
+    const outcome = sc.outcomes[outcomeKey];
+    const cls = outcomeKey === 'good' ? '' : outcomeKey === 'missed_killer' ? 'bad' : 'mid';
+    const icon = outcomeKey === 'good' ? '◇ 72H FOLLOW-UP / 良好' : outcomeKey === 'missed_killer' ? '✗ 致命的見逃し' : '△ 遅延・合併症';
+    root.innerHTML = `
+      <div class="phase-header">
+        <span class="phase-num">PHASE ${pn}</span>
+        <span class="phase-title">72時間転帰</span>
+        <span class="phase-progress">${currentPhase+1} / ${PHASES.length}</span>
+      </div>
+      <div class="outcome-banner ${cls}">
+        <div class="outcome-icon">${icon}</div>
+        <div class="outcome-headline">${outcome.headline}</div>
+        <div class="outcome-body">${outcome.body}</div>
+      </div>
+      <button class="btn primary" onclick="nextPhase()">デブリーフへ →</button>
+    `;
+    phaseChoices.outcome = outcomeKey;
+  } else if (phase === 'debrief') {
+    // ==== CRITICAL: Commit scenario results to state BEFORE rendering ====
+    // This ensures the displayed save code reflects post-scenario state,
+    // and that level-up / clear status is properly persisted.
+    const result = commitScenarioResults();
+    const totalScore = result.totalScore;
+    const breakdown = scoreBreakdown;
+    const rank = totalScore >= 90 ? 'EXEMPLARY' : totalScore >= 75 ? 'COMPETENT' : totalScore >= 60 ? 'BORDERLINE' : 'NEEDS WORK';
+    const rankJa = totalScore >= 90 ? '模範的' : totalScore >= 75 ? '十分' : totalScore >= 60 ? '境界域' : '要改善';
+
+    const fb = FEEDBACK[phaseChoices.idx] || {};
+    const outcomeKey = phaseChoices.outcome;
+
+    root.innerHTML = `
+      <div class="phase-header">
+        <span class="phase-num">PHASE ${pn}</span>
+        <span class="phase-title">デブリーフ</span>
+        <span class="phase-progress">${currentPhase+1} / ${PHASES.length}</span>
+      </div>
+
+      ${result.leveledUp ? `
+        <div class="level-up-banner">
+          <div class="lu-tag">◆ LEVEL UP ◆</div>
+          <h3>Level ${result.newLevel} 解放</h3>
+          <div class="lu-sub">新しい症例群が利用可能になりました</div>
+        </div>
+      ` : ''}
+
+      ${result.allMastered ? `
+        <div class="level-up-banner" style="background: linear-gradient(135deg, #d4af37 0%, #f0d97c 100%);">
+          <div class="lu-tag">★ ALL CASES MASTERED ★</div>
+          <h3>現在の全症例を制覇</h3>
+          <div class="lu-sub">基本セットを完全マスターしました。今後の追加症例で更なる訓練を。</div>
+        </div>
+      ` : ''}
+
+      ${result.wasNewClear ? `
+        <div class="cleared-banner">★ CASE ${phaseChoices.idx+1} CLEARED ★</div>
+      ` : (totalScore >= 60 ? `
+        <div class="cleared-banner" style="opacity:0.7;">CASE ${phaseChoices.idx+1} — 再クリア(ベスト ${state.s[phaseChoices.idx]}点)</div>
+      ` : `
+        <div class="cleared-banner" style="background: rgba(255,77,94,0.08); border-color: #ff4d5e; color: #ff4d5e;">CASE ${phaseChoices.idx+1} — 60点に満たず未クリア。再挑戦してください。</div>
+      `)}
+
+      <div class="score-display">
+        <div class="score-num">${totalScore}</div>
+        <div class="score-label">TOTAL SCORE</div>
+        <div class="score-rank">${rank} — ${rankJa}</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>COMPETENCY BREAKDOWN / 能力軸別</div>
+        ${COMPETENCY_LABELS.map((label, i) => {
+          const v = breakdown[i] !== undefined ? breakdown[i] : null;
+          if (v === null) return '';
+          const cls = v >= 75 ? '' : v >= 50 ? 'warn' : 'critical';
+          return `<div class="stat-row">
+            <span class="stat-name">${label}</span>
+            <div class="stat-bar"><div class="stat-fill ${cls}" style="width: ${v}%"></div></div>
+            <span class="stat-val">${v}</span>
+          </div>`;
+        }).join('')}
+      </div>
+
+      ${buildOutcomeRecap(sc, outcomeKey, fb)}
+
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>各フェーズの振り返り</div>
+        ${buildKillerReview(sc, fb)}
+        ${buildHistoryReview(sc, fb)}
+        ${buildExamReview(sc, fb)}
+        ${buildTestsReview(sc, fb)}
+        ${buildReassessReview(sc, fb)}
+        ${buildConsultReview(sc, fb)}
+        ${buildDispositionReview(sc, fb)}
+      </div>
+
+      ${fb.bias ? `
+        <div class="panel critical">
+          <div class="panel-header"><span class="dot critical"></span>COGNITIVE BIAS / この症例で警戒すべきだったバイアス</div>
+          <h3 class="panel-title" style="font-style: italic;">${fb.bias}</h3>
+          <p style="margin: 10px 0;">${fb.biasDesc}</p>
+          ${fb.biasCounter ? `<div class="dbr-warn"><strong>対抗策:</strong> ${fb.biasCounter}</div>` : ''}
+        </div>
+      ` : ''}
+
+      ${fb.metaPoint ? `
+        <div class="panel bordered-l">
+          <div class="panel-header"><span class="dot"></span>META-COGNITIVE POINT / メタ認知</div>
+          <p>${fb.metaPoint}</p>
+        </div>
+      ` : ''}
+
+      <div class="panel bordered-l">
+        <div class="panel-header"><span class="dot"></span>KEY TEACHING POINT / 本症例のキーメッセージ</div>
+        <p style="font-size: 15px; line-height: 1.7;">${sc.debrief.teach}</p>
+      </div>
+
+      ${fb.nextStep ? `
+        <div class="panel">
+          <div class="panel-header"><span class="dot"></span>NEXT STEP / 次の一手</div>
+          <p>${fb.nextStep}</p>
+        </div>
+      ` : ''}
+
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>SAVE CODE / セーブコード</div>
+        <p class="text-dim" style="font-size: 13px; margin-bottom: 10px;">この時点での進捗を保存するコードです。コピーして保管してください。次回はタイトル画面の「続きから」で再開できます。</p>
+        <div class="save-code">${encodeState(state)}</div>
+        <button class="btn ghost" onclick="copyDebriefCode()">コードをコピー</button>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn primary" onclick="returnToHub()">ハブへ戻る</button>
+        <button class="btn ghost" onclick="retryScenario()">この症例をもう一度</button>
+      </div>
+    `;
+  }
+}
+
+// ============================================================
+// DEBRIEF BUILDERS / 各セクションのHTML組み立て
+// ============================================================
+
+function buildOutcomeRecap(sc, outcomeKey, fb) {
+  const dispChosen = sc.dispositionOptions.find(o => o.id === phaseChoices.disp);
+  const dispCorrect = sc.dispositionOptions.find(o => o.id === sc.dispositionCorrect);
+  const outcome = sc.outcomes[outcomeKey];
+  const cls = outcomeKey === 'good' ? '' : outcomeKey === 'missed_killer' ? 'critical' : 'warn';
+  const tag = outcomeKey === 'good' ? '◇ 良好転帰' : outcomeKey === 'missed_killer' ? '✗ 致命的見逃し' : '△ 遅延・合併症';
+  return `
+    <div class="panel ${cls === 'critical' ? 'critical' : cls === 'warn' ? 'warn' : 'bordered-l'}">
+      <div class="panel-header"><span class="dot ${cls === 'critical' ? 'critical' : ''}"></span>OUTCOME RECAP / 72時間後の結末</div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.2em; color: ${outcomeKey === 'good' ? '#7ee07a' : outcomeKey === 'missed_killer' ? '#ff4d5e' : '#ffb547'}; margin-bottom: 8px;">${tag}</div>
+      <h3 class="panel-title" style="font-style: italic;">${outcome.headline}</h3>
+      <p style="margin: 10px 0;">${outcome.body}</p>
+      <div class="section-divider">あなたの決定</div>
+      <p><strong>処分:</strong> ${dispChosen ? dispChosen.text : '(未選択)'}</p>
+      ${!dispChosen || !dispChosen.correct ? `
+        <p style="margin-top: 8px;"><strong>適切な処分:</strong> ${dispCorrect ? dispCorrect.text : '—'}</p>
+        ${dispChosen && dispChosen.note ? `<div class="dbr-warn"><strong>あなたの選択について:</strong> ${dispChosen.note}</div>` : ''}
+      ` : ''}
+    </div>
+  `;
+}
+
+function buildKillerReview(sc, fb) {
+  const selected = phaseChoices.killer || [];
+  const correctIds = sc.killerOptions.filter(o => o.correct).map(o => o.id);
+  const wrongIds = sc.killerOptions.filter(o => !o.correct).map(o => o.id);
+  const hits = selected.filter(id => correctIds.includes(id));
+  const missed = correctIds.filter(id => !selected.includes(id));
+  const fp = selected.filter(id => wrongIds.includes(id));
+  const optById = id => sc.killerOptions.find(o => o.id === id);
+  const score = scoreBreakdown[0] !== undefined ? scoreBreakdown[0] : 0;
+  const sc_cls = score >= 75 ? 'high' : score >= 50 ? 'mid' : 'low';
+
+  let h = `<div class="dbr-block">
+    <div class="dbr-h">⚡ Killer想起 <span class="ph-score ${sc_cls}">${score}点</span></div>`;
+
+  if (hits.length > 0) {
+    h += `<div class="dbr-good">✓ 適切に挙げた致死的疾患 (${hits.length}/${correctIds.length})</div>`;
+    h += `<ul class="dbr-list">${hits.map(id => `<li>${optById(id).text}</li>`).join('')}</ul>`;
+  }
+  if (missed.length > 0) {
+    h += `<div class="dbr-bad">✗ 漏らした致死的疾患 (${missed.length}件)</div>`;
+    h += '<ul class="dbr-list">';
+    missed.forEach(id => {
+      const o = optById(id);
+      const why = (fb.killerWhy && fb.killerWhy[id]) || '';
+      h += `<li><strong>${o.text}</strong>${why ? `<br><span class="dbr-faint">→ ${why}</span>` : ''}</li>`;
+    });
+    h += '</ul>';
+    if (missed.length >= correctIds.length / 2) {
+      h += `<div class="dbr-fatal"><strong>WORST-FIRST が機能していません。</strong>致死的疾患の半数以上を想起できていない状態では、臨床像が変化したときに対応できません。「全部挙げてから絞る」プロセスを反射として身につけてください。</div>`;
+    } else {
+      h += `<div class="dbr-warn">致死的疾患の網羅的想起 (WORST-FIRST) は救急初療の生命線です。漏らした疾患を一つずつ「なぜ鑑別に入るか」を言語化する練習を。</div>`;
+    }
+  }
+  if (fp.length > 0) {
+    h += `<div class="dbr-info">△ 致死的疾患でないもの: ${fp.map(id => optById(id).text).join('、')}</div>`;
+    h += `<p class="dbr-faint" style="margin-bottom: 10px;">致死的疾患リストは「これを外したら死ぬ」リスト。鑑別と区別して整理する習慣を。</p>`;
+  }
+  if (missed.length === 0 && fp.length === 0) {
+    h += `<p style="color: #7ee07a; font-size: 13px;">完璧な想起。この主訴に対するKiller listが頭の中に整理されています。</p>`;
+  }
+  h += '</div>';
+  return h;
+}
+
+function buildHistoryReview(sc, fb) {
+  const asked = phaseChoices.history || [];
+  const optMap = Object.fromEntries(sc.historyOptions.map(o => [o.id, o]));
+  const expected = sc.historyExpected;
+  const askedExpected = asked.filter(id => expected.includes(id));
+  const missedExpected = expected.filter(id => !asked.includes(id));
+  const askedNone = asked.filter(id => optMap[id] && optMap[id].yield === 'none');
+  const askedLow = asked.filter(id => optMap[id] && optMap[id].yield === 'low');
+  const score = scoreBreakdown[1] !== undefined ? scoreBreakdown[1] : 0;
+  const sc_cls = score >= 75 ? 'high' : score >= 50 ? 'mid' : 'low';
+
+  let h = `<div class="dbr-block">
+    <div class="dbr-h">📋 問診 <span class="ph-score ${sc_cls}">${score}点</span></div>`;
+
+  if (askedExpected.length > 0) {
+    h += `<div class="dbr-good">✓ 押さえるべき高利得質問 (${askedExpected.length}/${expected.length})</div>`;
+    h += `<ul class="dbr-list">${askedExpected.map(id => `<li>${optMap[id].text}</li>`).join('')}</ul>`;
+  }
+  if (missedExpected.length > 0) {
+    h += `<div class="dbr-bad">✗ 取り損ねた高利得質問 (${missedExpected.length}件)</div>`;
+    h += '<ul class="dbr-list">';
+    missedExpected.forEach(id => {
+      const o = optMap[id];
+      h += `<li><strong>${o.text}</strong><br><span class="dbr-faint">本症例での答え: ${o.reveal}</span></li>`;
+    });
+    h += '</ul>';
+    h += `<div class="dbr-warn">これらは仮説を絞るのに必須の質問です。問診は「網羅」ではなく「仮説検証の道具」として使ってください。</div>`;
+  }
+  if (askedNone.length > 0) {
+    h += `<div class="dbr-info">△ 無関係な質問が混入 (${askedNone.length}件)</div>`;
+    h += `<ul class="dbr-list">${askedNone.map(id => `<li>${optMap[id].text}</li>`).join('')}</ul>`;
+    h += `<p class="dbr-faint">救急の問診は時間との勝負。「鑑別を絞る質問」と「ただの世間話」を意識的に区別する習慣を。</p>`;
+  } else if (askedLow.length > 2) {
+    h += `<p class="dbr-faint" style="margin-top: 8px;">低利得な質問がやや多めでした (${askedLow.length}件)。Killer listに紐付かない質問は省略候補です。</p>`;
+  }
+  h += '</div>';
+  return h;
+}
+
+function buildExamReview(sc, fb) {
+  const done = phaseChoices.exam || [];
+  const optMap = Object.fromEntries(sc.examOptions.map(o => [o.id, o]));
+  const expected = sc.examExpected;
+  const doneExpected = done.filter(id => expected.includes(id));
+  const missedExpected = expected.filter(id => !done.includes(id));
+  const doneNone = done.filter(id => optMap[id] && optMap[id].yield === 'none');
+  const score = scoreBreakdown[2] !== undefined ? scoreBreakdown[2] : 0;
+  const sc_cls = score >= 75 ? 'high' : score >= 50 ? 'mid' : 'low';
+
+  let h = `<div class="dbr-block">
+    <div class="dbr-h">🩺 身体診察 <span class="ph-score ${sc_cls}">${score}点</span></div>`;
+
+  if (doneExpected.length > 0) {
+    h += `<div class="dbr-good">✓ 鑑別に必要な所見をとった (${doneExpected.length}/${expected.length})</div>`;
+    h += `<ul class="dbr-list">${doneExpected.map(id => `<li>${optMap[id].text}</li>`).join('')}</ul>`;
+  }
+  if (missedExpected.length > 0) {
+    h += `<div class="dbr-bad">✗ 取り損ねた重要所見 (${missedExpected.length}件)</div>`;
+    h += '<ul class="dbr-list">';
+    missedExpected.forEach(id => {
+      const o = optMap[id];
+      h += `<li><strong>${o.text}</strong><br><span class="dbr-faint">本症例での所見: ${o.reveal}</span></li>`;
+    });
+    h += '</ul>';
+    h += `<div class="dbr-warn">身体診察は「仮説検証ツール」です。Killer listの各疾患に対して「これを除外する所見は何か」を言語化する練習を。</div>`;
+  }
+  if (doneNone.length > 0) {
+    h += `<p class="dbr-faint" style="margin-top: 8px;">本症例で優先度の低い所見をいくつか取りました (${doneNone.length}件)。網羅的診察より仮説駆動診察を。</p>`;
+  }
+  h += '</div>';
+  return h;
+}
+
+function buildTestsReview(sc, fb) {
+  const done = phaseChoices.tests || [];
+  const optMap = Object.fromEntries(sc.testOptions.map(o => [o.id, o]));
+  const expected = sc.testExpected;
+  const critical = sc.testOptions.filter(o => o.critical).map(o => o.id);
+  const doneExpected = done.filter(id => expected.includes(id));
+  const missedExpected = expected.filter(id => !done.includes(id));
+  const missedCritical = critical.filter(id => !done.includes(id));
+  const doneNone = done.filter(id => optMap[id] && optMap[id].yield === 'none');
+  const score = scoreBreakdown[3] !== undefined ? scoreBreakdown[3] : 0;
+  const sc_cls = score >= 75 ? 'high' : score >= 50 ? 'mid' : 'low';
+
+  let h = `<div class="dbr-block">
+    <div class="dbr-h">🔬 検査 <span class="ph-score ${sc_cls}">${score}点</span></div>`;
+
+  if (missedCritical.length > 0) {
+    h += '<div class="dbr-fatal"><strong>CRITICAL TEST MISS / 致命的検査漏れ</strong><br>';
+    missedCritical.forEach(id => {
+      const o = optMap[id];
+      h += `<strong>${o.text}</strong> を施行していません。本症例の診断装置です。<br>所見: ${o.reveal}<br>`;
+    });
+    h += '本症例ではこの検査を出さずに正診に至ることは事実上不可能です。「何を出すか迷う前に、これだけは反射で」を作ってください。</div>';
+  }
+  if (doneExpected.length > 0) {
+    h += `<div class="dbr-good">✓ 適切なオーダー (${doneExpected.length}/${expected.length})</div>`;
+    h += `<ul class="dbr-list">${doneExpected.map(id => `<li>${optMap[id].text}${optMap[id].critical ? ' <span style="color:#7ee07a; font-weight: 700;">[critical]</span>' : ''}</li>`).join('')}</ul>`;
+  }
+  const otherMissed = missedExpected.filter(id => !critical.includes(id));
+  if (otherMissed.length > 0) {
+    h += `<div class="dbr-bad">✗ 取り損ねた重要検査 (${otherMissed.length}件)</div>`;
+    h += '<ul class="dbr-list">';
+    otherMissed.forEach(id => {
+      const o = optMap[id];
+      h += `<li><strong>${o.text}</strong><br><span class="dbr-faint">${o.reveal}</span></li>`;
+    });
+    h += '</ul>';
+  }
+  if (doneNone.length > 0) {
+    h += `<p class="dbr-faint" style="margin-top: 8px;">本症例で意義の薄い検査が含まれました (${doneNone.length}件)。検査は仮説と結びつけてオーダーする習慣を。</p>`;
+  }
+  h += '</div>';
+  return h;
+}
+
+function buildReassessReview(sc, fb) {
+  const did = phaseChoices.reassessed;
+  const score = scoreBreakdown[4] !== undefined ? scoreBreakdown[4] : 0;
+  const sc_cls = score >= 75 ? 'high' : score >= 50 ? 'mid' : 'low';
+  let h = `<div class="dbr-block">
+    <div class="dbr-h">🔄 再評価 <span class="ph-score ${sc_cls}">${score}点</span></div>`;
+  if (did) {
+    h += `<div class="dbr-good">✓ 再評価を実施した</div>`;
+    h += `<p class="dbr-faint" style="margin-bottom: 8px;">救急初療では「初期評価でラベルを貼って終わり」が一番危険です。15-30分ごとの再評価で、見落としや病態進展を拾います。これは反射として続けてください。</p>`;
+  } else {
+    h += `<div class="dbr-bad">✗ 再評価をスキップした</div>`;
+    h += `<div class="dbr-warn">「最初の評価で全てが分かる」前提は危険です。状態は刻々と変化し、初期評価で見えなかった所見が後から出てきます。再評価は時間ロスではなく、リスクヘッジの中核です。</div>`;
+  }
+  if (sc.riskScore && did) {
+    h += `<div class="dbr-good" style="margin-top: 12px;">✓ リスクスコア (${sc.riskScore.type}) を理解して使えた</div>`;
+    h += `<p class="dbr-faint">${sc.riskScore.interpretation}</p>`;
+  }
+  h += '</div>';
+  return h;
+}
+
+function buildConsultReview(sc, fb) {
+  const selected = phaseChoices.consult || [];
+  const ideal = sc.consultIdeal;
+  const optById = id => sc.consultOptions.find(o => o.id === id);
+  const idealHits = selected.filter(id => ideal.includes(id));
+  const idealMissed = ideal.filter(id => !selected.includes(id));
+  const wrongs = selected.filter(id => {
+    const o = optById(id);
+    return o && !o.correct;
+  });
+  const score = scoreBreakdown[6] !== undefined ? scoreBreakdown[6] : 0;
+  const sc_cls = score >= 75 ? 'high' : score >= 50 ? 'mid' : 'low';
+
+  let h = `<div class="dbr-block">
+    <div class="dbr-h">📞 コンサルト <span class="ph-score ${sc_cls}">${score}点</span></div>`;
+
+  if (idealHits.length > 0) {
+    h += `<div class="dbr-good">✓ 適切なエスカレーション</div>`;
+    h += `<ul class="dbr-list">${idealHits.map(id => `<li>${optById(id).text}</li>`).join('')}</ul>`;
+  }
+  if (idealMissed.length > 0) {
+    h += `<div class="dbr-bad">✗ 漏れたエスカレーション</div>`;
+    h += `<ul class="dbr-list">${idealMissed.map(id => `<li>${optById(id).text}</li>`).join('')}</ul>`;
+    h += `<div class="dbr-warn">研修医は「呼ぶか迷ったら呼ぶ」が原則。上級医を呼ぶハードルは0に設定してください。叱られるのと患者を死なせるのを天秤にかけない。</div>`;
+  }
+  if (wrongs.length > 0) {
+    h += `<div class="dbr-info">△ 不要・誤誘導なコンサルト</div>`;
+    h += '<ul class="dbr-list">';
+    wrongs.forEach(id => {
+      const o = optById(id);
+      h += `<li>${o.text}${o.note ? ` — <span class="dbr-faint">${o.note}</span>` : ''}</li>`;
+    });
+    h += '</ul>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function buildDispositionReview(sc, fb) {
+  const choseId = phaseChoices.disp;
+  const chose = sc.dispositionOptions.find(o => o.id === choseId);
+  const correctId = sc.dispositionCorrect;
+  const correctOpt = sc.dispositionOptions.find(o => o.id === correctId);
+  const score = scoreBreakdown[7] !== undefined ? scoreBreakdown[7] : 0;
+  const sc_cls = score >= 75 ? 'high' : score >= 50 ? 'mid' : 'low';
+
+  let h = `<div class="dbr-block">
+    <div class="dbr-h">🎯 処分 <span class="ph-score ${sc_cls}">${score}点</span></div>`;
+
+  if (chose && chose.correct) {
+    h += `<div class="dbr-good">✓ 適切な処分</div>`;
+    h += `<ul class="dbr-list"><li>${chose.text}</li></ul>`;
+    if (fb.dispChoiceWhy && fb.dispChoiceWhy[choseId]) {
+      h += `<p class="dbr-faint">なぜ正解か: ${fb.dispChoiceWhy[choseId]}</p>`;
+    }
+  } else if (chose) {
+    if (chose.fatal) {
+      h += `<div class="dbr-fatal"><strong>FATAL DISPOSITION / 致命的判断</strong><br>選択した処分:「${chose.text}」<br>${fb.dispChoiceWhy && fb.dispChoiceWhy[choseId] ? fb.dispChoiceWhy[choseId] : (chose.note || '')}<br><br>処分判断は研修医の働きの集大成です。「迷ったら帰さない」が鉄則。</div>`;
+    } else {
+      h += `<div class="dbr-bad">✗ 最適でない処分: ${chose.text}</div>`;
+      if (chose.note) h += `<p class="dbr-faint">${chose.note}</p>`;
+    }
+    h += `<div class="dbr-warn"><strong>適切な処分:</strong> ${correctOpt ? correctOpt.text : '—'}<br>${fb.dispChoiceWhy && fb.dispChoiceWhy[correctId] ? fb.dispChoiceWhy[correctId] : ''}</div>`;
+  }
+  h += '</div>';
+  return h;
+}
+
+function renderVitals(v) {
+  const bpVal = parseInt(v.bp);
+  const bpClass = bpVal >= 180 || bpVal < 90 ? 'critical' : bpVal >= 160 || bpVal < 100 ? 'warn' : '';
+  const hrClass = v.hr >= 120 || v.hr < 50 ? 'critical' : v.hr >= 100 || v.hr < 60 ? 'warn' : '';
+  const rrClass = v.rr >= 28 || v.rr < 10 ? 'critical' : v.rr >= 22 || v.rr < 12 ? 'warn' : '';
+  const spo2Class = v.spo2 < 90 ? 'critical' : v.spo2 < 94 ? 'warn' : '';
+  const tClass = v.t >= 38.5 || v.t < 35 ? 'critical' : v.t >= 37.5 ? 'warn' : '';
+  return `
+    <div class="vitals-grid">
+      <div class="vital">
+        <div class="vital-label">BP</div>
+        <div class="vital-value ${bpClass}">${v.bp}<span class="vital-unit">mmHg</span></div>
+      </div>
+      <div class="vital">
+        <div class="vital-label">HR</div>
+        <div class="vital-value ${hrClass}">${v.hr}<span class="vital-unit">/min</span></div>
+      </div>
+      <div class="vital">
+        <div class="vital-label">RR</div>
+        <div class="vital-value ${rrClass}">${v.rr}<span class="vital-unit">/min</span></div>
+      </div>
+      <div class="vital">
+        <div class="vital-label">SpO2</div>
+        <div class="vital-value ${spo2Class}">${v.spo2}<span class="vital-unit">%</span></div>
+      </div>
+      <div class="vital">
+        <div class="vital-label">Temp</div>
+        <div class="vital-value ${tClass}">${v.t}<span class="vital-unit">°C</span></div>
+      </div>
+      <div class="vital">
+        <div class="vital-label">GCS</div>
+        <div class="vital-value">${v.gcs}</div>
+      </div>
+    </div>
+  `;
+}
+
+function shuffleStable(arr, seed) {
+  // deterministic shuffle so options don't move on revisit
+  const a = arr.slice();
+  let s = seed;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (s * 9301 + 49297) % 233280;
+    const j = Math.floor((s / 233280) * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ============================================================
+// PHASE HANDLERS
+// ============================================================
+
+function judgeSick(playerSays) {
+  const correct = (currentScenario.sickJudgment === 'sick') === playerSays;
+  phaseChoices.sickCorrect = correct;
+  // Score not stored as competency but logged
+  nextPhase();
+}
+
+function toggleChoice(btn, key, id) {
+  btn.classList.toggle('selected');
+  phaseChoices[key] = phaseChoices[key] || [];
+  const arr = phaseChoices[key];
+  const idx = arr.indexOf(id);
+  if (idx >= 0) arr.splice(idx, 1);
+  else arr.push(id);
+}
+
+function submitKiller() {
+  const sc = currentScenario;
+  const selected = phaseChoices.killer || [];
+  const correctKillers = sc.killerOptions.filter(o => o.correct).map(o => o.id);
+  const wrongs = sc.killerOptions.filter(o => !o.correct).map(o => o.id);
+  // % of correct killers identified
+  const hits = selected.filter(id => correctKillers.includes(id)).length;
+  const misses = correctKillers.length - hits;
+  const falsePositives = selected.filter(id => wrongs.includes(id)).length;
+  let score = (hits / correctKillers.length) * 100 - falsePositives * 8;
+  score = Math.max(0, Math.min(100, score));
+  scoreBreakdown[0] = Math.round(score);
+  // Show feedback
+  const root = document.getElementById('scenario-content');
+  const feedback = `
+    <div class="panel ${score >= 75 ? 'bordered-l' : 'critical'}">
+      <div class="panel-header"><span class="dot ${score >= 75 ? '' : 'critical'}"></span>KILLER RULE-OUT 結果</div>
+      <p><strong>正答:</strong> ${hits} / ${correctKillers.length}<br>
+         <strong>見逃し:</strong> ${misses}<br>
+         <strong>誤選択:</strong> ${falsePositives}<br>
+         <strong>スコア:</strong> ${Math.round(score)} / 100</p>
+      ${misses > 0 ? `<div class="reveal critical"><strong>見逃した致死的疾患:</strong> ${correctKillers.filter(id => !selected.includes(id)).map(id => sc.killerOptions.find(o => o.id === id).text).join('、')}</div>` : ''}
+    </div>
+    <button class="btn primary" onclick="nextPhase()">問診へ進む →</button>
+  `;
+  root.innerHTML = feedback;
+}
+
+function askHistory(btn, id) {
+  if (btn.classList.contains('selected')) return;
+  btn.classList.add('selected');
+  const opt = currentScenario.historyOptions.find(o => o.id === id);
+  phaseChoices.history.push(id);
+  const yieldClass = opt.yield;
+  const yieldLabel = { high: 'HIGH-YIELD', mid: 'MID-YIELD', low: 'LOW-YIELD', none: 'IRRELEVANT' }[opt.yield];
+  const reveals = document.getElementById('history-reveals');
+  reveals.innerHTML += `
+    <div class="reveal ${opt.yield === 'none' ? 'critical' : opt.yield === 'low' ? 'warn' : ''}">
+      <strong>${opt.text}</strong> <span class="mono yield ${yieldClass}" style="float: right; font-size: 10px;">${yieldLabel}</span><br>
+      ${opt.reveal}
+    </div>
+  `;
+  reveals.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function submitHistory() {
+  const sc = currentScenario;
+  const asked = phaseChoices.history || [];
+  const expected = sc.historyExpected;
+  const optionMap = Object.fromEntries(sc.historyOptions.map(o => [o.id, o]));
+  // Score: high-yield hits / expected, penalize low/none yield questions and over-asking
+  const hits = asked.filter(id => expected.includes(id)).length;
+  const high_asked = asked.filter(id => optionMap[id].yield === 'high').length;
+  const none_asked = asked.filter(id => optionMap[id].yield === 'none').length;
+  const low_asked = asked.filter(id => optionMap[id].yield === 'low').length;
+  const baseRecall = (hits / expected.length) * 100;
+  const efficiency = asked.length > 0 ? Math.max(0, 100 - none_asked * 15 - low_asked * 5 - Math.max(0, asked.length - 10) * 3) : 0;
+  const score = Math.round(baseRecall * 0.7 + efficiency * 0.3);
+  scoreBreakdown[1] = Math.max(0, Math.min(100, score));
+  nextPhase();
+}
+
+function doExam(btn, id) {
+  if (btn.classList.contains('selected')) return;
+  btn.classList.add('selected');
+  const opt = currentScenario.examOptions.find(o => o.id === id);
+  phaseChoices.exam.push(id);
+  const yieldClass = opt.yield;
+  const yieldLabel = { high: 'HIGH', mid: 'MID', low: 'LOW', none: 'IRRELEVANT' }[opt.yield];
+  const reveals = document.getElementById('exam-reveals');
+  reveals.innerHTML += `
+    <div class="reveal ${opt.yield === 'none' ? 'critical' : opt.yield === 'low' ? 'warn' : ''}">
+      <strong>${opt.text}</strong> <span class="mono yield ${yieldClass}" style="float: right; font-size: 10px;">${yieldLabel}</span><br>
+      ${opt.reveal}
+    </div>
+  `;
+  reveals.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function submitExam() {
+  const sc = currentScenario;
+  const done = phaseChoices.exam || [];
+  const expected = sc.examExpected;
+  const optionMap = Object.fromEntries(sc.examOptions.map(o => [o.id, o]));
+  const hits = done.filter(id => expected.includes(id)).length;
+  const none_done = done.filter(id => optionMap[id].yield === 'none').length;
+  const low_done = done.filter(id => optionMap[id].yield === 'low').length;
+  const recall = (hits / expected.length) * 100;
+  const efficiency = done.length > 0 ? Math.max(0, 100 - none_done * 20 - low_done * 7 - Math.max(0, done.length - 8) * 4) : 0;
+  const score = Math.round(recall * 0.65 + efficiency * 0.35);
+  scoreBreakdown[2] = Math.max(0, Math.min(100, score));
+  nextPhase();
+}
+
+function orderTest(btn, id) {
+  if (btn.classList.contains('selected')) return;
+  btn.classList.add('selected');
+  const opt = currentScenario.testOptions.find(o => o.id === id);
+  phaseChoices.tests.push(id);
+  const yieldClass = opt.yield;
+  const yieldLabel = (opt.critical ? 'CRITICAL · ' : '') + { high: 'HIGH', mid: 'MID', low: 'LOW', none: 'IRRELEVANT' }[opt.yield];
+  const reveals = document.getElementById('test-reveals');
+  reveals.innerHTML += `
+    <div class="reveal ${opt.critical ? '' : opt.yield === 'none' ? 'critical' : opt.yield === 'low' ? 'warn' : ''}">
+      <strong>${opt.text}</strong> <span class="mono yield ${opt.critical ? 'high' : yieldClass}" style="float: right; font-size: 10px;">${yieldLabel}</span><br>
+      ${opt.reveal}
+    </div>
+  `;
+  reveals.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function submitTests() {
+  const sc = currentScenario;
+  const done = phaseChoices.tests || [];
+  const expected = sc.testExpected;
+  const critical = sc.testOptions.filter(o => o.critical).map(o => o.id);
+  const optionMap = Object.fromEntries(sc.testOptions.map(o => [o.id, o]));
+  const hits = done.filter(id => expected.includes(id)).length;
+  const criticalHits = done.filter(id => critical.includes(id)).length;
+  const criticalMisses = critical.length - criticalHits;
+  const none_done = done.filter(id => optionMap[id].yield === 'none').length;
+  const low_done = done.filter(id => optionMap[id].yield === 'low').length;
+  const recall = (hits / expected.length) * 100;
+  const efficiency = done.length > 0 ? Math.max(0, 100 - none_done * 20 - low_done * 5 - Math.max(0, done.length - 7) * 4) : 0;
+  let score = recall * 0.6 + efficiency * 0.4;
+  if (criticalMisses > 0) score = Math.min(score, 30); // critical miss = severe penalty
+  scoreBreakdown[3] = Math.max(0, Math.min(100, Math.round(score)));
+  phaseChoices.criticalMissed = criticalMisses > 0;
+  nextPhase();
+}
+
+function doReassess(yes) {
+  phaseChoices.reassessed = yes;
+  scoreBreakdown[4] = yes ? 100 : 30;
+  if (yes) {
+    const root = document.getElementById('scenario-content');
+    root.innerHTML = `
+      <div class="phase-header">
+        <span class="phase-num">PHASE ${(currentPhase+1).toString().padStart(2,'0')}</span>
+        <span class="phase-title">再評価結果</span>
+      </div>
+      <div class="panel warn">
+        <div class="panel-header"><span class="dot"></span>FINDINGS ON RE-ASSESSMENT</div>
+        <p>${currentScenario.reassess.reveal}</p>
+      </div>
+      <button class="btn primary" onclick="nextPhase()">次へ →</button>
+    `;
+  } else {
+    nextPhase();
+  }
+}
+
+function submitConsult() {
+  const sc = currentScenario;
+  const selected = phaseChoices.consult || [];
+  const ideal = sc.consultIdeal;
+  const fatal = sc.consultOptions.filter(o => o.fatal).map(o => o.id);
+  const hits = selected.filter(id => ideal.includes(id)).length;
+  const wrongs = selected.filter(id => {
+    const opt = sc.consultOptions.find(o => o.id === id);
+    return opt && !opt.correct;
+  }).length;
+  let score = (hits / ideal.length) * 100 - wrongs * 15;
+  if (selected.some(id => fatal.includes(id))) score = Math.min(score, 25);
+  scoreBreakdown[6] = Math.max(0, Math.min(100, Math.round(score)));
+  nextPhase();
+}
+
+function selectDisp(id) {
+  phaseChoices.disp = id;
+  const sc = currentScenario;
+  const opt = sc.dispositionOptions.find(o => o.id === id);
+  const correct = opt && opt.correct;
+  let score = 100;
+  if (!opt.correct) score = opt.fatal ? 0 : 35;
+  scoreBreakdown[7] = score;
+  // Risk score - if scenario had it, count as completed
+  if (sc.riskScore) scoreBreakdown[5] = 100;
+  nextPhase();
+}
+
+function computeOutcome() {
+  // Determine outcome based on disposition + critical test miss + killer recall
+  const sc = currentScenario;
+  const dispOpt = sc.dispositionOptions.find(o => o.id === phaseChoices.disp);
+  if (!dispOpt) return 'missed_killer';
+  if (dispOpt.fatal || phaseChoices.criticalMissed) return 'missed_killer';
+  if (!dispOpt.correct) return 'delayed';
+  // Killer recall threshold
+  if (scoreBreakdown[0] < 50) return 'delayed';
+  return 'good';
+}
+
+function computeTotalScore() {
+  // Weighted average of sub-scores
+  const weights = [1.5, 1.0, 1.0, 1.5, 1.0, 1.0, 1.0, 2.0]; // disposition heaviest
+  let sum = 0, w = 0;
+  for (let i = 0; i < 8; i++) {
+    if (scoreBreakdown[i] !== undefined) {
+      sum += scoreBreakdown[i] * weights[i];
+      w += weights[i];
+    }
+  }
+  return w > 0 ? Math.round(sum / w) : 0;
+}
+
+function nextPhase() {
+  currentPhase++;
+  if (currentPhase >= PHASES.length) {
+    // Should not normally happen — debrief is the final phase.
+    showScreen('hub');
+    return;
+  }
+  renderPhase();
+}
+
+// Commit the scenario results to state. CALLED ONCE PER SCENARIO at debrief render.
+// Returns: { totalScore, wasNewClear, leveledUp, newLevel }
+function commitScenarioResults() {
+  // Guard against double-commit if user navigates back somehow
+  if (phaseChoices._committed) {
+    return phaseChoices._commitResult;
+  }
+  const idx = phaseChoices.idx;
+  const sc = SCENARIOS[idx];
+  const total = computeTotalScore();
+  const wasAlreadyCleared = !!(state.c & (1 << idx));
+  const wasNewClear = !wasAlreadyCleared && total >= 60;
+
+  // Update best score
+  if (total > (state.s[idx] || 0)) state.s[idx] = total;
+  // Mark cleared (sticky bit — once cleared, stays cleared, even on retry with lower score)
+  if (total >= 60) state.c |= (1 << idx);
+
+  // Update competency averages (running mean)
+  const newCount = state.stc + 1;
+  for (let i = 0; i < 8; i++) {
+    if (scoreBreakdown[i] !== undefined) {
+      state.st[i] = (state.st[i] * state.stc + scoreBreakdown[i]) / newCount;
+    }
+  }
+  state.stc = newCount;
+
+  // Level up: ALL scenarios at current level cleared with 60+
+  // AND next level must have actual content (don't advance into empty levels)
+  let leveledUp = false;
+  let newLevel = state.l;
+  let allMastered = false;
+  while (state.l < 5) {
+    let totalInLevel = 0, clearedInLevel = 0;
+    for (let i = 0; i < SCENARIOS.length; i++) {
+      if (SCENARIOS[i].level === state.l) {
+        totalInLevel++;
+        if (state.c & (1 << i)) clearedInLevel++;
+      }
+    }
+    // Current level not fully cleared, or no content at this level
+    if (totalInLevel === 0 || clearedInLevel < totalInLevel) break;
+    // Check if next level has actual content
+    const nextHasContent = SCENARIOS.some(s => s.level === state.l + 1);
+    if (!nextHasContent) {
+      // All available content mastered — flag for celebration but don't increment level
+      if (!state._mastered) {
+        state._mastered = true;
+        allMastered = true;
+        logEvent('🏆 現在解放されている全症例を制覇しました');
+      }
+      break;
+    }
+    state.l++;
+    leveledUp = true;
+    newLevel = state.l;
+    logEvent(`🎓 Level ${state.l} 解放!`);
+  }
+
+  // Log scenario completion
+  const titlePart = sc.title.includes('/') ? sc.title.split('/')[1].trim() : sc.title;
+  logEvent(`Case ${idx+1} 「${titlePart}」 — Score ${total}${wasNewClear ? ' [初クリア]' : (total >= 60 && wasAlreadyCleared ? ' [再挑戦]' : '')}`);
+
+  const result = { totalScore: total, wasNewClear, leveledUp, newLevel, allMastered };
+  phaseChoices._committed = true;
+  phaseChoices._commitResult = result;
+  return result;
+}
+
+function copyDebriefCode() {
+  copySaveCode();
+}
+
+function returnToHub() {
+  showScreen('hub');
+}
+
+function retryScenario() {
+  startScenario(phaseChoices.idx);
+}
+
+// ============================================================
+// VIEWPORT HEIGHT — Rule #3: JS実pxを直接設定
+// ============================================================
+function setAppHeight() {
+  const h = window.innerHeight;
+  document.documentElement.style.height = h + 'px';
+  document.body.style.height = h + 'px';
+  const app = document.getElementById('app');
+  if (app) app.style.height = h + 'px';
+}
+setAppHeight();
+window.addEventListener('resize', setAppHeight);
+window.addEventListener('orientationchange', () => {
+  setTimeout(setAppHeight, 100);
+  setTimeout(setAppHeight, 500);
+});
+window.addEventListener('load', () => setTimeout(setAppHeight, 300));
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', setAppHeight);
+  window.visualViewport.addEventListener('scroll', setAppHeight);
+}
+
+// Init
+showScreen('title');
+</script>
+
+</body>
+</html>
