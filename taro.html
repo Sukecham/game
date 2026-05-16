@@ -722,7 +722,7 @@ image-rendering: crisp-edges;
 opacity: 0;
 }
 .ending-char.momotaro {
-background-image: var(–momotaro-img);
+/* background-image は JS で動的に設定 */
 background-size: 400% auto; /* idle 4フレーム分 */
 width: 30%;
 z-index: 3;
@@ -732,19 +732,19 @@ endingCharBounce 1.4s ease-in-out infinite 2.4s,
 endingMomoIdle 0.8s steps(4) infinite 2.4s;
 }
 .ending-char.inu {
-background-image: var(–inu-img);
+/* background-image は JS で動的に設定 */
 animation:
 endingCharEnter 0.8s ease forwards 1.9s,
 endingCharBounce 1.2s ease-in-out infinite 2.7s;
 }
 .ending-char.saru {
-background-image: var(–saru-img);
+/* background-image は JS で動的に設定 */
 animation:
 endingCharEnter 0.8s ease forwards 2.1s,
 endingCharBounce 1.3s ease-in-out infinite 2.9s;
 }
 .ending-char.kiji {
-background-image: var(–kiji-img);
+/* background-image は JS で動的に設定 */
 animation:
 endingCharEnter 0.8s ease forwards 2.3s,
 endingCharBounce 1.1s ease-in-out infinite 3.1s;
@@ -1221,11 +1221,16 @@ box-shadow: 2px 2px 0 #f4ecd8;
       return c.toDataURL();
     });
 
-    const root = document.documentElement;
-    root.style.setProperty('--momotaro-img', `url(${momoUrl})`);
-    root.style.setProperty('--inu-img', `url(${compUrls[0]})`);
-    root.style.setProperty('--saru-img', `url(${compUrls[1]})`);
-    root.style.setProperty('--kiji-img', `url(${compUrls[2]})`);
+    // CSS変数ではなく、直接 style.backgroundImage に書き込む
+    // (iOS SafariのCSS変数解決バグを完全に回避)
+    const momoEl = document.querySelector('.ending-char.momotaro');
+    const inuEl  = document.querySelector('.ending-char.inu');
+    const saruEl = document.querySelector('.ending-char.saru');
+    const kijiEl = document.querySelector('.ending-char.kiji');
+    if (momoEl) momoEl.style.backgroundImage = `url(${momoUrl})`;
+    if (inuEl)  inuEl.style.backgroundImage  = `url(${compUrls[0]})`;
+    if (saruEl) saruEl.style.backgroundImage = `url(${compUrls[1]})`;
+    if (kijiEl) kijiEl.style.backgroundImage = `url(${compUrls[2]})`;
   }
 
   function beginAdventure() {
