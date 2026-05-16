@@ -6,6 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- iOS Safari/Chromeの強力なキャッシュを完全に無効化（デプロイ後の旧バージョン表示防止） -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>ゆいみお太郎伝説</title>
 <style>
   :root {
@@ -32,9 +36,9 @@ height: 100vh;
 height: 100dvh;
 height: var(–app-h, 100dvh);
 overflow: hidden;
-background: var(–sumi);
+background: var(–sumi, #2b1d12);
 font-family: “Yu Mincho”, “YuMincho”, “Hiragino Mincho ProN”, “游明朝”, serif;
-color: var(–sumi);
+color: var(–sumi, #2b1d12);
 user-select: none;
 -webkit-user-select: none;
 touch-action: none;
@@ -77,9 +81,9 @@ gap: 8px;
 }
 #stage-info {
 background: rgba(43, 29, 18, 0.95);
-color: var(–washi);
+color: var(–washi, #f4ecd8);
 padding: 8px 14px;
-border: 2px solid var(–gold);
+border: 2px solid var(–gold, #f4d03f);
 box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
 font-size: 12px;
 letter-spacing: 0.1em;
@@ -87,7 +91,7 @@ line-height: 1.3;
 flex-shrink: 0;
 }
 #stage-info .stage-num {
-color: var(–gold);
+color: var(–gold, #f4d03f);
 font-weight: bold;
 font-size: 11px;
 letter-spacing: 0.2em;
@@ -103,7 +107,7 @@ text-shadow: 1px 1px 0 rgba(0,0,0,0.6);
 background: rgba(43, 29, 18, 0.95);
 border: 2px solid rgba(244, 208, 63, 0.6);
 box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
-color: var(–washi);
+color: var(–washi, #f4ecd8);
 padding: 8px 12px;
 border-radius: 2px;
 font-size: 11px;
@@ -121,8 +125,11 @@ text-shadow: 1px 1px 0 rgba(0,0,0,0.6);
 .hp-bar { display: inline-flex; gap: 3px; }
 .hp-dot {
 width: 12px; height: 12px;
-background: var(–beni);
-border: 1.5px solid var(–washi);
+background-color: #c93857;
+background: #c93857;
+background: var(–beni, #c93857);
+border: 1.5px solid #f4ecd8;
+border: 1.5px solid var(–washi, #f4ecd8);
 border-radius: 50%;
 box-shadow: inset -2px -2px 0 rgba(0,0,0,0.3);
 }
@@ -133,16 +140,16 @@ box-shadow: inset -2px -2px 0 rgba(0,0,0,0.3);
 .comp-badge {
 width: 22px; height: 22px;
 border-radius: 50%;
-border: 1.5px solid var(–washi);
+border: 1.5px solid var(–washi, #f4ecd8);
 background: rgba(255,255,255,0.1);
 display: flex; align-items: center; justify-content: center;
 font-size: 11px;
 line-height: 1;
 }
 .comp-badge.active {
-background: var(–gold);
-color: var(–sumi);
-border-color: var(–gold);
+background: var(–gold, #f4d03f);
+color: var(–sumi, #2b1d12);
+border-color: var(–gold, #f4d03f);
 box-shadow: 0 0 6px rgba(244, 208, 63, 0.6);
 text-shadow: none;
 }
@@ -151,19 +158,19 @@ text-shadow: none;
 .buff-icon {
 width: 22px; height: 22px;
 border-radius: 50%;
-background: var(–gold);
-color: var(–sumi);
+background: var(–gold, #f4d03f);
+color: var(–sumi, #2b1d12);
 display: inline-flex;
 align-items: center; justify-content: center;
 font-size: 11px;
 font-weight: bold;
-border: 1.5px solid var(–washi);
+border: 1.5px solid var(–washi, #f4ecd8);
 animation: buff-pulse 0.8s ease-in-out infinite;
 }
 .buff-icon.momo {
 background: #ff6b9d;
 color: white;
-border-color: var(–gold);
+border-color: var(–gold, #f4d03f);
 animation: momo-pulse 0.4s ease-in-out infinite;
 }
 @keyframes buff-pulse {
@@ -211,21 +218,25 @@ width: 198px; height: 198px;
 position: absolute;
 width: 66px; height: 66px;
 background: rgba(244, 236, 216, 0.88);
-border: 3px solid var(–sumi);
-color: var(–sumi);
+border: 3px solid var(–sumi, #2b1d12);
+color: var(–sumi, #2b1d12);
 font-size: 24px;
 display: flex; align-items: center; justify-content: center;
 cursor: pointer;
-box-shadow: 4px 4px 0 var(–sumi);
+box-shadow: 4px 4px 0 var(–sumi, #2b1d12);
 transition: transform 60ms ease, background 60ms ease;
 font-weight: bold;
 user-select: none;
 }
 .dpad-btn:active, .dpad-btn.active {
 transform: translate(2px, 2px);
-background: var(–beni);
-color: var(–washi);
-box-shadow: 2px 2px 0 var(–sumi);
+background-color: #c93857;
+background: #c93857;
+background: var(–beni, #c93857);
+color: #f4ecd8;
+color: var(–washi, #f4ecd8);
+box-shadow: 2px 2px 0 #2b1d12;
+box-shadow: 2px 2px 0 var(–sumi, #2b1d12);
 }
 .dpad-btn.up    { top: 0;    left: 66px; }
 .dpad-btn.down  { bottom: 0; left: 66px; }
@@ -242,9 +253,13 @@ pointer-events: none;
 content: “”;
 width: 32px; height: 32px;
 border-radius: 50%;
-background: var(–beni);
-border: 2px solid var(–sumi);
-box-shadow: inset 0 0 0 5px var(–washi);
+background-color: #c93857;
+background: #c93857;
+background: var(–beni, #c93857);
+border: 2px solid #2b1d12;
+border: 2px solid var(–sumi, #2b1d12);
+box-shadow: inset 0 0 0 5px #f4ecd8;
+box-shadow: inset 0 0 0 5px var(–washi, #f4ecd8);
 }
 
 /* アクションボタン */
@@ -257,14 +272,18 @@ align-items: flex-end;
 .action-btn {
 width: 92px; height: 92px;
 border-radius: 50%;
-background: var(–beni);
-border: 4px solid var(–sumi);
-color: var(–washi);
+background-color: #c93857;
+background: #c93857;
+background: var(–beni, #c93857);
+border: 4px solid #2b1d12;
+border: 4px solid var(–sumi, #2b1d12);
+color: #f4ecd8;
+color: var(–washi, #f4ecd8);
 font-size: 17px;
 font-weight: bold;
 display: flex; align-items: center; justify-content: center;
 cursor: pointer;
-box-shadow: 4px 4px 0 var(–sumi);
+box-shadow: 4px 4px 0 var(–sumi, #2b1d12);
 transition: transform 60ms ease;
 letter-spacing: 0.1em;
 text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
@@ -273,7 +292,7 @@ position: relative;
 }
 .action-btn:active, .action-btn.active {
 transform: translate(2px, 2px);
-box-shadow: 2px 2px 0 var(–sumi);
+box-shadow: 2px 2px 0 var(–sumi, #2b1d12);
 }
 .action-btn .cd-overlay {
 position: absolute;
@@ -292,9 +311,9 @@ top: 68px;
 left: 50%;
 transform: translateX(-50%);
 background: rgba(43, 29, 18, 0.9);
-color: var(–gold);
+color: var(–gold, #f4d03f);
 padding: 10px 18px;
-border: 2px solid var(–gold);
+border: 2px solid var(–gold, #f4d03f);
 font-size: 13px;
 letter-spacing: 0.15em;
 z-index: 20;
@@ -322,15 +341,15 @@ text-align: center;
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 #stage-clear .clear-label {
 font-size: 14px;
-color: var(–gold);
+color: var(–gold, #f4d03f);
 letter-spacing: 0.5em;
 text-indent: 0.5em;
 }
 #stage-clear .big {
 font-size: 36px;
-color: var(–gold);
+color: var(–gold, #f4d03f);
 letter-spacing: 0.3em;
-text-shadow: 4px 4px 0 var(–sumi), 0 0 30px rgba(244, 208, 63, 0.6);
+text-shadow: 4px 4px 0 var(–sumi, #2b1d12), 0 0 30px rgba(244, 208, 63, 0.6);
 font-weight: 700;
 animation: bigBounce 0.5s ease;
 }
@@ -341,27 +360,31 @@ animation: bigBounce 0.5s ease;
 }
 #stage-clear .next-label {
 font-size: 14px;
-color: var(–washi);
+color: var(–washi, #f4ecd8);
 letter-spacing: 0.2em;
 line-height: 1.7;
 }
 #stage-clear button {
 margin-top: 14px;
 padding: 12px 32px;
-background: var(–beni);
-color: var(–washi);
-border: 3px solid var(–washi);
+background-color: #c93857;
+background: #c93857;
+background: var(–beni, #c93857);
+color: #f4ecd8;
+color: var(–washi, #f4ecd8);
+border: 3px solid #f4ecd8;
+border: 3px solid var(–washi, #f4ecd8);
 font-size: 14px;
 letter-spacing: 0.3em;
 cursor: pointer;
 font-family: inherit;
 font-weight: bold;
-box-shadow: 4px 4px 0 var(–washi);
+box-shadow: 4px 4px 0 var(–washi, #f4ecd8);
 transition: transform 80ms ease;
 }
 #stage-clear button:active {
 transform: translate(2px, 2px);
-box-shadow: 2px 2px 0 var(–washi);
+box-shadow: 2px 2px 0 var(–washi, #f4ecd8);
 }
 
 /* 結果（勝利/敗北） */
@@ -379,41 +402,45 @@ text-align: center;
 #result.show { display: flex; }
 #result .big {
 font-size: 46px;
-color: var(–gold);
+color: var(–gold, #f4d03f);
 letter-spacing: 0.4em;
-text-shadow: 5px 5px 0 var(–sumi), 0 0 40px rgba(244, 208, 63, 0.7);
+text-shadow: 5px 5px 0 var(–sumi, #2b1d12), 0 0 40px rgba(244, 208, 63, 0.7);
 font-weight: 700;
 }
 #result.lose .big {
-color: var(–beni-light);
-text-shadow: 4px 4px 0 var(–sumi), 0 0 30px rgba(232, 93, 122, 0.5);
+color: var(–beni-light, #e85d7a);
+text-shadow: 4px 4px 0 var(–sumi, #2b1d12), 0 0 30px rgba(232, 93, 122, 0.5);
 }
 #result .sub {
 font-size: 14px;
-color: var(–washi);
+color: var(–washi, #f4ecd8);
 letter-spacing: 0.2em;
 line-height: 1.8;
 }
 #result button {
 margin-top: 14px;
 padding: 14px 36px;
-background: var(–beni);
-color: var(–washi);
-border: 3px solid var(–washi);
+background-color: #c93857;
+background: #c93857;
+background: var(–beni, #c93857);
+color: #f4ecd8;
+color: var(–washi, #f4ecd8);
+border: 3px solid #f4ecd8;
+border: 3px solid var(–washi, #f4ecd8);
 font-size: 14px;
 letter-spacing: 0.3em;
 cursor: pointer;
 font-family: inherit;
 font-weight: bold;
-box-shadow: 4px 4px 0 var(–washi);
+box-shadow: 4px 4px 0 var(–washi, #f4ecd8);
 }
 
 /* ローディング */
 #loading {
 position: absolute; inset: 0;
 display: flex; align-items: center; justify-content: center;
-background: var(–sumi);
-color: var(–washi);
+background: var(–sumi, #2b1d12);
+color: var(–washi, #f4ecd8);
 font-size: 14px;
 letter-spacing: 0.3em;
 z-index: 100;
@@ -484,10 +511,10 @@ position: relative;
 padding: 36px 28px 30px;
 background:
 linear-gradient(180deg, rgba(244, 236, 216, 0.96) 0%, rgba(227, 214, 176, 0.96) 100%);
-border: 4px solid var(–sumi);
+border: 4px solid var(–sumi, #2b1d12);
 box-shadow:
-8px 8px 0 var(–sumi),
-inset 0 0 0 2px var(–gold),
+8px 8px 0 var(–sumi, #2b1d12),
+inset 0 0 0 2px var(–gold, #f4d03f),
 inset 0 0 0 6px rgba(244, 236, 216, 0.5);
 text-align: center;
 width: 100%;
@@ -497,7 +524,7 @@ width: 100%;
 #title-frame::after {
 content: “❀”;
 position: absolute;
-color: var(–beni);
+color: var(–beni, #c93857);
 font-size: 22px;
 line-height: 1;
 }
@@ -506,7 +533,7 @@ line-height: 1;
 
 .title-subtitle {
 font-size: 11px;
-color: var(–matcha-dark);
+color: var(–matcha-dark, #4a6b35);
 letter-spacing: 0.6em;
 margin-bottom: 14px;
 text-indent: 0.6em;
@@ -514,19 +541,19 @@ text-indent: 0.6em;
 
 .title-main {
 font-size: clamp(34px, 9vw, 56px);
-color: var(–sumi);
+color: var(–sumi, #2b1d12);
 letter-spacing: 0.12em;
 font-weight: 900;
 line-height: 1.1;
 text-shadow:
-3px 3px 0 var(–gold),
-6px 6px 0 var(–beni);
+3px 3px 0 var(–gold, #f4d03f),
+6px 6px 0 var(–beni, #c93857);
 margin: 0;
 animation: title-glow 3s ease-in-out infinite;
 }
 @keyframes title-glow {
-0%, 100% { text-shadow: 3px 3px 0 var(–gold), 6px 6px 0 var(–beni); }
-50% { text-shadow: 3px 3px 0 var(–gold), 6px 6px 0 var(–beni), 0 0 24px rgba(244, 208, 63, 0.5); }
+0%, 100% { text-shadow: 3px 3px 0 var(–gold, #f4d03f), 6px 6px 0 var(–beni, #c93857); }
+50% { text-shadow: 3px 3px 0 var(–gold, #f4d03f), 6px 6px 0 var(–beni, #c93857), 0 0 24px rgba(244, 208, 63, 0.5); }
 }
 
 .title-tagline {
@@ -534,35 +561,39 @@ margin-top: 18px;
 padding-top: 14px;
 border-top: 1px solid rgba(43, 29, 18, 0.3);
 font-size: 12px;
-color: var(–sumi);
+color: var(–sumi, #2b1d12);
 letter-spacing: 0.3em;
 line-height: 1.8;
 }
 .title-tagline .accent {
-color: var(–beni);
+color: var(–beni, #c93857);
 font-weight: bold;
 }
 
 #start-btn {
 margin-top: 8px;
 padding: 18px 56px;
-background: var(–beni);
-color: var(–washi);
-border: 4px solid var(–sumi);
+background-color: #c93857;
+background: #c93857;
+background: var(–beni, #c93857);
+color: #f4ecd8;
+color: var(–washi, #f4ecd8);
+border: 4px solid #2b1d12;
+border: 4px solid var(–sumi, #2b1d12);
 font-size: 18px;
 font-weight: bold;
 letter-spacing: 0.4em;
 text-indent: 0.4em;
 cursor: pointer;
 font-family: inherit;
-box-shadow: 5px 5px 0 var(–sumi), inset 0 0 0 2px rgba(244, 236, 216, 0.4);
+box-shadow: 5px 5px 0 var(–sumi, #2b1d12), inset 0 0 0 2px rgba(244, 236, 216, 0.4);
 transition: transform 100ms ease, box-shadow 100ms ease;
 text-shadow: 1px 1px 0 rgba(0,0,0,0.4);
 animation: start-pulse 1.6s ease-in-out infinite;
 }
 #start-btn:active {
 transform: translate(3px, 3px);
-box-shadow: 2px 2px 0 var(–sumi), inset 0 0 0 2px rgba(244, 236, 216, 0.4);
+box-shadow: 2px 2px 0 var(–sumi, #2b1d12), inset 0 0 0 2px rgba(244, 236, 216, 0.4);
 animation: none;
 }
 @keyframes start-pulse {
@@ -617,7 +648,7 @@ background: #c93857;
 clip-path: polygon(50% 0%, 65% 25%, 90% 25%, 70% 50%, 85% 80%, 50% 65%, 15% 80%, 30% 50%, 10% 25%, 35% 25%);
 }
 .confetti.gold {
-background: var(–gold);
+background: var(–gold, #f4d03f);
 clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
 }
 @keyframes confetti-fall {
@@ -643,7 +674,7 @@ margin-top: 6px;
 }
 .ending-prelude {
 font-size: 12px;
-color: var(–gold);
+color: var(–gold, #f4d03f);
 letter-spacing: 0.6em;
 text-indent: 0.6em;
 margin-bottom: 8px;
@@ -652,14 +683,14 @@ animation: enterFade 0.8s ease forwards 0.4s;
 }
 .ending-banner {
 font-size: clamp(56px, 16vw, 110px);
-color: var(–gold);
+color: var(–gold, #f4d03f);
 letter-spacing: 0.25em;
 text-indent: 0.25em;
 font-weight: 900;
 line-height: 1;
 text-shadow:
-4px 4px 0 var(–beni),
-8px 8px 0 var(–sumi),
+4px 4px 0 var(–beni, #c93857),
+8px 8px 0 var(–sumi, #2b1d12),
 0 0 30px rgba(244, 208, 63, 0.7);
 opacity: 0;
 transform: scale(0.5);
@@ -746,10 +777,10 @@ bottom: -22px;
 left: 50%;
 transform: translateX(-50%);
 font-size: 12px;
-color: var(–washi);
+color: var(–washi, #f4ecd8);
 background: rgba(43, 29, 18, 0.85);
 padding: 2px 8px;
-border: 1px solid var(–gold);
+border: 1px solid var(–gold, #f4d03f);
 letter-spacing: 0.2em;
 white-space: nowrap;
 }
@@ -807,16 +838,16 @@ margin-top: 38px;
 }
 .ending-medetashi {
 font-size: clamp(18px, 4.5vw, 26px);
-color: var(–washi);
+color: var(–washi, #f4ecd8);
 letter-spacing: 0.5em;
 text-indent: 0.5em;
-text-shadow: 2px 2px 0 var(–sumi);
+text-shadow: 2px 2px 0 var(–sumi, #2b1d12);
 opacity: 0;
 animation: enterFade 0.8s ease forwards 3.2s;
 }
 .ending-stats {
 font-size: 11px;
-color: var(–gold);
+color: var(–gold, #f4d03f);
 letter-spacing: 0.2em;
 line-height: 1.7;
 opacity: 0;
@@ -824,23 +855,27 @@ animation: enterFade 0.8s ease forwards 3.6s;
 }
 #ending-btn {
 padding: 14px 44px;
-background: var(–beni);
-color: var(–washi);
-border: 4px solid var(–washi);
+background-color: #c93857;
+background: #c93857;
+background: var(–beni, #c93857);
+color: #f4ecd8;
+color: var(–washi, #f4ecd8);
+border: 4px solid #f4ecd8;
+border: 4px solid var(–washi, #f4ecd8);
 font-size: 15px;
 font-weight: bold;
 letter-spacing: 0.3em;
 text-indent: 0.3em;
 cursor: pointer;
 font-family: inherit;
-box-shadow: 5px 5px 0 var(–washi);
+box-shadow: 5px 5px 0 var(–washi, #f4ecd8);
 transition: transform 100ms ease, box-shadow 100ms ease;
 opacity: 0;
 animation: enterFade 0.8s ease forwards 4.0s;
 }
 #ending-btn:active {
 transform: translate(3px, 3px);
-box-shadow: 2px 2px 0 var(–washi);
+box-shadow: 2px 2px 0 var(–washi, #f4ecd8);
 }
 </style>
 
