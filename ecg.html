@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>心電図 臨床判断 — Clinical Reasoning Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500;1,700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+html, body {
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;
+  background-color: #07090f;
+}
+body {
+  font-family: 'JetBrains Mono', ui-monospace, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', system-ui, sans-serif;
+  background-color: #07090f;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(94,234,212,0.06), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(251,191,36,0.05), transparent 60%),
+    #07090f;
+  color: #d8dde8;
+  min-height: 100%;
+  overflow-x: hidden;
+  letter-spacing: 0.005em;
+}
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-top: max(16px, env(safe-area-inset-top, 16px));
+  padding-bottom: max(60px, env(safe-area-inset-bottom, 60px));
+  padding-left: max(12px, env(safe-area-inset-left, 12px));
+  padding-right: max(12px, env(safe-area-inset-right, 12px));
+}
+
+.bar {
+display: flex; align-items: baseline; justify-content: space-between;
+gap: 16px; flex-wrap: wrap;
+border-bottom: 1px solid #1f2940; padding-bottom: 12px; margin-bottom: 16px;
+}
+.brand { display: flex; align-items: baseline; gap: 12px; }
+.brand .glyph {
+color: #5eead4; font-size: 10.5px; letter-spacing: 0.3em; text-transform: uppercase;
+border: 1px solid #5eead4; padding: 3px 8px; border-radius: 2px; align-self: center;
+}
+h1 { font-family: ‘Cormorant Garamond’, serif; font-style: italic; font-weight: 500;
+font-size: 26px; margin: 0; color: #d8dde8; }
+h1 small { font-family: ‘JetBrains Mono’, monospace; font-style: normal; font-size: 10.5px;
+color: #525c74; letter-spacing: 0.2em; margin-left: 8px; text-transform: uppercase; }
+.scoreline { display: flex; gap: 16px; font-size: 10.5px; color: #8590a8;
+text-transform: uppercase; letter-spacing: 0.2em; }
+.scoreline strong { font-family: ‘Cormorant Garamond’, serif; font-style: italic;
+font-size: 22px; color: #fbbf24; margin: 0 4px; letter-spacing: 0; }
+.scoreline .acc strong { color: #5eead4; }
+
+.case-card { background: #0d1220; border: 1px solid #1f2940; border-radius: 4px;
+padding: 12px 14px 10px; margin-bottom: 14px; }
+.case-head { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.case-tag { color: #5eead4; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
+border: 1px solid #5eead4; padding: 2px 7px; border-radius: 2px; }
+.case-setting { color: #525c74; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; }
+.patient-row { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
+.patient-id { font-family: ‘Cormorant Garamond’, serif; font-style: italic;
+font-size: 26px; color: #d8dde8; line-height: 1; }
+.patient-id b { font-weight: 700; margin-right: 4px; }
+.patient-history { font-size: 11.5px; color: #8590a8; line-height: 1.4; }
+.chief-row { display: flex; gap: 8px; align-items: flex-start;
+border-top: 1px dashed #1f2940; padding-top: 8px; margin-bottom: 12px; }
+.chief-label { font-size: 9px; letter-spacing: 0.2em; color: #5eead4;
+text-transform: uppercase; flex-shrink: 0; padding-top: 3px; }
+.chief-text { font-size: 12.5px; color: #d8dde8; line-height: 1.55; }
+
+.vitals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+background: #1f2940; border: 1px solid #1f2940; border-radius: 3px; overflow: hidden; }
+.vital { background: #07090f; padding: 8px 10px 9px; }
+.v-label { font-size: 9px; letter-spacing: 0.18em; color: #525c74;
+text-transform: uppercase; margin-bottom: 3px; }
+.v-value { font-family: ‘JetBrains Mono’, monospace; font-size: 18px; font-weight: 700;
+color: #5eead4; letter-spacing: -0.01em; line-height: 1; }
+.v-value.warn { color: #fbbf24; }
+.v-value.bad { color: #fb7185; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%,100% {opacity:1;} 50% {opacity:0.55;} }
+.v-unit { font-size: 10px; color: #525c74; margin-left: 3px; font-weight: 500; }
+.v-note { font-size: 9px; color: #525c74; margin-top: 2px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.strip { background: #fff5f1; border-radius: 4px; padding: 12px 14px 10px;
+box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 30px 60px -20px rgba(0,0,0,0.5),
+0 12px 30px -10px rgba(0,0,0,0.4); position: relative; overflow: hidden; }
+.strip::before { content: ‘’; position: absolute; inset: 0; pointer-events: none;
+background: repeating-linear-gradient(180deg, transparent 0 6px, rgba(0,0,0,0.012) 6px 7px);
+mix-blend-mode: multiply; }
+.strip-meta { display: flex; justify-content: space-between; font-size: 10px; color: #7a3a35;
+letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 6px; }
+.strip-meta b { color: #4a1a17; }
+.strip-meta .lead { font-family: ‘Cormorant Garamond’, serif; font-style: italic;
+font-size: 15px; letter-spacing: 0; text-transform: none; color: #4a1a17; }
+#ecg-svg { width: 100%; height: auto; display: block; }
+
+.stage { margin-top: 18px; animation: slip 0.4s ease; }
+.stage.hidden { display: none; }
+@keyframes slip { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: none; } }
+
+.stage-tag { display: flex; align-items: center; gap: 12px;
+font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase;
+color: #5eead4; margin-bottom: 10px; padding-bottom: 6px;
+border-bottom: 1px solid #1f2940; }
+.stage-tag .num { font-family: ‘Cormorant Garamond’, serif; font-style: italic; font-weight: 700;
+font-size: 22px; color: #5eead4; letter-spacing: 0; line-height: 1; }
+#stage-rx .stage-tag, #stage-rx .stage-tag .num { color: #fbbf24; }
+#stage-rx .qmark { color: #fbbf24; }
+
+.qbox { display: flex; align-items: baseline; gap: 12px; margin: 6px 4px 12px; }
+.qmark { font-family: ‘Cormorant Garamond’, serif; font-style: italic;
+font-size: 32px; color: #5eead4; line-height: 1; }
+.qtext { font-size: 13.5px; color: #d8dde8; line-height: 1.55; }
+.qtext em { font-family: ‘Cormorant Garamond’, serif; font-style: italic;
+font-size: 17px; color: #fbbf24; font-weight: 500; }
+
+.choices { display: grid; gap: 7px; }
+.choice { background-color: #0d1220; background: #0d1220; border: 1px solid #1f2940;
+color: #d8dde8; padding: 13px 14px; border-radius: 3px; cursor: pointer;
+font-family: inherit; font-size: 13px; text-align: left;
+display: flex; align-items: center; gap: 12px;
+transition: border-color .15s, background .15s; }
+.choice:hover:not(:disabled) { border-color: #5eead4; background: #131a2c; }
+.choice .lbl { font-family: ‘Cormorant Garamond’, serif; font-style: italic; font-weight: 700;
+font-size: 21px; color: #525c74; width: 22px; flex-shrink: 0; line-height: 1; }
+.choice:hover:not(:disabled) .lbl { color: #5eead4; }
+.choice .name { flex: 1; line-height: 1.45; }
+.choice.correct { border-color: #34d399; background: rgba(52,211,153,0.08); }
+.choice.correct .lbl { color: #34d399; }
+.choice.correct::after { content: ‘✓’; color: #34d399; font-size: 15px; }
+.choice.wrong { border-color: #fb7185; background: rgba(251,113,133,0.08); }
+.choice.wrong .lbl { color: #fb7185; }
+.choice.wrong::after { content: ‘✗’; color: #fb7185; font-size: 15px; }
+.choice:disabled { cursor: default; }
+
+.feedback { display: none; margin-top: 14px; padding: 14px 16px; border-radius: 3px;
+border-left: 2px solid #1f2940; background: #0d1220;
+font-size: 12.5px; line-height: 1.7; color: #8590a8; }
+.feedback.show { display: block; animation: slip 0.3s ease; }
+.feedback.correct { border-left-color: #34d399; }
+.feedback.wrong { border-left-color: #fb7185; }
+.feedback h3 { font-family: ‘Cormorant Garamond’, serif; font-style: italic; font-weight: 500;
+font-size: 20px; margin: 0 0 4px; letter-spacing: 0; }
+.feedback.correct h3 { color: #34d399; }
+.feedback.wrong h3 { color: #fb7185; }
+.feedback .dx { font-size: 12.5px; color: #d8dde8; margin: 6px 0 8px; font-weight: 500; }
+.feedback .dx b { color: #fbbf24; font-weight: 700; }
+.feedback .keys { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.feedback .keys span { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+border: 1px solid #1f2940; padding: 3px 7px; border-radius: 2px; color: #8590a8; }
+
+.next-btn { display: none; margin: 18px 0 0; width: 100%;
+background: transparent; color: #5eead4; border: 1px solid #5eead4;
+padding: 14px; border-radius: 3px; font-family: inherit;
+font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; cursor: pointer;
+transition: background .15s; }
+.next-btn:hover { background: rgba(94,234,212,0.06); }
+
+.summary { display: none; text-align: center; padding: 40px 20px;
+border: 1px solid #1f2940; border-radius: 4px; background: #0d1220; }
+.summary.show { display: block; }
+.summary h2 { font-family: ‘Cormorant Garamond’, serif; font-style: italic; font-weight: 500;
+font-size: 32px; margin: 0 0 8px; color: #5eead4; }
+.summary .final { font-family: ‘Cormorant Garamond’, serif; font-style: italic;
+font-size: 64px; color: #fbbf24; line-height: 1; margin: 16px 0; }
+.summary .final small { font-size: 24px; color: #525c74; }
+.summary .pct { font-size: 12px; color: #8590a8; letter-spacing: 0.2em;
+text-transform: uppercase; margin-bottom: 24px; }
+.summary button { background: transparent; color: #5eead4;
+border: 1px solid #5eead4; padding: 12px 24px; font-family: inherit;
+font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+cursor: pointer; border-radius: 3px; }
+
+footer { margin-top: 24px; text-align: center; font-size: 9.5px; color: #525c74;
+letter-spacing: 0.15em; text-transform: uppercase; }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <div class="brand">
+      <span class="glyph">ECG·II</span>
+      <h1>心電図 臨床判断<small>CLINICAL REASONING</small></h1>
+    </div>
+    <div class="scoreline">
+      <span>Case <strong id="case-num">1</strong>/<span id="case-total">12</span></span>
+      <span>Score <strong id="score">0</strong></span>
+      <span class="acc">正答率 <strong id="accuracy">—</strong></span>
+    </div>
+  </header>
+
+  <div id="game-body">
+    <section class="case-card">
+      <div class="case-head">
+        <span class="case-tag" id="case-tag">CASE 01</span>
+        <span class="case-setting" id="case-setting">救急外来</span>
+      </div>
+      <div class="patient-row">
+        <span class="patient-id" id="patient-id"><b>62</b>♂</span>
+        <span class="patient-history" id="patient-history">HT · DM · 喫煙 20本/日</span>
+      </div>
+      <div class="chief-row">
+        <span class="chief-label">主訴</span>
+        <span class="chief-text" id="chief-text">30 分前からの胸部圧迫感・冷汗</span>
+      </div>
+      <div class="vitals" id="vitals"></div>
+    </section>
+
+```
+<section class="strip">
+  <div class="strip-meta">
+    <span>Lead <span class="lead">II</span></span>
+    <span>25 mm/s · 10 mm/mV · <b id="rate-label">— bpm</b></span>
+  </div>
+  <svg id="ecg-svg" viewBox="0 0 1000 240" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <pattern id="smallGrid" width="4" height="4" patternUnits="userSpaceOnUse">
+        <path d="M 4 0 L 0 0 0 4" fill="none" stroke="#f3b9b3" stroke-width="0.4"/>
+      </pattern>
+      <pattern id="bigGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+        <rect width="20" height="20" fill="url(#smallGrid)"/>
+        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#d97373" stroke-width="0.7"/>
+      </pattern>
+    </defs>
+    <rect width="1000" height="240" fill="#fff5f1"/>
+    <rect width="1000" height="240" fill="url(#bigGrid)"/>
+    <path d="M 12,150 L 12,110 L 32,110 L 32,150" fill="none" stroke="#0c0a09" stroke-width="1.4"/>
+    <path id="ecg-trace" d="" fill="none" stroke="#0c0a09" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>
+</section>
+
+<section class="stage" id="stage-dx">
+  <div class="stage-tag"><span class="num">I</span><span>STEP 1 · DIAGNOSIS · 診断</span></div>
+  <div class="qbox">
+    <div class="qmark">?</div>
+    <div class="qtext">この心電図の所見として最も適切な<em>診断</em>はどれか。</div>
+  </div>
+  <div class="choices" id="choices-dx"></div>
+  <div class="feedback" id="feedback-dx"></div>
+</section>
+
+<section class="stage hidden" id="stage-rx">
+  <div class="stage-tag"><span class="num">II</span><span>STEP 2 · MANAGEMENT · 初期管理</span></div>
+  <div class="qbox">
+    <div class="qmark">!</div>
+    <div class="qtext">この患者に対する最も適切な<em>初期管理</em>はどれか。</div>
+  </div>
+  <div class="choices" id="choices-rx"></div>
+  <div class="feedback" id="feedback-rx"></div>
+</section>
+
+<button class="next-btn" id="next-btn">Next Case →</button>
+```
+
+  </div>
+
+  <section class="summary" id="summary">
+    <h2>セッション完了</h2>
+    <div class="final"><span id="final-score">0</span><small> / <span id="final-total">24</span></small></div>
+    <div class="pct">正答率 <span id="final-pct">—</span></div>
+    <button id="restart-btn">RESTART</button>
+  </section>
+
+  <footer>Educational simulation · 教育用シミュレーション</footer>
+</div>
+
+<script>
+function setMinHeight() {
+  document.body.style.minHeight = window.innerHeight + 'px';
+}
+setMinHeight();
+window.addEventListener('resize', setMinHeight);
+window.addEventListener('orientationchange', () => {
+  setTimeout(setMinHeight, 100);
+  setTimeout(setMinHeight, 500);
+});
+window.addEventListener('load', () => setTimeout(setMinHeight, 300));
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', setMinHeight);
+}
+
+const SAMPLE_RATE = 250, DURATION = 8;
+const MM_PER_SEC = 25, MM_PER_MV = 10, PX_PER_MM = 4;
+const BASELINE_Y = 150, X_OFFSET = 50;
+
+const gauss = (t, c, a, w) => {
+  const x = (t - c) / w;
+  return a * Math.exp(-(x * x));
+};
+
+function pqrst(tInCycle, c = {}) {
+  const pC = c.pC ?? 0.16, qrsC = c.qrsC ?? 0.32, tC = c.tC ?? 0.50;
+  return gauss(tInCycle, pC,           c.pAmp ?? 0.16,  c.pW ?? 0.025)
+       + gauss(tInCycle, qrsC - 0.018, c.qAmp ?? -0.10, 0.008)
+       + gauss(tInCycle, qrsC,         c.rAmp ?? 1.20,  0.013)
+       + gauss(tInCycle, qrsC + 0.020, c.sAmp ?? -0.28, 0.010)
+       + gauss(tInCycle, tC,           c.tAmp ?? 0.32,  c.tW ?? 0.055);
+}
+function qrstAt(t, qrsC, c = {}) {
+  const tC = qrsC + 0.18;
+  return gauss(t, qrsC - 0.018, c.qAmp ?? -0.10, 0.008)
+       + gauss(t, qrsC,         c.rAmp ?? 1.10,  0.013)
+       + gauss(t, qrsC + 0.020, c.sAmp ?? -0.25, 0.010)
+       + gauss(t, tC,           c.tAmp ?? 0.30,  0.055);
+}
+function wideQrs(t, center, opts = {}) {
+  const polarity = opts.polarity ?? 1, amp = opts.amp ?? 1.4;
+  return polarity * (
+    gauss(t, center - 0.04, -0.30 * amp, 0.022)
+  + gauss(t, center,         amp,        0.040)
+  + gauss(t, center + 0.05, -0.45 * amp, 0.026)
+  + gauss(t, center + 0.20, -0.40,       0.060)
+  );
+}
+const buf = () => new Float32Array(DURATION * SAMPLE_RATE);
+
+function genSinus({hr = 72} = {}) {
+  const w = buf(), cyc = 60 / hr;
+  const fast = hr > 110;
+  const opts = fast ? { pC: 0.08, qrsC: 0.20, tC: 0.34, pW: 0.020 } : {};
+  for (let i = 0; i < w.length; i++) w[i] = pqrst((i / SAMPLE_RATE) % cyc, opts);
+  return { wave: w, hr };
+}
+function genAFib({hr = 100} = {}) {
+  const w = buf();
+  const meanRR = 60 / hr;
+  const beats = []; let bt = 0.25 + Math.random() * 0.3;
+  while (bt < DURATION) { beats.push(bt); bt += meanRR * (0.55 + Math.random() * 0.9); }
+  for (let i = 0; i < w.length; i++) {
+    const t = i / SAMPLE_RATE; let y = 0;
+    for (const b of beats) if (Math.abs(t - b) < 0.4) y += qrstAt(t, b);
+    y += 0.05 * Math.sin(2*Math.PI*6.5*t);
+    y += 0.035 * Math.sin(2*Math.PI*9.3*t + 1.7);
+    y += 0.025 * Math.sin(2*Math.PI*11.1*t + 0.5);
+    w[i] = y;
+  }
+  return { wave: w, hr, hrLabel: '~' + hr + ' (irregular)' };
+}
+function genAFlutter({vRate = 150} = {}) {
+  const w = buf(); const vCyc = 60 / vRate;
+  const qrsList = []; for (let t = 0.18; t < DURATION; t += vCyc) qrsList.push(t);
+  for (let i = 0; i < w.length; i++) {
+    const t = i / SAMPLE_RATE;
+    const ph = (t * 5) % 1;
+    let y = -0.22 * (ph < 0.7 ? ph / 0.7 : (1 - ph) / 0.3);
+    for (const q of qrsList)
+      if (Math.abs(t - q) < 0.32) y += qrstAt(t, q, { tAmp: 0.18, rAmp: 1.0 });
+    w[i] = y;
+  }
+  return { wave: w, hr: vRate };
+}
+function genVT({hr = 180} = {}) {
+  const w = buf(); const cyc = 60 / hr;
+  for (let i = 0; i < w.length; i++) {
+    const t = i / SAMPLE_RATE;
+    const beat = Math.floor(t / cyc);
+    w[i] = wideQrs(t, beat * cyc + cyc / 2, { amp: 1.3 });
+  }
+  return { wave: w, hr };
+}
+function genVF() {
+  const w = buf();
+  for (let i = 0; i < w.length; i++) {
+    const t = i / SAMPLE_RATE; let y = 0;
+    y += 0.65 * Math.sin(2*Math.PI*4.0*t + Math.sin(t*1.5)*2);
+    y += 0.45 * Math.sin(2*Math.PI*6.7*t + Math.cos(t*0.8)*1.5);
+    y += 0.30 * Math.sin(2*Math.PI*9.2*t + Math.sin(t*2.3));
+    y += 0.55 * Math.sin(2*Math.PI*3.1*t + Math.cos(t*1.1)*2.5);
+    y *= 0.55 + 0.45 * Math.sin(t*0.7 + 1);
+    w[i] = y;
+  }
+  return { wave: w, hr: '—', hrLabel: 'no organized rhythm' };
+}
+function genCAVB({aRate = 80, vRate = 38} = {}) {
+  const w = buf(); const aCyc = 60 / aRate, vCyc = 60 / vRate;
+  const vBeats = []; for (let t = 0.25; t < DURATION; t += vCyc) vBeats.push(t);
+  for (let i = 0; i < w.length; i++) {
+    const t = i / SAMPLE_RATE;
+    let y = gauss(t % aCyc, 0.10, 0.18, 0.025);
+    for (const v of vBeats) if (Math.abs(t - v) < 0.4) y += wideQrs(t, v, { amp: 0.9 });
+    w[i] = y;
+  }
+  return { wave: w, hr: vRate, hrLabel: 'V ' + vRate + ' / A ' + aRate + ' (dissociated)' };
+}
+function genPVC({hr = 70} = {}) {
+  const w = buf(); const cyc = 60 / hr;
+  const pvcBeats = new Set([2, 5]);
+  for (let i = 0; i < w.length; i++) {
+    const t = i / SAMPLE_RATE;
+    const beat = Math.floor(t / cyc), tInCycle = t % cyc;
+    if (pvcBeats.has(beat)) {
+      w[i] = wideQrs(t, beat * cyc + 0.20, { amp: 1.4, polarity: -1 });
+    } else {
+      w[i] = pqrst(tInCycle);
+    }
+  }
+  return { wave: w, hr };
+}
+function genSTEMI({hr = 80} = {}) {
+  const w = buf(); const cyc = 60 / hr;
+  for (let i = 0; i < w.length; i++) {
+    const t = i / SAMPLE_RATE; const tIn = t % cyc;
+    let y = pqrst(tIn, { tAmp: 0.55, tW: 0.075 });
+    if (tIn > 0.345 && tIn < 0.55) {
+      const fIn = Math.min(1, (tIn - 0.345) / 0.04);
+      const fOut = Math.min(1, (0.55 - tIn) / 0.04);
+      y += 0.38 * fIn * fOut;
+    }
+    w[i] = y;
+  }
+  return { wave: w, hr };
+}
+function genSVT({hr = 180} = {}) {
+  const w = buf(); const cyc = 60 / hr;
+  for (let i = 0; i < w.length; i++) {
+    const t = i / SAMPLE_RATE; const tIn = t % cyc;
+    w[i] = qrstAt(tIn, 0.10, { rAmp: 1.0, tAmp: 0.25 });
+  }
+  return { wave: w, hr };
+}
+function genFirstAVB({hr = 65} = {}) {
+  const w = buf(); const cyc = 60 / hr;
+  for (let i = 0; i < w.length; i++) {
+    const t = i / SAMPLE_RATE;
+    w[i] = pqrst(t % cyc, { pC: 0.10, qrsC: 0.40, tC: 0.58 });
+  }
+  return { wave: w, hr };
+}
+
+const RHYTHM_GEN = {
+  sinus: genSinus, afib: genAFib, aflutter: genAFlutter,
+  vt: genVT, vf: genVF, cavb: genCAVB,
+  pvc: genPVC, stemi: genSTEMI, svt: genSVT, avb1: genFirstAVB
+};
+
+const CASES = [
+  {
+    id: 'C01', setting: '救急外来',
+    age: 62, sex: '♂', history: 'HT · DM · 喫煙 20本/日',
+    chief: '30 分前からの強い胸部圧迫感・冷汗。安静で軽快しない。',
+    vitals: {
+      BP:{v:'140/90',u:'mmHg'}, HR:{v:'80',u:'/min'}, SpO2:{v:'96',u:'%',n:'RA'},
+      RR:{v:'18',u:'/min'}, 'T°':{v:'36.5',u:'℃'}, GCS:{v:'15',u:''}
+    },
+    rhythm: 'stemi', rhythmOpts: { hr: 80 },
+    dx: {
+      correct: 'ST 上昇型心筋梗塞 (STEMI)',
+      wrong: ['正常洞調律', '上室性頻拍', '第 1 度房室ブロック'],
+      explain: 'II 誘導で ST 部分が基線から有意に上昇し hyperacute T 波を伴う。II/III/aVF の同様所見があれば下壁梗塞 (右冠動脈領域) を示唆。',
+      keys: ['ST 上昇', 'hyperacute T', '下壁領域示唆']
+    },
+    rx: {
+      correct: '緊急 PCI または血栓溶解 — 再灌流療法を直ちに準備',
+      wrong: [
+        '経過観察と 6 時間後のトロポニン採血のみ',
+        '静注フロセミドで前負荷軽減',
+        'β 遮断薬を経口投与し外来 follow'
+      ],
+      explain: 'STEMI は "time is muscle"。Door-to-balloon ≤ 90 分が目標。Aspirin + 第 2 抗血小板薬 + 抗凝固 + 即時カテラボ送り。胸痛にはニトロ (右室梗塞除外後)・モルヒネ。',
+      keys: ['Door-to-balloon ≤ 90 min', 'DAPT + 抗凝固', '時間が筋肉']
+    }
+  },
+  {
+    id: 'C02', setting: '救急外来',
+    age: 70, sex: '♂', history: '陳旧性心筋梗塞・LVEF 35%',
+    chief: '突然の動悸と意識朦朧。数分前から持続。',
+    vitals: {
+      BP:{v:'70/40',u:'mmHg',t:'bad'}, HR:{v:'180',u:'/min',t:'bad'},
+      SpO2:{v:'92',u:'%',t:'warn',n:'RA'}, RR:{v:'24',u:'/min',t:'warn'},
+      'T°':{v:'36.8',u:'℃'}, GCS:{v:'13',u:'',t:'warn'}
+    },
+    rhythm: 'vt', rhythmOpts: { hr: 180 },
+    dx: {
+      correct: '心室頻拍 (VT)',
+      wrong: ['上室性頻拍', '心房細動', '心室細動'],
+      explain: '幅広い QRS が規則的に ~180/min で出現。脈は触知できるが BP 70/40・意識変容で血行動態は不安定 (unstable VT)。',
+      keys: ['QRS > 0.12 s', '規則的 wide complex', 'unstable']
+    },
+    rx: {
+      correct: '同期下カルジオバージョン (鎮静下に 100 J biphasic)',
+      wrong: [
+        'アデノシン 6 mg を急速静注',
+        '経口アミオダロンで様子観察',
+        'カルシウム拮抗薬を静注'
+      ],
+      explain: '有脈 VT で血行動態不安定 (低血圧・意識変容・心不全・胸痛のいずれか) → 同期下カルジオバージョンが第一選択。Wide complex tachycardia へのアデノシン/Ca 拮抗薬は VT を悪化させ得る。',
+      keys: ['unstable → 同期下カルジオ', 'wide CT に Ca 拮抗薬は禁忌', '鎮静併用']
+    }
+  },
+  {
+    id: 'C03', setting: '一般病棟',
+    age: 55, sex: '♂', history: '虚血性心疾患・PCI 既往',
+    chief: '院内モニター中に突然意識消失。呼びかけ反応なし、脈触知不能。',
+    vitals: {
+      BP:{v:'触知不能',u:'',t:'bad'}, HR:{v:'—',u:'',t:'bad'},
+      SpO2:{v:'測定不能',u:'',t:'bad'}, RR:{v:'0',u:'/min',t:'bad'},
+      'T°':{v:'36.7',u:'℃'}, GCS:{v:'3',u:'',t:'bad'}
+    },
+    rhythm: 'vf',
+    dx: {
+      correct: '心室細動 (VF)',
+      wrong: ['多形性心室頻拍', '心房細動', '心静止 (asystole)'],
+      explain: 'PQRST を認めない無秩序な振動波形 + 脈なし = 心停止。VF も pulseless VT も初期対応は同じ (除細動 + CPR)。',
+      keys: ['無秩序振動', '脈なし', '心停止 (shockable)']
+    },
+    rx: {
+      correct: '直ちに二相性除細動 (120–200 J) + 良質な CPR',
+      wrong: [
+        'まずアミオダロン 300 mg を静注してから様子観察',
+        '5 分後に再評価し、リズム変化があれば対応',
+        '一時的経皮ペーシング'
+      ],
+      explain: '心停止 (VF/pVT) → 1 ショック → 2 分間 CPR → リズムチェックの cycle。3 ショック後にアミオダロン 300 mg or リドカイン。可逆的原因 (5H5T) を並行検索。',
+      keys: ['shock first', '2 min CPR cycles', '5H5T 検索']
+    }
+  },
+  {
+    id: 'C04', setting: '救急外来',
+    age: 65, sex: '♂', history: '高血圧・高血圧性心疾患',
+    chief: '1 時間前から動悸を自覚。胸痛・呼吸苦・意識変容なし。',
+    vitals: {
+      BP:{v:'128/76',u:'mmHg'}, HR:{v:'160',u:'/min',t:'warn'}, SpO2:{v:'98',u:'%'},
+      RR:{v:'18',u:'/min'}, 'T°':{v:'36.6',u:'℃'}, GCS:{v:'15',u:''}
+    },
+    rhythm: 'vt', rhythmOpts: { hr: 160 },
+    dx: {
+      correct: '心室頻拍 (VT)',
+      wrong: ['変行伝導を伴う上室性頻拍', '心房粗動 1:1 伝導', '洞性頻脈'],
+      explain: '幅広い QRS の規則的頻拍。意識保持・血圧維持で stable VT。構造的心疾患 (高血圧性心疾患) があれば SVT with aberrancy より VT 優先で考える。',
+      keys: ['wide complex tachycardia', 'stable', '構造的心疾患 → VT 寄り']
+    },
+    rx: {
+      correct: 'アミオダロン 150 mg を 10 分かけて静注',
+      wrong: [
+        '直ちに非同期除細動',
+        'アトロピン 1 mg を静注',
+        '経口 β 遮断薬を投与し帰宅'
+      ],
+      explain: '安定 VT → 第一選択は抗不整脈薬 (アミオダロン or プロカインアミド)。効果不十分か血行動態悪化なら同期下カルジオバージョンへ移行。同じ VT でも C02 (unstable) と治療が変わるのが肝。',
+      keys: ['stable → 薬剤', 'unstable → 電気的', 'amiodarone 150 mg / 10 min']
+    }
+  },
+  {
+    id: 'C05', setting: '内科外来',
+    age: 75, sex: '♀', history: 'HT · DM · CHA₂DS₂-VASc 4 点',
+    chief: '2 時間前からの動悸。胸痛・呼吸苦なし。',
+    vitals: {
+      BP:{v:'132/82',u:'mmHg'}, HR:{v:'108',u:'/min',t:'warn'}, SpO2:{v:'97',u:'%'},
+      RR:{v:'18',u:'/min'}, 'T°':{v:'36.5',u:'℃'}, GCS:{v:'15',u:''}
+    },
+    rhythm: 'afib', rhythmOpts: { hr: 110 },
+    dx: {
+      correct: '心房細動 (AF)',
+      wrong: ['心房粗動 (2:1 伝導)', '洞性頻脈', '心室頻拍'],
+      explain: 'P 波が消失し細かい f 波で置換、RR 間隔は絶対不整。発症が把握できている (< 48 h) ので戦略選択の自由度が高い。',
+      keys: ['P 消失', 'f 波', 'RR 絶対不整']
+    },
+    rx: {
+      correct: 'レート調節 (β 遮断薬) + 抗凝固 (DOAC) を導入し、症状に応じカルジオバージョン検討',
+      wrong: [
+        'まず発症時刻を問わず直ちに同期下カルジオバージョン',
+        'アスピリン単剤のみで経過観察',
+        'アトロピンを静注してレート上昇を狙う'
+      ],
+      explain: '発症 < 48 h かつ血行動態安定 → カルジオバージョン可。それ以上 / 不明なら 3 週間以上の抗凝固か TEE で左房内血栓除外後にカルジオ。CHA₂DS₂-VASc ≥ 2 で抗凝固を強く推奨 (本症例は 4 点)。',
+      keys: ['<48 h は cardio 可', 'CHA₂DS₂-VASc ≥ 2 で抗凝固', 'aspirin 単剤は不可']
+    }
+  },
+  {
+    id: 'C06', setting: '救急外来',
+    age: 70, sex: '♂', history: 'COPD・既往の動悸エピソードあり',
+    chief: '昨日からの動悸が続く。',
+    vitals: {
+      BP:{v:'108/68',u:'mmHg'}, HR:{v:'150',u:'/min',t:'warn'}, SpO2:{v:'94',u:'%',t:'warn',n:'RA'},
+      RR:{v:'20',u:'/min'}, 'T°':{v:'36.7',u:'℃'}, GCS:{v:'15',u:''}
+    },
+    rhythm: 'aflutter',
+    dx: {
+      correct: '心房粗動 (2:1 伝導)',
+      wrong: ['心房細動', '上室性頻拍', '洞性頻脈'],
+      explain: 'のこぎり歯状の F 波が約 300/min、心室応答 150/min は典型的な 2:1 伝導。HR ちょうど 150 は AFL を疑うトリガー。',
+      keys: ['F 波 ~300/min', '2:1 伝導 → HR 150', 'のこぎり歯']
+    },
+    rx: {
+      correct: 'レート調節 + 抗凝固。長期戦略としてカテーテルアブレーション (CTI) を検討',
+      wrong: [
+        '迷走神経刺激のみで停止待機',
+        'アスピリン単剤と NSAIDs',
+        '一時的経皮ペーシング'
+      ],
+      explain: 'AFL 急性期マネジメントは AF と類似 (rate control + 抗凝固)。但し AFL は CTI ablation で 90% 以上の根治率があり、長期戦略として有力。',
+      keys: ['AF と同じ枠組み', 'CTI ablation で根治可', 'HR 150 → AFL 鑑別']
+    }
+  },
+
+  {
+    id: 'C07', setting: '救急外来',
+    age: 78, sex: '♂', history: '高血圧・慢性腎臓病 G3',
+    chief: '今朝、トイレで起立時に意識消失。短時間で回復。',
+    vitals: {
+      BP:{v:'92/58',u:'mmHg',t:'warn'}, HR:{v:'38',u:'/min',t:'bad'}, SpO2:{v:'96',u:'%'},
+      RR:{v:'16',u:'/min'}, 'T°':{v:'36.4',u:'℃'}, GCS:{v:'15',u:''}
+    },
+    rhythm: 'cavb', rhythmOpts: { aRate: 80, vRate: 38 },
+    dx: {
+      correct: '完全房室ブロック (3°AVB)',
+      wrong: ['第 1 度房室ブロック', '洞性徐脈', 'モビッツ II 型 2°AVB'],
+      explain: 'P 波と QRS が完全に解離し独立して出現。心室補充調律は遅く幅広いことが多い。失神 (Stokes-Adams 発作) を伴う。',
+      keys: ['AV 解離', 'V 補充調律', 'Stokes-Adams']
+    },
+    rx: {
+      correct: '経皮 / 経静脈ペーシング → 恒久ペースメーカー植込み',
+      wrong: [
+        '原因薬剤の中止のみで様子観察',
+        '経口 isoproterenol を処方し外来 follow',
+        'アトロピン 1 mg 静注のみで帰宅'
+      ],
+      explain: '症候性完全房室ブロックはペースメーカー絶対適応 (Class I)。アトロピンは AV 結節以下のブロックでは無効のことが多い。経皮ペーシング → isoproterenol/エピネフリン点滴で bridge → PMI。',
+      keys: ['症候性 = PMI 適応', 'アトロピン効きにくい', 'pacing で bridge']
+    }
+  },
+  {
+    id: 'C08', setting: '救急外来',
+    age: 28, sex: '♀', history: '既往なし。過去にも同様の発作 2 回。',
+    chief: '30 分前から突然の動悸と軽い胸部不快。',
+    vitals: {
+      BP:{v:'116/72',u:'mmHg'}, HR:{v:'184',u:'/min',t:'bad'}, SpO2:{v:'98',u:'%'},
+      RR:{v:'18',u:'/min'}, 'T°':{v:'36.7',u:'℃'}, GCS:{v:'15',u:''}
+    },
+    rhythm: 'svt', rhythmOpts: { hr: 184 },
+    dx: {
+      correct: '上室性頻拍 (PSVT)',
+      wrong: ['心房細動', '心室頻拍', '洞性頻脈'],
+      explain: '幅の狭い QRS が規則的に ~184/min で出現、明瞭な P 波を認めない。AVNRT が最多。発作性で突然開始/停止する病歴も典型。',
+      keys: ['narrow QRS', '規則的 ~180', '突然開始 / 停止']
+    },
+    rx: {
+      correct: '迷走神経刺激手技 (Modified Valsalva 等) → 効果なければアデノシン 6 mg 急速静注',
+      wrong: [
+        'まず同期下カルジオバージョンを実施',
+        'リドカインを静注',
+        '抗凝固薬の導入のみ'
+      ],
+      explain: '安定 PSVT の階段療法: vagal maneuver → adenosine 6 → 12 → 12 mg → β/Ca 拮抗薬 → 不安定化や難治例で同期下カルジオバージョン。Modified Valsalva (release 後に下肢挙上) は REVERT 試験で停止率向上が示されている。',
+      keys: ['vagal → adenosine', 'modified Valsalva', '不安定なら電気的']
+    }
+  },
+  {
+    id: 'C09', setting: '救急外来',
+    age: 68, sex: '♂', history: 'HT (β 遮断薬服用中)',
+    chief: '朝から強いめまいと倦怠感。',
+    vitals: {
+      BP:{v:'88/52',u:'mmHg',t:'warn'}, HR:{v:'38',u:'/min',t:'bad'}, SpO2:{v:'96',u:'%'},
+      RR:{v:'14',u:'/min'}, 'T°':{v:'36.5',u:'℃'}, GCS:{v:'14',u:'',t:'warn'}
+    },
+    rhythm: 'sinus', rhythmOpts: { hr: 38 },
+    dx: {
+      correct: '症候性洞性徐脈',
+      wrong: ['第 1 度房室ブロック', '完全房室ブロック', '接合部調律'],
+      explain: 'P-QRS-T の形と関係は正常で心拍数 38。低血圧・意識軽度低下を伴う症候性徐脈。原因薬剤 (β 遮断薬) の関与を疑う。',
+      keys: ['正常波形・関係', 'HR < 50', '症候あり']
+    },
+    rx: {
+      correct: 'アトロピン 1 mg 静注 (3–5 分毎、最大 3 mg)。原因薬剤を中止',
+      wrong: [
+        '完全房室ブロックを想定しまず経皮ペーシング',
+        'β 遮断薬の追加投与で心保護',
+        '輸液負荷のみで経過観察'
+      ],
+      explain: '症候性徐脈の第一選択はアトロピン 1 mg IV。効果不十分なら経皮ペーシング or ドパミン 5–20 μg/kg/min or エピネフリン 2–10 μg/min。第 2°II 型・3°AVB ではアトロピンが効きにくく、ペーシング優先。',
+      keys: ['atropine 1 mg', '原因薬剤 review', 'pace if refractory']
+    }
+  },
+  {
+    id: 'C10', setting: '産科病棟',
+    age: 30, sex: '♀', history: '帝王切開後 day 1',
+    chief: '動悸、軽度の息切れ。創部痛はあるが出血はない。',
+    vitals: {
+      BP:{v:'102/64',u:'mmHg'}, HR:{v:'128',u:'/min',t:'warn'}, SpO2:{v:'94',u:'%',t:'warn',n:'RA'},
+      RR:{v:'24',u:'/min',t:'warn'}, 'T°':{v:'38.4',u:'℃',t:'bad'}, GCS:{v:'15',u:''}
+    },
+    rhythm: 'sinus', rhythmOpts: { hr: 128 },
+    dx: {
+      correct: '洞性頻脈',
+      wrong: ['上室性頻拍', '心房細動', '心房粗動'],
+      explain: '正常な P-QRS-T 関係を保ったまま HR > 100。これは「症候」であって診断ではなく、原因の検索が本題。',
+      keys: ['P 波あり 1:1', 'HR > 100', '症候 ≠ 診断']
+    },
+    rx: {
+      correct: '原因の検索と治療 — 感染 (子宮内 / 創部 / 肺)・出血・脱水・PE を系統的に評価',
+      wrong: [
+        'β 遮断薬で心拍数だけ抑える',
+        'アデノシン 6 mg 静注',
+        '経過観察のみ'
+      ],
+      explain: '産後発熱 + 頻脈 + 頻呼吸 + SpO2 低下 → 子宮内感染、肺塞栓 (PE)、肺炎、創部感染、DVT などが鑑別。SpO2 94 は PE を強く疑うシグナル。レート抑制は原因治療を遅らせる害。',
+      keys: ['症候性 → 原因検索', 'PE は postpartum で急増', 'sepsis bundle 検討']
+    }
+  },
+  {
+    id: 'C11', setting: '健康診断',
+    age: 45, sex: '♂', history: '既往なし、運動習慣あり',
+    chief: '健診心電図で不整脈を指摘。自覚症状なし。',
+    vitals: {
+      BP:{v:'124/78',u:'mmHg'}, HR:{v:'72',u:'/min'}, SpO2:{v:'99',u:'%'},
+      RR:{v:'14',u:'/min'}, 'T°':{v:'36.4',u:'℃'}, GCS:{v:'15',u:''}
+    },
+    rhythm: 'pvc', rhythmOpts: { hr: 72 },
+    dx: {
+      correct: '散発性心室性期外収縮 (PVC)',
+      wrong: ['上室性期外収縮 (PAC)', '心房細動', '第 2 度房室ブロック'],
+      explain: '正常洞調律のなかに、先行 P 波を伴わない幅広い QRS が時折挿入。後に compensatory pause を伴う。',
+      keys: ['先行 P なし', 'wide QRS', 'compensatory pause']
+    },
+    rx: {
+      correct: '心エコー・電解質・甲状腺などを評価し、無症候・基礎心疾患なしなら通常治療不要',
+      wrong: [
+        'アミオダロン経口を直ちに開始',
+        '緊急 ICD 植込み',
+        '完全な運動制限を指示'
+      ],
+      explain: '健常者の散発性 PVC は予後良好。心エコー (構造的心疾患)・電解質 (K, Mg)・甲状腺・運動負荷で評価。多発性 (>10–15%/24h)・症候性・心筋症合併では治療検討。',
+      keys: ['echo + 電解質', '< 10%/24h は経過観察', '症候 / 高頻度で治療']
+    }
+  },
+  {
+    id: 'C12', setting: '内科外来',
+    age: 65, sex: '♂', history: 'HT (アムロジピン服用中)',
+    chief: '無症状。健診心電図で異常を指摘され受診。',
+    vitals: {
+      BP:{v:'132/80',u:'mmHg'}, HR:{v:'64',u:'/min'}, SpO2:{v:'98',u:'%'},
+      RR:{v:'14',u:'/min'}, 'T°':{v:'36.5',u:'℃'}, GCS:{v:'15',u:''}
+    },
+    rhythm: 'avb1', rhythmOpts: { hr: 64 },
+    dx: {
+      correct: '第 1 度房室ブロック',
+      wrong: ['第 2 度房室ブロック (Wenckebach)', '完全房室ブロック', '洞性徐脈'],
+      explain: 'PR 間隔がすべて > 0.20 秒に延長。QRS 脱落はなく規則的、各 P に必ず QRS が続く。',
+      keys: ['PR > 0.20 s', 'QRS 脱落なし', '規則的']
+    },
+    rx: {
+      correct: '原因薬剤・電解質をチェック、無症候であれば経過観察',
+      wrong: [
+        '直ちに恒久ペースメーカー植込み',
+        'アトロピンを定期処方',
+        'β 遮断薬の追加でレート調節'
+      ],
+      explain: '無症候の 1°AVB は予後良好で治療不要。Bifascicular block 合併や運動耐容能低下があれば精査。原因薬剤 (β 遮断薬・Ca 拮抗薬・ジギタリス・アミオダロン) を確認。',
+      keys: ['無症候は経過観察', '原因薬剤 review', 'PR > 0.30 s で要再評価']
+    }
+  }
+];
+
+function renderECG(rhythmKey, opts = {}) {
+  const gen = RHYTHM_GEN[rhythmKey];
+  const { wave, hr, hrLabel } = gen(opts);
+  let path = '';
+  for (let i = 0; i < wave.length; i++) {
+    const t = i / SAMPLE_RATE;
+    const x = X_OFFSET + t * MM_PER_SEC * PX_PER_MM;
+    if (x > 1000) break;
+    const mv = Math.max(-2.4, Math.min(2.4, wave[i]));
+    const y  = BASELINE_Y - mv * MM_PER_MV * PX_PER_MM;
+    path += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+  }
+  document.getElementById('ecg-trace').setAttribute('d', path);
+  document.getElementById('rate-label').textContent =
+    hrLabel ? hrLabel : (hr === '—' ? '—' : hr + ' bpm');
+}
+
+function renderVitals(vitals) {
+  const el = document.getElementById('vitals');
+  el.innerHTML = '';
+  for (const [label, v] of Object.entries(vitals)) {
+    const cell = document.createElement('div');
+    cell.className = 'vital';
+    const tone = v.t ? ' ' + v.t : '';
+    const note = v.n ? '<div class="v-note">' + v.n + '</div>' : '';
+    cell.innerHTML =
+      '<div class="v-label">' + label + '</div>' +
+      '<div class="v-value' + tone + '">' + v.v +
+      (v.u ? '<span class="v-unit">' + v.u + '</span>' : '') +
+      '</div>' + note;
+    el.appendChild(cell);
+  }
+}
+
+let cases = [];
+let caseIdx = 0;
+let score = 0, attempts = 0;
+
+function shuffle(a) {
+  const r = a.slice();
+  for (let i = r.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [r[i], r[j]] = [r[j], r[i]];
+  }
+  return r;
+}
+
+function startSession() {
+  cases = shuffle(CASES);
+  caseIdx = 0; score = 0; attempts = 0;
+  document.getElementById('case-total').textContent = cases.length;
+  document.getElementById('summary').classList.remove('show');
+  document.getElementById('game-body').style.display = '';
+  document.getElementById('score').textContent = '0';
+  document.getElementById('accuracy').textContent = '—';
+  showCase();
+}
+
+function showCase() {
+  const c = cases[caseIdx];
+  document.getElementById('case-num').textContent = caseIdx + 1;
+  document.getElementById('case-tag').textContent = c.id;
+  document.getElementById('case-setting').textContent = c.setting;
+  document.getElementById('patient-id').innerHTML = '<b>' + c.age + '</b>' + c.sex;
+  document.getElementById('patient-history').textContent = c.history;
+  document.getElementById('chief-text').textContent = c.chief;
+  renderVitals(c.vitals);
+  renderECG(c.rhythm, c.rhythmOpts || {});
+
+  buildChoices('dx', c);
+  document.getElementById('feedback-dx').classList.remove('show');
+  document.getElementById('feedback-dx').textContent = '';
+
+  document.getElementById('stage-rx').classList.add('hidden');
+  document.getElementById('feedback-rx').classList.remove('show');
+  document.getElementById('feedback-rx').textContent = '';
+
+  document.getElementById('next-btn').style.display = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function buildChoices(type, c) {
+  const data = type === 'dx' ? c.dx : c.rx;
+  const choicesEl = document.getElementById('choices-' + type);
+  choicesEl.innerHTML = '';
+  const all = shuffle([
+    { text: data.correct, isCorrect: true },
+    ...data.wrong.map(t => ({ text: t, isCorrect: false }))
+  ]);
+  const labels = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ'];
+  all.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'choice';
+    b.dataset.correct = opt.isCorrect ? '1' : '0';
+    b.innerHTML = '<span class="lbl">' + labels[i] + '</span><span class="name">' + opt.text + '</span>';
+    b.onclick = () => answer(type, b, c);
+    choicesEl.appendChild(b);
+  });
+}
+
+function answer(type, btn, c) {
+  const isCorrect = btn.dataset.correct === '1';
+  const choicesEl = document.getElementById('choices-' + type);
+  choicesEl.querySelectorAll('.choice').forEach(el => {
+    el.disabled = true;
+    if (el.dataset.correct === '1') el.classList.add('correct');
+    else if (el === btn) el.classList.add('wrong');
+  });
+
+  attempts++;
+  if (isCorrect) score++;
+  document.getElementById('score').textContent = score;
+  document.getElementById('accuracy').textContent =
+    Math.round(score / attempts * 100) + '%';
+
+  const data = type === 'dx' ? c.dx : c.rx;
+  const fb = document.getElementById('feedback-' + type);
+  const keys = data.keys.map(k => '<span>' + k + '</span>').join('');
+  fb.className = 'feedback show ' + (isCorrect ? 'correct' : 'wrong');
+  fb.innerHTML =
+    '<h3>' + (isCorrect ? 'Correct.' : 'Incorrect.') + '</h3>' +
+    '<div class="dx">' + (type === 'dx' ? '診断' : '初期管理') +
+    ' — <b>' + data.correct + '</b></div>' +
+    '<div>' + data.explain + '</div>' +
+    '<div class="keys">' + keys + '</div>';
+
+  if (type === 'dx') {
+    document.getElementById('stage-rx').classList.remove('hidden');
+    buildChoices('rx', c);
+    setTimeout(() => {
+      document.getElementById('stage-rx').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+  } else {
+    document.getElementById('next-btn').style.display = 'block';
+    document.getElementById('next-btn').textContent =
+      caseIdx + 1 >= cases.length ? 'Finish Session →' : 'Next Case →';
+    setTimeout(() => {
+      document.getElementById('next-btn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 200);
+  }
+}
+
+document.getElementById('next-btn').onclick = () => {
+  caseIdx++;
+  if (caseIdx >= cases.length) showSummary();
+  else showCase();
+};
+
+function showSummary() {
+  document.getElementById('game-body').style.display = 'none';
+  const total = cases.length * 2;
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('final-total').textContent = total;
+  document.getElementById('final-pct').textContent = Math.round(score / total * 100) + ' %';
+  document.getElementById('summary').classList.add('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('restart-btn').onclick = () => startSession();
+
+startSession();
+</script>
+
+</body>
+</html>
