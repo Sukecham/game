@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<title>いろならべ ✦ マジカル・カラーズ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Yusei+Magic&family=Zen+Maru+Gothic:wght@500;700;900&family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --c-pink:    #ff5cc4;
+    --c-pink-lt: #ffa8e0;
+    --c-pink-dk: #d10080;
+    --c-green:   #66e860;
+    --c-green-lt:#b1f5a8;
+    --c-green-dk:#178a0a;
+    --c-blue:    #3acdff;
+    --c-blue-lt: #a8e6ff;
+    --c-blue-dk: #015c8a;
+    --c-orange:  #ffaa3a;
+    --c-orange-lt:#ffd58a;
+    --c-orange-dk:#a04500;
+
+```
+--sky-1: #ffd9ec;
+--sky-2: #ffeeb6;
+--sky-3: #cce8ff;
+--sky-4: #e0c7ff;
+
+--ink: #3a1840;
+```
+
+}
+
+- { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; padding:0; height:100%; overflow:hidden; }
+
+body {
+font-family: “Zen Maru Gothic”, “Hiragino Maru Gothic ProN”, system-ui, sans-serif;
+color: var(–ink);
+/* Magical sky background */
+background:
+radial-gradient(ellipse at 20% 10%, rgba(255,255,255,.5), transparent 50%),
+radial-gradient(ellipse at 80% 80%, rgba(255,200,230,.4), transparent 55%),
+linear-gradient(160deg, var(–sky-1) 0%, var(–sky-2) 30%, var(–sky-3) 65%, var(–sky-4) 100%);
+overscroll-behavior: none;
+user-select: none;
+-webkit-user-select: none;
+}
+
+/* ======== Animated stars background ======== */
+.stars {
+position: fixed; inset: 0;
+pointer-events: none;
+z-index: 0;
+overflow: hidden;
+}
+.stars i {
+position:absolute;
+width: 14px; height: 14px;
+background: radial-gradient(circle, #fff 0%, #fff8a0 40%, transparent 65%);
+filter: drop-shadow(0 0 8px rgba(255,255,150,.85));
+animation: twinkle 3s ease-in-out infinite;
+}
+@keyframes twinkle {
+0%,100% { opacity: .3; transform: scale(.7) rotate(0deg); }
+50% { opacity: 1; transform: scale(1.2) rotate(45deg); }
+}
+.stars i::before, .stars i::after {
+content:””; position:absolute; inset:0;
+background: inherit;
+}
+.stars i::before { transform: rotate(45deg); }
+
+/* Floating clouds */
+.clouds {
+position: fixed; inset: 0;
+pointer-events:none; z-index:0;
+overflow:hidden;
+}
+.cloud {
+position: absolute;
+background: rgba(255,255,255,.85);
+border-radius: 50%;
+box-shadow:
+30px 8px 0 -4px rgba(255,255,255,.85),
+60px 0 0 -2px rgba(255,255,255,.85),
+-30px 6px 0 -4px rgba(255,255,255,.85),
+0 -10px 0 -6px rgba(255,255,255,.85);
+filter: blur(1px) drop-shadow(0 6px 12px rgba(180,140,200,.25));
+animation: float-cloud 30s linear infinite;
+}
+@keyframes float-cloud {
+from { transform: translateX(-200px); }
+to   { transform: translateX(calc(100vw + 200px)); }
+}
+
+/* Rainbow arch */
+.rainbow {
+position: fixed; bottom: -45vw; left: 50%;
+transform: translateX(-50%);
+width: 130vw; height: 130vw;
+border-radius: 50%;
+background:
+radial-gradient(circle, transparent 60%,
+#ff7eb6 60%, #ff7eb6 64%,
+#ffb14a 64%, #ffb14a 68%,
+#ffe65a 68%, #ffe65a 72%,
+#6fdc6a 72%, #6fdc6a 76%,
+#5cc8ff 76%, #5cc8ff 80%,
+#c89cff 80%, #c89cff 84%,
+transparent 84%);
+opacity: .55;
+z-index: 0;
+pointer-events: none;
+}
+
+.app {
+position:relative;
+width: 100%; height: 100vh;
+z-index: 2;
+display:flex; flex-direction:column;
+align-items:center; justify-content:center;
+padding: max(env(safe-area-inset-top), 8px) 12px max(env(safe-area-inset-bottom), 8px);
+}
+
+/* ===================== TITLE SCREEN ===================== */
+.title-screen {
+position:absolute; inset:0;
+display:flex; flex-direction:column;
+align-items:center; justify-content:center;
+padding: 4vh 4vw;
+z-index: 10;
+transition: opacity .6s ease, transform .6s ease;
+}
+.title-screen.hide { opacity:0; pointer-events:none; transform: scale(.92); }
+
+.mascot-row {
+display:flex;
+gap: clamp(2px, 1.5vw, 16px);
+margin-bottom: clamp(8px, 2vh, 18px);
+}
+.mascot {
+width: clamp(46px, 12vw, 76px);
+height: clamp(46px, 12vw, 76px);
+animation: bob 2.4s ease-in-out infinite;
+}
+.mascot:nth-child(1){ animation-delay: 0s;}
+.mascot:nth-child(2){ animation-delay: .3s;}
+.mascot:nth-child(3){ animation-delay: .6s;}
+.mascot:nth-child(4){ animation-delay: .9s;}
+@keyframes bob {
+0%,100% { transform: translateY(0) rotate(-3deg); }
+50% { transform: translateY(-10px) rotate(3deg); }
+}
+
+.logo {
+text-align:center;
+margin-bottom: clamp(14px, 3vh, 28px);
+position:relative;
+}
+.logo .kanji {
+font-family: “Mochiy Pop One”, “Zen Maru Gothic”, sans-serif;
+font-size: clamp(50px, 13vw, 108px);
+line-height: 1;
+letter-spacing: .03em;
+display:inline-block;
+}
+.logo .kanji span {
+display:inline-block;
+transform-origin:center;
+-webkit-text-stroke: 4px #fff;
+paint-order: stroke fill;
+text-shadow:
+0 4px 0 #6a2d80,
+0 8px 0 #4a1c5a,
+0 14px 14px rgba(80,30,100,.4);
+animation: dance 2.2s ease-in-out infinite;
+}
+.logo .kanji span:nth-child(1){ color:#ff5cb8; animation-delay: 0s; }
+.logo .kanji span:nth-child(2){ color:#76ee5c; animation-delay: .15s; }
+.logo .kanji span:nth-child(3){ color:#3acaf6; animation-delay: .3s; }
+.logo .kanji span:nth-child(4){ color:#ffae3a; animation-delay: .45s; }
+.logo .kanji span:nth-child(5){ color:#c89cff; animation-delay: .6s; }
+@keyframes dance {
+0%,100% { transform: translateY(0) rotate(-4deg); }
+50% { transform: translateY(-6px) rotate(4deg); }
+}
+.logo .sparkle {
+position:absolute;
+font-size: clamp(18px, 4vw, 26px);
+animation: spin-pop 2s ease-in-out infinite;
+}
+.logo .sparkle.s1 { top: -10px; left: -8px; animation-delay: 0s;}
+.logo .sparkle.s2 { top: -16px; right: 6px; animation-delay: .8s;}
+.logo .sparkle.s3 { bottom: -8px; left: 30%; animation-delay: 1.4s;}
+@keyframes spin-pop {
+0%,100% { transform: scale(.6) rotate(0); opacity:.7; }
+50% { transform: scale(1.2) rotate(180deg); opacity:1; }
+}
+.logo .sub {
+font-family: “Yusei Magic”, sans-serif;
+color: #6a2d80;
+font-size: clamp(13px, 3.4vw, 17px);
+letter-spacing: .14em;
+margin-top: 14px;
+text-shadow: 0 2px 0 #fff, 0 3px 6px rgba(0,0,0,.15);
+}
+
+.mode-grid {
+display:grid;
+grid-template-columns: repeat(2, minmax(140px, 1fr));
+gap: clamp(10px, 2vw, 16px);
+width: min(560px, 92vw);
+}
+.mode-card {
+position:relative;
+border:none;
+cursor:pointer;
+padding: 14px 12px 12px;
+border-radius: 22px;
+background: linear-gradient(180deg, #fff, #ffeeff);
+border: 4px solid #fff;
+box-shadow:
+0 6px 0 #c97abe,
+0 14px 20px rgba(190,100,170,.35);
+color: #5a1f6a;
+font-family: “Mochiy Pop One”, “Zen Maru Gothic”, sans-serif;
+font-weight: 900;
+font-size: clamp(15px, 3.6vw, 18px);
+transition: transform .12s ease, box-shadow .12s ease;
+text-align:center;
+overflow:hidden;
+}
+.mode-card::before {
+content:””; position:absolute; inset:0;
+background:
+radial-gradient(circle at 20% 20%, rgba(255,200,240,.5), transparent 40%),
+radial-gradient(circle at 80% 80%, rgba(200,230,255,.5), transparent 40%);
+pointer-events:none;
+}
+.mode-card:active {
+transform: translateY(4px);
+box-shadow: 0 2px 0 #c97abe, 0 6px 10px rgba(190,100,170,.35);
+}
+.mode-card .pcs {
+display:flex; gap:5px; justify-content:center; margin-bottom:6px;
+}
+.mode-card .pcs .mini {
+width: 26px; height: 26px;
+}
+.mode-card .desc {
+font-size: clamp(10px, 2.4vw, 12px);
+font-weight: 500;
+color: #8a4a7a;
+margin-top: 3px;
+font-family: “Zen Maru Gothic”, sans-serif;
+}
+.mode-card .badge {
+position:absolute;
+top: -8px; right: -8px;
+background: linear-gradient(180deg, #ffe65a, #ff9420);
+color: #5a1f00;
+font-family: “Mochiy Pop One”, sans-serif;
+font-size: 10px;
+padding: 4px 8px;
+border-radius: 999px;
+border: 2px solid #fff;
+transform: rotate(8deg);
+box-shadow: 0 3px 0 rgba(180,80,0,.5);
+}
+
+.credit {
+margin-top: clamp(16px, 4vh, 30px);
+color: #8a4a7a;
+font-family: “Yusei Magic”, sans-serif;
+font-size: 12px;
+letter-spacing: .1em;
+text-shadow: 0 1px 0 #fff;
+text-align:center;
+}
+
+/* ===================== GAME SCREEN ===================== */
+.game-screen {
+position:absolute; inset:0;
+display:flex; flex-direction:column;
+align-items:center;
+padding: max(env(safe-area-inset-top), 6px) 8px max(env(safe-area-inset-bottom), 6px);
+opacity: 0; pointer-events:none;
+transition: opacity .5s ease;
+}
+.game-screen.show { opacity:1; pointer-events:auto; }
+
+.topbar {
+width:min(720px, 100%);
+display:flex; align-items:center; justify-content:space-between;
+gap:6px;
+padding: 6px 8px;
+margin-bottom: 4px;
+}
+.turn-pill {
+flex: 1;
+display:flex; align-items:center; justify-content:center; gap:8px;
+padding: 8px 12px;
+background: rgba(255,255,255,.8);
+border: 3px solid #fff;
+border-radius: 999px;
+color:#5a1f6a;
+font-family: “Mochiy Pop One”, sans-serif;
+font-weight:900;
+font-size: clamp(13px, 3.4vw, 16px);
+backdrop-filter: blur(6px);
+box-shadow: 0 4px 10px rgba(180,100,180,.3);
+}
+.turn-pill .mini-mascot {
+width: 28px; height: 28px;
+flex-shrink: 0;
+}
+.icon-btn {
+width: 42px; height: 42px;
+border:none;
+border-radius: 14px;
+background: linear-gradient(180deg,#fff,#ffe0f5);
+border: 3px solid #fff;
+box-shadow: 0 4px 0 #c97abe, 0 6px 10px rgba(190,100,170,.35);
+display:flex; align-items:center; justify-content:center;
+cursor:pointer; font-size: 18px;
+flex-shrink:0;
+}
+.icon-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #c97abe, 0 3px 6px rgba(190,100,170,.35);}
+
+.board-wrap {
+position:relative;
+width: min(720px, 96vw);
+aspect-ratio: 1 / 1;
+max-height: calc(100vh - 220px);
+margin: 8px auto;
+}
+.board-frame {
+position:absolute; inset: -14px;
+border-radius: 26px;
+background: linear-gradient(135deg, #ff8ed2, #ffe65a 50%, #6fdc6a, #5cc8ff);
+padding: 6px;
+box-shadow: 0 12px 30px rgba(120,40,120,.4),
+inset 0 2px 4px rgba(255,255,255,.5),
+inset 0 -3px 4px rgba(0,0,0,.15);
+}
+.board-frame::before {
+content:””; position:absolute; inset:6px;
+border-radius:20px;
+background: linear-gradient(135deg,#fff7e0,#ffe0f0);
+}
+.board-frame::after{
+content:””; position:absolute; inset: 12px; border-radius: 16px;
+border: 2px dashed rgba(180,100,150,.3);
+pointer-events:none;
+}
+.board {
+position:absolute; inset: 0;
+border-radius: 16px;
+display:grid;
+/* playmat: soft cream/peach with subtle dots */
+background:
+radial-gradient(circle at 1px 1px, rgba(180,100,150,.18) 1px, transparent 1.5px) 0 0/22px 22px,
+radial-gradient(ellipse at 30% 25%, rgba(255,250,240,.5), transparent 65%),
+linear-gradient(160deg, #fff7e0, #ffe7c4 60%, #ffd2c6);
+overflow:hidden;
+box-shadow: inset 0 0 0 3px #fff,
+inset 0 0 25px rgba(150,80,120,.18);
+}
+.cell {
+position:relative;
+cursor:pointer;
+display:flex; align-items:center; justify-content:center;
+}
+.cell.legal-place::before {
+content:””; position:absolute; inset: 26%;
+border-radius: 50%;
+background: rgba(255,255,255,.5);
+border: 2px dashed rgba(255,180,210,.7);
+pointer-events:none;
+animation: gentle-pulse 1.8s ease-in-out infinite;
+}
+@keyframes gentle-pulse {
+0%,100% { transform: scale(.95); opacity:.6; }
+50% { transform: scale(1.05); opacity:1; }
+}
+.cell.legal-move::before {
+content:“✦”; position:absolute; inset: 20%;
+border-radius: 50%;
+background: radial-gradient(circle, rgba(255,250,150,.8), rgba(255,200,80,.4) 60%, transparent);
+border: 2px solid rgba(255,220,80,.9);
+color: #ff9420;
+display:flex; align-items:center; justify-content:center;
+font-size: 18px;
+font-weight: bold;
+pointer-events:none;
+animation: pulse-bright 1.2s ease-in-out infinite;
+}
+@keyframes pulse-bright {
+0%,100% { transform: scale(1) rotate(0deg); opacity:.8; }
+50% { transform: scale(1.18) rotate(180deg); opacity:1; }
+}
+.cell.removable .tile-svg {
+filter: drop-shadow(0 0 12px #fff) drop-shadow(0 0 22px #ffe85a);
+animation: jiggle .55s ease-in-out infinite;
+}
+@keyframes jiggle {
+0%,100% { transform: rotate(-3deg) scale(1.04);}
+50% { transform: rotate(3deg) scale(1.08);}
+}
+.cell.empty:active::after {
+content:””; position:absolute; inset:0;
+background: radial-gradient(circle, rgba(255,255,255,.4), transparent 60%);
+border-radius: 50%;
+}
+
+.tile {
+width: 92%; height: 92%;
+position:relative;
+animation: drop .45s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes drop {
+0% { transform: translateY(-40px) rotate(-25deg) scale(.5); opacity:0; }
+60% { transform: translateY(4px) rotate(8deg) scale(1.12); opacity:1; }
+80% { transform: translateY(-2px) rotate(-3deg) scale(.97); }
+100% { transform: translateY(0) rotate(0) scale(1); opacity:1; }
+}
+.tile-svg { width:100%; height:100%; display:block; }
+
+/* sparkles ejected on place */
+.sparkle-burst {
+position:absolute; inset:0; pointer-events:none;
+}
+.sparkle-burst i {
+position:absolute; left:50%; top:50%;
+width: 10px; height: 10px;
+transform: translate(-50%,-50%);
+background: radial-gradient(circle, #fff 0%, #ffe85a 50%, transparent 70%);
+border-radius: 50%;
+animation: spark-out .7s ease-out forwards;
+}
+@keyframes spark-out {
+0% { transform: translate(-50%,-50%) scale(.4); opacity:1;}
+100% { transform: translate(calc(-50% + var(–dx)), calc(-50% + var(–dy))) scale(0); opacity:0;}
+}
+
+/* winning highlight */
+.cell.win .tile-svg {
+animation: winflash .8s ease-in-out infinite;
+}
+@keyframes winflash {
+0%,100% { filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 18px #ffe85a) drop-shadow(0 0 28px #ff8ed2); transform: scale(1); }
+50%     { filter: drop-shadow(0 0 16px #fff) drop-shadow(0 0 30px #ffe85a) drop-shadow(0 0 42px #ff8ed2); transform: scale(1.12); }
+}
+
+/* ===================== Player cards ===================== */
+.players {
+width:min(720px, 100%);
+display:flex; gap:6px; justify-content:center;
+padding: 4px 6px 0;
+flex-wrap: wrap;
+}
+.player-card {
+flex: 1 1 0;
+min-width: 70px;
+background: rgba(255,255,255,.92);
+border-radius: 18px;
+padding: 6px 4px 8px;
+border: 3px solid #fff;
+color:#5a1f6a;
+font-family: “Mochiy Pop One”, sans-serif;
+text-align:center;
+box-shadow: 0 4px 0 rgba(180,100,180,.4), 0 8px 14px rgba(120,40,120,.25);
+transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+position:relative;
+}
+.player-card.active {
+transform: translateY(-4px) scale(1.04);
+border-color: #ffe65a;
+box-shadow: 0 6px 0 rgba(255,180,40,.5), 0 12px 18px rgba(120,40,120,.35), 0 0 0 3px rgba(255,225,100,.5);
+}
+.player-card.active::before {
+content: “▼”;
+position:absolute;
+top: -16px; left: 50%; transform: translateX(-50%);
+color: #ffd45a;
+text-shadow: 0 1px 0 #fff, 0 2px 4px rgba(0,0,0,.25);
+font-size: 16px;
+animation: bounce-down .8s ease-in-out infinite;
+}
+@keyframes bounce-down {
+0%,100% { transform: translateX(-50%) translateY(0); }
+50% { transform: translateX(-50%) translateY(4px); }
+}
+.player-card .avatar {
+width: 32px; height: 32px;
+margin: 0 auto 2px;
+}
+.player-card .name {
+font-size: clamp(11px, 2.7vw, 13px);
+letter-spacing: .04em;
+color: #5a1f6a;
+}
+.player-card .count {
+font-size: clamp(20px, 5.5vw, 28px);
+font-family: “Mochiy Pop One”, sans-serif;
+margin-top: 0;
+line-height: 1;
+color: #8a2da0;
+}
+.player-card .count small {
+font-size: 0.45em;
+opacity:.6;
+font-family: “Zen Maru Gothic”, sans-serif;
+margin-left:1px;
+}
+.player-card .phase {
+font-size: 10px;
+color:#a55a8a;
+margin-top: 1px;
+font-family: “Zen Maru Gothic”, sans-serif;
+}
+
+/* ===================== Hint banner ===================== */
+.hint {
+position:absolute;
+top: 50%; left: 50%;
+transform: translate(-50%, -50%) scale(.6) rotate(-6deg);
+background: linear-gradient(180deg,#fff,#fff8d6);
+color:#5a1f6a;
+font-family: “Mochiy Pop One”, sans-serif;
+font-size: clamp(16px, 4vw, 22px);
+padding: 14px 22px;
+border-radius: 16px;
+border: 4px solid #ffd45a;
+box-shadow: 0 12px 24px rgba(120,40,120,.45),
+inset 0 2px 0 #fff;
+pointer-events:none;
+opacity:0;
+transition: opacity .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+z-index: 50;
+text-align:center;
+line-height: 1.3;
+}
+.hint.show { opacity:1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+
+/* リーチ! splash */
+.reach-splash {
+position:fixed; left: 50%; top: 30%;
+transform: translate(-50%,-50%) scale(.4) rotate(-15deg);
+font-family: “Mochiy Pop One”, sans-serif;
+font-size: clamp(48px, 12vw, 90px);
+-webkit-text-stroke: 6px #fff;
+paint-order: stroke fill;
+color: #ff3aa8;
+text-shadow: 0 4px 0 #6a2d80, 0 8px 0 #4a1c5a, 0 14px 18px rgba(80,30,100,.5);
+pointer-events:none;
+opacity:0;
+z-index: 60;
+transition: opacity .3s ease, transform .5s cubic-bezier(.34,1.56,.64,1);
+}
+.reach-splash.show {
+opacity:1; transform: translate(-50%,-50%) scale(1) rotate(0deg);
+animation: reach-wobble .6s ease-in-out infinite;
+}
+@keyframes reach-wobble {
+0%,100% { rotate: -3deg; }
+50% { rotate: 3deg; }
+}
+
+/* ===================== Win modal ===================== */
+.modal {
+position: fixed; inset:0;
+background: radial-gradient(ellipse at 50% 50%, rgba(40,10,60,.5), rgba(20,0,30,.85));
+display:flex; align-items:center; justify-content:center;
+z-index:100;
+opacity:0; pointer-events:none;
+transition: opacity .4s ease;
+padding: 20px;
+}
+.modal.show { opacity:1; pointer-events:auto; }
+.modal-card {
+background: linear-gradient(180deg, #fff, #ffeeff);
+border-radius: 28px;
+padding: 24px 22px;
+text-align:center;
+border: 5px solid #fff;
+box-shadow:
+0 0 0 3px #ffd45a,
+0 0 0 6px #ff7eb6,
+0 0 0 9px #5cc8ff,
+0 24px 50px rgba(0,0,0,.6);
+max-width: 360px;
+transform: scale(.5) rotate(-15deg);
+transition: transform .6s cubic-bezier(.34,1.56,.64,1);
+position:relative;
+}
+.modal.show .modal-card { transform: scale(1) rotate(0); }
+.modal-card h2 {
+font-family: “Mochiy Pop One”, sans-serif;
+font-size: 36px;
+margin: 0 0 4px;
+color: #ff3aa8;
+-webkit-text-stroke: 4px #fff;
+paint-order: stroke fill;
+text-shadow: 0 4px 0 #6a2d80, 0 8px 12px rgba(80,30,100,.4);
+}
+.modal-card .winner-tile {
+width: 110px; height: 110px;
+margin: 16px auto 8px;
+filter: drop-shadow(0 8px 14px rgba(0,0,0,.4)) drop-shadow(0 0 20px #ffe85a);
+animation: winnerSpin 1.6s ease-in-out infinite;
+}
+@keyframes winnerSpin {
+0%,100% { transform: rotate(-12deg) scale(1); }
+50% { transform: rotate(12deg) scale(1.12); }
+}
+.modal-card .msg {
+font-family: “Mochiy Pop One”, sans-serif;
+font-size: 22px;
+color: #5a1f6a;
+margin-bottom: 6px;
+}
+.modal-card .sub {
+font-size: 13px;
+color: #8a4a7a;
+margin-bottom: 16px;
+font-family: “Zen Maru Gothic”, sans-serif;
+}
+.modal-card .btn-row {
+display:flex; gap:10px; justify-content:center;
+flex-wrap: wrap;
+}
+.btn {
+border:none;
+padding: 12px 20px;
+border-radius: 16px;
+font-family: “Mochiy Pop One”, sans-serif;
+font-weight: 900;
+font-size: 15px;
+cursor:pointer;
+background: linear-gradient(180deg, #ff7eb6, #ff3aa8);
+color:#fff;
+border: 3px solid #fff;
+box-shadow: 0 5px 0 #a02568, 0 8px 14px rgba(0,0,0,.35);
+transition: transform .12s ease, box-shadow .12s ease;
+-webkit-text-stroke: 1px #6a1840;
+paint-order: stroke fill;
+}
+.btn:active{ transform: translateY(3px); box-shadow: 0 2px 0 #a02568, 0 4px 8px rgba(0,0,0,.35);}
+.btn.ghost {
+background: linear-gradient(180deg, #fff, #d8c8ff);
+color: #5a1f6a;
+-webkit-text-stroke: 0;
+box-shadow: 0 5px 0 #6c3c92, 0 8px 14px rgba(0,0,0,.35);
+}
+.btn.ghost:active{ box-shadow: 0 2px 0 #6c3c92, 0 4px 8px rgba(0,0,0,.35);}
+
+/* balloons + confetti */
+.confetti {
+position:fixed; inset:0; pointer-events:none; z-index: 90;
+overflow:hidden;
+}
+.confetti i {
+position:absolute; top:-30px;
+width: 14px; height: 18px;
+border-radius: 3px;
+animation: fall linear forwards;
+}
+.confetti i.balloon {
+width: 36px; height: 44px;
+border-radius: 50% 50% 50% 50% / 55% 55% 45% 45%;
+animation: rise linear forwards;
+box-shadow: inset -8px -10px 0 rgba(0,0,0,.18), inset 6px 6px 8px rgba(255,255,255,.4);
+}
+.confetti i.balloon::after {
+content:””; position:absolute; bottom: -28px; left: 50%;
+width: 2px; height: 28px;
+background: rgba(255,255,255,.6);
+transform: translateX(-50%);
+}
+@keyframes fall {
+to { transform: translateY(110vh) rotate(720deg); }
+}
+@keyframes rise {
+0% { transform: translateY(110vh) rotate(0deg); }
+100% { transform: translateY(-30vh) rotate(20deg); }
+}
+
+@media (max-width: 480px){
+.mode-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+
+</head>
+<body>
+
+<!-- Animated background layers -->
+
+<div class="rainbow"></div>
+<div class="clouds" id="clouds"></div>
+<div class="stars" id="stars"></div>
+
+<div class="app">
+
+  <!-- ============ TITLE SCREEN ============ -->
+
+  <section class="title-screen" id="titleScreen">
+
+```
+<div class="mascot-row" id="mascotRow"></div>
+
+<div class="logo">
+  <span class="sparkle s1">✨</span>
+  <span class="sparkle s2">⭐</span>
+  <span class="sparkle s3">💫</span>
+  <div class="kanji"><span>い</span><span>ろ</span><span>な</span><span>ら</span><span>べ</span></div>
+  <div class="sub">✦ 5 まいで かち ✦ いろの ぼうけん ✦</div>
+</div>
+
+<div class="mode-grid" id="modeGrid">
+  <button class="mode-card" data-mode="1">
+    <div class="pcs" id="pcs1"></div>
+    ひとり vs CPU
+    <div class="desc">コンピュータと たいせん</div>
+    <div class="badge">ねらえ!</div>
+  </button>
+  <button class="mode-card" data-mode="2">
+    <div class="pcs" id="pcs2"></div>
+    ふたり あそび
+    <div class="desc">2人で ガチンコ</div>
+  </button>
+  <button class="mode-card" data-mode="3">
+    <div class="pcs" id="pcs3"></div>
+    さんにん あそび
+    <div class="desc">3人で にぎやか</div>
+  </button>
+  <button class="mode-card" data-mode="4">
+    <div class="pcs" id="pcs4"></div>
+    よにん あそび
+    <div class="desc">みんなで バトル!</div>
+  </button>
+</div>
+<div class="credit">タテ・ヨコ・ナナメ いずれか 5まい ならべて かち !</div>
+```
+
+  </section>
+
+  <!-- ============ GAME SCREEN ============ -->
+
+  <section class="game-screen" id="gameScreen">
+    <div class="topbar">
+      <button class="icon-btn" id="btnHome" title="タイトルへ">🏠</button>
+      <div class="turn-pill" id="turnPill">
+        <span class="mini-mascot" id="turnMascot"></span>
+        <span id="turnText">プレイヤー 1 のばん</span>
+      </div>
+      <button class="icon-btn" id="btnReset" title="やりなおし">🔄</button>
+    </div>
+
+```
+<div class="players" id="players"></div>
+
+<div class="board-wrap">
+  <div class="board-frame"></div>
+  <div class="board" id="board"></div>
+  <div class="hint" id="hint"></div>
+</div>
+```
+
+  </section>
+
+  <!-- ============ Reach splash ============ -->
+
+  <div class="reach-splash" id="reachSplash">リーチ！</div>
+
+  <!-- ============ Win modal ============ -->
+
+  <div class="modal" id="winModal">
+    <div class="modal-card">
+      <h2 id="winTitle">やったぁ！</h2>
+      <div class="winner-tile" id="winnerTile"></div>
+      <div class="msg" id="winMsg">プレイヤー 1 の しょうり</div>
+      <div class="sub" id="winSub">5まい ならんだよ ✦</div>
+      <div class="btn-row">
+        <button class="btn ghost" id="winHome">タイトルへ</button>
+        <button class="btn" id="winAgain">もういっかい</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confetti" id="confetti"></div>
+</div>
+
+<script>
+/* =========================================================
+   いろならべ ✦ マジカル・カラーズ
+   ========================================================= */
+
+const COLORS = [
+  {
+    id:'pink', light:'#ff8ed2', main:'#ff5cc4', dark:'#9c0058', label:'ピンク',
+    name:'ピーちゃん', face:'flower'
+  },
+  {
+    id:'green', light:'#9af07c', main:'#66e860', dark:'#147f0a', label:'グリーン',
+    name:'みどりん', face:'leaf'
+  },
+  {
+    id:'blue', light:'#7ddfff', main:'#3acdff', dark:'#015c8a', label:'ブルー',
+    name:'あおまる', face:'star'
+  },
+  {
+    id:'orange', light:'#ffc070', main:'#ffaa3a', dark:'#9a4500', label:'オレンジ',
+    name:'だいだい', face:'sun'
+  }
+];
+
+const BOARD_N = 10;
+const TILES_PER_PLAYER = 15;
+const WIN_LEN = 5;
+
+/* =========================================================
+   SVG factories
+   ========================================================= */
+
+// Cute mascot character (round blob with face & color theme)
+function mascotSVG(colorIdx, size = 60) {
+  const c = COLORS[colorIdx];
+  const id = 'm' + colorIdx + '_' + Math.random().toString(36).slice(2,7);
+  return `
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">
+    <defs>
+      <radialGradient id="${id}body" cx=".4" cy=".35" r=".75">
+        <stop offset="0%" stop-color="${c.light}"/>
+        <stop offset="60%" stop-color="${c.main}"/>
+        <stop offset="100%" stop-color="${c.dark}"/>
+      </radialGradient>
+      <radialGradient id="${id}cheek" cx=".5" cy=".5" r=".6">
+        <stop offset="0%" stop-color="rgba(255,80,120,.6)"/>
+        <stop offset="100%" stop-color="rgba(255,80,120,0)"/>
+      </radialGradient>
+    </defs>
+    <!-- shadow -->
+    <ellipse cx="50" cy="92" rx="22" ry="4" fill="rgba(0,0,0,.18)"/>
+    <!-- body -->
+    <path d="M 50 12
+             C 28 12, 14 30, 14 52
+             C 14 74, 30 88, 50 88
+             C 70 88, 86 74, 86 52
+             C 86 30, 72 12, 50 12 Z"
+          fill="url(#${id}body)"
+          stroke="${c.dark}" stroke-width="2.5"/>
+    <!-- top highlight -->
+    <ellipse cx="38" cy="28" rx="14" ry="8" fill="rgba(255,255,255,.55)"/>
+    <!-- cheeks -->
+    <ellipse cx="30" cy="58" rx="8" ry="5" fill="url(#${id}cheek)"/>
+    <ellipse cx="70" cy="58" rx="8" ry="5" fill="url(#${id}cheek)"/>
+    <!-- eyes -->
+    <ellipse cx="38" cy="48" rx="5" ry="6" fill="#1b0830"/>
+    <ellipse cx="62" cy="48" rx="5" ry="6" fill="#1b0830"/>
+    <ellipse cx="40" cy="46" rx="1.8" ry="2" fill="#fff"/>
+    <ellipse cx="64" cy="46" rx="1.8" ry="2" fill="#fff"/>
+    <!-- mouth (smile) -->
+    <path d="M 42 64 Q 50 72 58 64" stroke="#1b0830" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- decoration based on color -->
+    ${decorationFor(c.face, c.dark)}
+  </svg>`;
+}
+function decorationFor(face, dark){
+  switch(face){
+    case 'flower':
+      return `<g transform="translate(50,16)">
+        <circle cx="0" cy="-4" r="4" fill="#ffe85a" stroke="${dark}" stroke-width="1.5"/>
+        <circle cx="-6" cy="-1" r="3.5" fill="#fff" stroke="${dark}" stroke-width="1.5"/>
+        <circle cx="6" cy="-1" r="3.5" fill="#fff" stroke="${dark}" stroke-width="1.5"/>
+        <circle cx="-3" cy="-7" r="3.5" fill="#fff" stroke="${dark}" stroke-width="1.5"/>
+        <circle cx="3" cy="-7" r="3.5" fill="#fff" stroke="${dark}" stroke-width="1.5"/>
+        <circle cx="0" cy="-4" r="2" fill="#ff8e3a"/>
+      </g>`;
+    case 'leaf':
+      return `<path d="M 50 14 Q 56 4 58 14 Q 54 18 50 14 Z" fill="#1f9c12" stroke="${dark}" stroke-width="1.5"/>
+              <path d="M 53 6 Q 53 12 53 16" stroke="${dark}" stroke-width="1" fill="none"/>`;
+    case 'star':
+      return `<polygon points="50,8 53,16 61,16 55,21 57,29 50,24 43,29 45,21 39,16 47,16"
+                       fill="#ffe85a" stroke="${dark}" stroke-width="1.5"/>`;
+    case 'sun':
+      return `<g stroke="${dark}" stroke-width="1.5" stroke-linecap="round">
+        <line x1="50" y1="2" x2="50" y2="10"/>
+        <line x1="38" y1="6" x2="42" y2="13"/>
+        <line x1="62" y1="6" x2="58" y2="13"/>
+        <line x1="30" y1="14" x2="36" y2="18"/>
+        <line x1="70" y1="14" x2="64" y2="18"/>
+      </g>`;
+  }
+  return '';
+}
+
+// SVG factory for the OK tile (with peeking eyes!)
+function tileSVG(colorIdx) {
+  const c = COLORS[colorIdx];
+  const id = 'g' + colorIdx + '_' + Math.random().toString(36).slice(2,7);
+  return `
+  <svg class="tile-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="${id}face" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="${c.light}"/>
+        <stop offset="55%" stop-color="${c.main}"/>
+        <stop offset="100%" stop-color="${c.dark}"/>
+      </linearGradient>
+      <linearGradient id="${id}gloss" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="rgba(255,255,255,.85)"/>
+        <stop offset="60%" stop-color="rgba(255,255,255,.0)"/>
+      </linearGradient>
+      <radialGradient id="${id}hole" cx=".5" cy=".4" r=".7">
+        <stop offset="0%"  stop-color="rgba(0,0,0,.45)"/>
+        <stop offset="55%" stop-color="rgba(0,0,0,.65)"/>
+        <stop offset="100%" stop-color="${c.dark}"/>
+      </radialGradient>
+    </defs>
+
+    <!-- main tile body -->
+    <rect x="4" y="4" width="92" height="92" rx="14" ry="14"
+          fill="${c.dark}" opacity=".7"/>
+    <rect x="3" y="3" width="92" height="92" rx="14" ry="14"
+          fill="url(#${id}face)" stroke="${c.dark}" stroke-width="0.6"/>
+
+    <!-- soft outer rim -->
+    <rect x="3" y="3" width="92" height="92" rx="14" ry="14"
+          fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.2"/>
+    <rect x="7" y="7" width="86" height="86" rx="11" ry="11"
+          fill="none" stroke="rgba(0,0,0,.18)" stroke-width="0.8"/>
+
+    <!-- O.K letters at 4 corners -->
+    <g font-family="Impact, 'Arial Black', sans-serif" font-weight="900"
+       fill="${c.dark}" opacity=".5" font-size="13" letter-spacing="-0.5">
+      <text x="14" y="20" transform="rotate(0,14,20)">O·K</text>
+      <text x="86" y="20" transform="rotate(90,86,20)">O·K</text>
+      <text x="86" y="86" transform="rotate(180,86,86)">O·K</text>
+      <text x="14" y="86" transform="rotate(-90,14,86)">O·K</text>
+    </g>
+
+    <!-- center hole with peeking eyes -->
+    <circle cx="50" cy="50" r="16" fill="${c.dark}"/>
+    <circle cx="50" cy="50" r="15" fill="url(#${id}hole)"/>
+    <!-- peeking eyes inside the hole -->
+    <g>
+      <circle cx="46" cy="52" r="2" fill="#fff"/>
+      <circle cx="54" cy="52" r="2" fill="#fff"/>
+      <circle cx="46.4" cy="52.3" r="1" fill="#1b0830"/>
+      <circle cx="54.4" cy="52.3" r="1" fill="#1b0830"/>
+    </g>
+
+    <!-- top gloss highlight -->
+    <path d="M 14 8 Q 50 4 86 8 Q 76 18 50 18 Q 24 18 14 8 Z"
+          fill="url(#${id}gloss)" opacity=".8"/>
+    <!-- side highlight -->
+    <path d="M 8 14 Q 6 50 8 86 L 12 80 Q 11 50 12 20 Z"
+          fill="rgba(255,255,255,.22)"/>
+    <!-- tiny shine dot -->
+    <circle cx="22" cy="22" r="3" fill="rgba(255,255,255,.85)"/>
+  </svg>`;
+}
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const state = {
+  mode: 0,
+  numPlayers: 0,
+  colorIdx: [],
+  board: [],
+  current: 0,
+  placedCounts: [],
+  inMovePhase: [],
+  pendingMove: null,
+  gameOver: false,
+  cpu: false,
+  cpuPlayerIndex: -1,
+  reachShownFor: -1     // tracks which player most recently triggered reach splash
+};
+
+/* =========================================================
+   ELEMENTS
+   ========================================================= */
+const $ = (sel) => document.querySelector(sel);
+const titleScreen = $('#titleScreen');
+const gameScreen = $('#gameScreen');
+const boardEl = $('#board');
+const playersEl = $('#players');
+const turnMascotEl = $('#turnMascot');
+const turnTextEl = $('#turnText');
+const hintEl = $('#hint');
+const winModal = $('#winModal');
+const winTitle = $('#winTitle');
+const winnerTileEl = $('#winnerTile');
+const winMsgEl = $('#winMsg');
+const winSubEl = $('#winSub');
+const confettiEl = $('#confetti');
+const reachSplashEl = $('#reachSplash');
+const mascotRowEl = $('#mascotRow');
+
+/* =========================================================
+   BOOT: build clouds, stars, mascots
+   ========================================================= */
+function buildBackground(){
+  // stars
+  const stars = $('#stars');
+  for (let i = 0; i < 24; i++){
+    const s = document.createElement('i');
+    s.style.left = (Math.random()*100) + 'vw';
+    s.style.top = (Math.random()*100) + 'vh';
+    s.style.animationDelay = (Math.random()*3) + 's';
+    const scale = 0.6 + Math.random()*1.2;
+    s.style.transform = `scale(${scale})`;
+    stars.appendChild(s);
+  }
+  // clouds
+  const clouds = $('#clouds');
+  for (let i = 0; i < 5; i++){
+    const c = document.createElement('div');
+    c.className = 'cloud';
+    const w = 60 + Math.random()*40;
+    c.style.width = w + 'px';
+    c.style.height = (w*0.6) + 'px';
+    c.style.top = (5 + Math.random()*70) + 'vh';
+    c.style.animationDuration = (28 + Math.random()*18) + 's';
+    c.style.animationDelay = (-Math.random()*30) + 's';
+    clouds.appendChild(c);
+  }
+  // title mascots
+  for (let i = 0; i < 4; i++){
+    const m = document.createElement('div');
+    m.className = 'mascot';
+    m.innerHTML = mascotSVG(i);
+    mascotRowEl.appendChild(m);
+  }
+  // mode card mini mascots
+  const modeColors = {
+    1: [0,2],
+    2: [0,1],
+    3: [0,1,2],
+    4: [0,1,2,3]
+  };
+  for (const [mode, cols] of Object.entries(modeColors)){
+    const container = $('#pcs' + mode);
+    cols.forEach(ci=>{
+      const d = document.createElement('div');
+      d.className = 'mini';
+      d.innerHTML = mascotSVG(ci);
+      container.appendChild(d);
+    });
+  }
+}
+buildBackground();
+
+document.querySelectorAll('.mode-card').forEach(btn=>{
+  btn.addEventListener('click',()=> startGame(parseInt(btn.dataset.mode)));
+});
+$('#btnHome').addEventListener('click', goHome);
+$('#btnReset').addEventListener('click', ()=> startGame(state.mode));
+$('#winHome').addEventListener('click', ()=> { closeModal(); goHome(); });
+$('#winAgain').addEventListener('click', ()=> { closeModal(); startGame(state.mode); });
+
+/* =========================================================
+   GAME LIFECYCLE
+   ========================================================= */
+function goHome(){
+  titleScreen.classList.remove('hide');
+  gameScreen.classList.remove('show');
+  closeModal();
+}
+
+function startGame(mode){
+  state.mode = mode;
+  state.numPlayers = mode === 1 ? 2 : mode;
+  state.cpu = (mode === 1);
+  state.cpuPlayerIndex = state.cpu ? 1 : -1;
+
+  if (state.numPlayers === 2) {
+    state.colorIdx = [0, 2]; // pink, blue
+  } else if (state.numPlayers === 3) {
+    state.colorIdx = [0, 1, 2]; // pink, green, blue
+  } else {
+    state.colorIdx = [0, 1, 2, 3];
+  }
+
+  state.board = Array.from({length:BOARD_N}, ()=> Array(BOARD_N).fill(null));
+  state.placedCounts = Array(state.numPlayers).fill(0);
+  state.inMovePhase = Array(state.numPlayers).fill(false);
+  state.current = 0;
+  state.pendingMove = null;
+  state.gameOver = false;
+  state.reachShownFor = -1;
+
+  titleScreen.classList.add('hide');
+  setTimeout(()=>{
+    gameScreen.classList.add('show');
+    renderAll();
+    updateTurnUI();
+    showHint(`タップ で 1まい おく ✦`, 1300);
+    maybeRunCPU();
+  }, 400);
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function renderAll(){
+  renderPlayers();
+  renderBoard();
+}
+
+function renderPlayers(){
+  playersEl.innerHTML = '';
+  for (let p = 0; p < state.numPlayers; p++){
+    const c = COLORS[state.colorIdx[p]];
+    const card = document.createElement('div');
+    card.className = 'player-card' + (p === state.current ? ' active' : '');
+    const remaining = TILES_PER_PLAYER - state.placedCounts[p];
+    const isCpu = (state.cpu && p === state.cpuPlayerIndex);
+    const phaseText = state.inMovePhase[p] ? '◆うごかす' : `のこり`;
+    card.innerHTML = `
+      <div class="avatar">${mascotSVG(state.colorIdx[p])}</div>
+      <div class="name">${isCpu ? 'CPU' : 'P' + (p+1)} <span style="color:${c.dark}">${c.name}</span></div>
+      <div class="count">${remaining}<small>/15</small></div>
+      <div class="phase">${phaseText}</div>
+    `;
+    playersEl.appendChild(card);
+  }
+}
+
+function renderBoard(){
+  boardEl.style.gridTemplateColumns = `repeat(${BOARD_N}, 1fr)`;
+  boardEl.style.gridTemplateRows    = `repeat(${BOARD_N}, 1fr)`;
+  boardEl.innerHTML = '';
+  for (let r = 0; r < BOARD_N; r++){
+    for (let c = 0; c < BOARD_N; c++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = r; cell.dataset.c = c;
+      const tile = state.board[r][c];
+      if (tile){
+        cell.classList.add('occupied');
+        const t = document.createElement('div');
+        t.className = 'tile';
+        t.innerHTML = tileSVG(state.colorIdx[tile.p]);
+        cell.appendChild(t);
+      } else {
+        cell.classList.add('empty');
+      }
+      cell.addEventListener('click', onCellClick);
+      boardEl.appendChild(cell);
+    }
+  }
+  refreshLegalOverlays();
+}
+
+function refreshLegalOverlays(){
+  boardEl.querySelectorAll('.cell').forEach(el=>{
+    el.classList.remove('legal-move','removable','legal-place');
+  });
+  if (state.gameOver) return;
+  const p = state.current;
+  if (state.cpu && p === state.cpuPlayerIndex) return;
+
+  if (state.inMovePhase[p] && !state.pendingMove){
+    for (let r = 0; r < BOARD_N; r++){
+      for (let c = 0; c < BOARD_N; c++){
+        if (state.board[r][c] && state.board[r][c].p === p){
+          const idx = r * BOARD_N + c;
+          boardEl.children[idx].classList.add('removable');
+        }
+      }
+    }
+  } else if (state.inMovePhase[p] && state.pendingMove){
+    const [fr, fc] = state.pendingMove.from;
+    const saved = state.board[fr][fc];
+    state.board[fr][fc] = null;
+    for (let r = 0; r < BOARD_N; r++){
+      for (let c = 0; c < BOARD_N; c++){
+        if (isLegalPlacement(r, c)){
+          const idx = r * BOARD_N + c;
+          boardEl.children[idx].classList.add('legal-move');
+        }
+      }
+    }
+    state.board[fr][fc] = saved;
+  } else {
+    if (!boardIsEmpty()){
+      for (let r = 0; r < BOARD_N; r++){
+        for (let c = 0; c < BOARD_N; c++){
+          if (isLegalPlacement(r, c)){
+            const idx = r * BOARD_N + c;
+            boardEl.children[idx].classList.add('legal-place');
+          }
+        }
+      }
+    }
+  }
+}
+
+function updateTurnUI(){
+  const p = state.current;
+  const c = COLORS[state.colorIdx[p]];
+  turnMascotEl.innerHTML = mascotSVG(state.colorIdx[p]);
+  const isCpu = (state.cpu && p === state.cpuPlayerIndex);
+  let label = isCpu ? `CPU(${c.name})の ばん` : `P${p+1}(${c.name})の ばん`;
+  if (state.inMovePhase[p]){
+    label += state.pendingMove ? ' ─ おきなおす ばしょ を タップ' : ' ─ うごかす いし を タップ';
+  }
+  turnTextEl.textContent = label;
+  renderPlayers();
+}
+
+/* =========================================================
+   ADJACENCY / PLACEMENT VALIDATION
+   ========================================================= */
+const DIRS = [[1,0],[0,1],[1,1],[1,-1]];
+function inBounds(r,c){ return r>=0 && r<BOARD_N && c>=0 && c<BOARD_N; }
+
+function hasAnyAdjacent(r, c){
+  for (let dr = -1; dr <= 1; dr++){
+    for (let dc = -1; dc <= 1; dc++){
+      if (dr === 0 && dc === 0) continue;
+      const nr = r + dr, nc = c + dc;
+      if (inBounds(nr, nc) && state.board[nr][nc]) return true;
+    }
+  }
+  return false;
+}
+function boardIsEmpty(){
+  for (let r = 0; r < BOARD_N; r++){
+    for (let c = 0; c < BOARD_N; c++){
+      if (state.board[r][c]) return false;
+    }
+  }
+  return true;
+}
+function isLegalPlacement(r, c){
+  if (!inBounds(r, c)) return false;
+  if (state.board[r][c]) return false;
+  if (boardIsEmpty()) return true;
+  return hasAnyAdjacent(r, c);
+}
+
+/* =========================================================
+   INTERACTION
+   ========================================================= */
+function onCellClick(e){
+  if (state.gameOver) return;
+  const p = state.current;
+  if (state.cpu && p === state.cpuPlayerIndex) return;
+
+  const cell = e.currentTarget;
+  const r = parseInt(cell.dataset.r);
+  const c = parseInt(cell.dataset.c);
+
+  if (!state.inMovePhase[p]){
+    if (state.board[r][c]) return;
+    if (!isLegalPlacement(r, c)){
+      showHint('となりに 駒のある\nマスにしか おけないよ ✦', 1100);
+      return;
+    }
+    placeTile(p, r, c);
+  } else {
+    if (!state.pendingMove){
+      const t = state.board[r][c];
+      if (!t || t.p !== p){
+        showHint('じぶん の いし を タップ ✦', 900);
+        return;
+      }
+      state.pendingMove = { from:[r,c] };
+      refreshLegalOverlays();
+      updateTurnUI();
+    } else {
+      const [fr, fc] = state.pendingMove.from;
+      if (state.board[r][c]) {
+        if (state.board[r][c].p === p){
+          state.pendingMove = { from:[r,c] };
+          refreshLegalOverlays();
+          return;
+        }
+        return;
+      }
+      const saved = state.board[fr][fc];
+      state.board[fr][fc] = null;
+      const ok = isLegalPlacement(r, c);
+      state.board[fr][fc] = saved;
+      if (!ok){
+        showHint('となりに 駒のある\nマスにしか おけないよ ✦', 1100);
+        return;
+      }
+      moveTile(p, fr, fc, r, c);
+    }
+  }
+}
+
+function placeTile(p, r, c){
+  state.board[r][c] = { p };
+  state.placedCounts[p]++;
+  const cell = boardEl.children[r * BOARD_N + c];
+  const t = document.createElement('div');
+  t.className = 'tile';
+  t.innerHTML = tileSVG(state.colorIdx[p]);
+  cell.classList.remove('empty');
+  cell.classList.add('occupied');
+  cell.appendChild(t);
+  emitSparkles(cell);
+
+  if (state.placedCounts[p] >= TILES_PER_PLAYER){
+    state.inMovePhase[p] = true;
+  }
+
+  if (checkWinAt(r, c, p)){
+    endGame(p);
+    return;
+  }
+  // Check リーチ for current player after placement
+  if (hasReach(p)) {
+    showReachSplash();
+  }
+  nextTurn();
+}
+
+function moveTile(p, fr, fc, tr, tc){
+  state.board[fr][fc] = null;
+  state.board[tr][tc] = { p };
+  state.pendingMove = null;
+
+  const fromCell = boardEl.children[fr * BOARD_N + fc];
+  fromCell.innerHTML = '';
+  fromCell.classList.remove('occupied','win','removable');
+  fromCell.classList.add('empty');
+
+  const toCell = boardEl.children[tr * BOARD_N + tc];
+  toCell.classList.remove('empty','legal-move');
+  toCell.classList.add('occupied');
+  const t = document.createElement('div');
+  t.className = 'tile';
+  t.innerHTML = tileSVG(state.colorIdx[p]);
+  toCell.appendChild(t);
+  emitSparkles(toCell);
+
+  refreshLegalOverlays();
+
+  if (checkWinAt(tr, tc, p)){
+    endGame(p);
+    return;
+  }
+  if (hasReach(p)) {
+    showReachSplash();
+  }
+  nextTurn();
+}
+
+function emitSparkles(cell){
+  const burst = document.createElement('div');
+  burst.className = 'sparkle-burst';
+  for (let i = 0; i < 8; i++){
+    const s = document.createElement('i');
+    const angle = (Math.PI*2) * (i/8) + Math.random()*0.4;
+    const dist = 28 + Math.random()*18;
+    s.style.setProperty('--dx', Math.cos(angle)*dist + 'px');
+    s.style.setProperty('--dy', Math.sin(angle)*dist + 'px');
+    s.style.animationDelay = (i*0.02) + 's';
+    burst.appendChild(s);
+  }
+  cell.appendChild(burst);
+  setTimeout(()=> burst.remove(), 800);
+}
+
+function nextTurn(){
+  state.current = (state.current + 1) % state.numPlayers;
+  state.pendingMove = null;
+  refreshLegalOverlays();
+  updateTurnUI();
+  const p = state.current;
+  if (state.inMovePhase[p]){
+    if (!(state.cpu && p === state.cpuPlayerIndex)){
+      showHint(`もちごま 0まい\nじぶん の いし を うごかそう! ✦`, 1500);
+    }
+  }
+  setTimeout(maybeRunCPU, 400);
+}
+
+/* =========================================================
+   WIN / REACH DETECTION
+   ========================================================= */
+function checkWinAt(r, c, p, mark = true){
+  for (const [dr, dc] of DIRS){
+    let count = 1;
+    let line = [[r,c]];
+    for (let k = 1; k < WIN_LEN; k++){
+      const nr = r + dr*k, nc = c + dc*k;
+      if (!inBounds(nr,nc) || !state.board[nr][nc] || state.board[nr][nc].p !== p) break;
+      count++; line.push([nr,nc]);
+    }
+    for (let k = 1; k < WIN_LEN; k++){
+      const nr = r - dr*k, nc = c - dc*k;
+      if (!inBounds(nr,nc) || !state.board[nr][nc] || state.board[nr][nc].p !== p) break;
+      count++; line.push([nr,nc]);
+    }
+    if (count >= WIN_LEN){
+      if (mark){
+        line.forEach(([rr,cc])=>{
+          boardEl.children[rr*BOARD_N+cc].classList.add('win');
+        });
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+// Reach: player has 4 in a row that *could* extend to 5 with one more legal placement
+function hasReach(p){
+  for (let r = 0; r < BOARD_N; r++){
+    for (let c = 0; c < BOARD_N; c++){
+      if (state.board[r][c]) continue;
+      if (!isLegalPlacement(r, c)) continue;
+      // simulate
+      state.board[r][c] = { p };
+      const wins = checkWinAt(r, c, p, false);
+      state.board[r][c] = null;
+      if (wins) return true;
+    }
+  }
+  return false;
+}
+
+/* =========================================================
+   END GAME
+   ========================================================= */
+function endGame(winner){
+  state.gameOver = true;
+  const c = COLORS[state.colorIdx[winner]];
+  winnerTileEl.innerHTML = tileSVG(state.colorIdx[winner]);
+  const isCpu = (state.cpu && winner === state.cpuPlayerIndex);
+  winTitle.textContent = isCpu ? 'まけちゃった…' : 'やったぁ！';
+  winMsgEl.innerHTML = isCpu
+    ? `CPU (${c.name}) の しょうり`
+    : `プレイヤー${winner+1} (${c.name}) の しょうり`;
+  winSubEl.innerHTML = `${c.label} が 5まい ならんだよ ✦✦✦`;
+  setTimeout(()=>{
+    winModal.classList.add('show');
+    fireConfetti();
+    fireBalloons(state.colorIdx[winner]);
+  }, 800);
+}
+function closeModal(){
+  winModal.classList.remove('show');
+  confettiEl.innerHTML='';
+}
+
+function fireConfetti(){
+  confettiEl.innerHTML='';
+  const palette = ['#ff5cc4','#66e860','#3acdff','#ffaa3a','#c89cff','#ffe65a','#ff8e3a'];
+  for (let i = 0; i < 110; i++){
+    const c = document.createElement('i');
+    c.style.background = palette[i % palette.length];
+    c.style.left = (Math.random()*100) + 'vw';
+    c.style.animationDuration = (1.6 + Math.random()*1.8) + 's';
+    c.style.animationDelay = (Math.random()*0.6) + 's';
+    c.style.transform = `rotate(${Math.random()*360}deg)`;
+    confettiEl.appendChild(c);
+  }
+}
+function fireBalloons(centerColorIdx){
+  const palette = state.colorIdx.map(i=>COLORS[i].main);
+  for (let i = 0; i < 9; i++){
+    const b = document.createElement('i');
+    b.className = 'balloon';
+    b.style.background = palette[i % palette.length];
+    b.style.left = (5 + Math.random()*90) + 'vw';
+    b.style.animationDuration = (3.2 + Math.random()*2.5) + 's';
+    b.style.animationDelay = (Math.random()*0.6) + 's';
+    confettiEl.appendChild(b);
+  }
+}
+
+/* =========================================================
+   HINTS / REACH SPLASH
+   ========================================================= */
+let hintTimer = null;
+function showHint(text, dur=1200){
+  hintEl.innerHTML = text.replace(/\n/g,'<br>');
+  hintEl.classList.add('show');
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(()=> hintEl.classList.remove('show'), dur);
+}
+let reachTimer = null;
+function showReachSplash(){
+  reachSplashEl.classList.add('show');
+  clearTimeout(reachTimer);
+  reachTimer = setTimeout(()=> reachSplashEl.classList.remove('show'), 900);
+}
+
+/* =========================================================
+   CPU AI
+   ========================================================= */
+function maybeRunCPU(){
+  if (state.gameOver) return;
+  if (!state.cpu) return;
+  if (state.current !== state.cpuPlayerIndex) return;
+  setTimeout(runCPU, 700);
+}
+
+function runCPU(){
+  const p = state.cpuPlayerIndex;
+  if (!state.inMovePhase[p]){
+    const move = bestPlacement(p);
+    if (move) placeTile(p, move[0], move[1]);
+  } else {
+    const m = bestRelocation(p);
+    if (m) {
+      const [fr,fc,tr,tc] = m;
+      moveTile(p, fr, fc, tr, tc);
+    }
+  }
+}
+
+function bestPlacement(p){
+  let best = null, bestScore = -Infinity;
+  for (let r = 0; r < BOARD_N; r++){
+    for (let c = 0; c < BOARD_N; c++){
+      if (!isLegalPlacement(r, c)) continue;
+      const s = scoreCell(r, c, p);
+      if (s > bestScore){ bestScore = s; best = [r,c]; }
+    }
+  }
+  return best;
+}
+
+function bestRelocation(p){
+  let bestMove = null, bestScore = -Infinity;
+  const owns = [];
+  for (let r = 0; r < BOARD_N; r++){
+    for (let c = 0; c < BOARD_N; c++){
+      if (state.board[r][c] && state.board[r][c].p === p) owns.push([r,c]);
+    }
+  }
+  for (const [fr,fc] of owns){
+    const saved = state.board[fr][fc];
+    state.board[fr][fc] = null;
+    for (let tr = 0; tr < BOARD_N; tr++){
+      for (let tc = 0; tc < BOARD_N; tc++){
+        if (!isLegalPlacement(tr, tc)) continue;
+        if (tr === fr && tc === fc) continue;
+        state.board[tr][tc] = { p };
+        if (checkWinAt(tr, tc, p, false)){
+          state.board[tr][tc] = null;
+          state.board[fr][fc] = saved;
+          return [fr,fc,tr,tc];
+        }
+        const s = scoreCell(tr, tc, p) - 0.4 * neighborhoodValue(fr, fc, p);
+        state.board[tr][tc] = null;
+        if (s > bestScore){ bestScore = s; bestMove = [fr,fc,tr,tc]; }
+      }
+    }
+    state.board[fr][fc] = saved;
+  }
+  return bestMove;
+}
+
+function neighborhoodValue(r, c, p){
+  let v = 0;
+  for (const [dr, dc] of DIRS){
+    let line = 0;
+    for (let k = -4; k <= 4; k++){
+      if (k === 0) continue;
+      const nr = r + dr*k, nc = c + dc*k;
+      if (!inBounds(nr,nc)) continue;
+      const t = state.board[nr][nc];
+      if (t && t.p === p) line++;
+    }
+    v += line;
+  }
+  return v;
+}
+
+function scoreCell(r, c, me){
+  let myScore = lineScore(r, c, me);
+  let blockScore = 0;
+  for (let q = 0; q < state.numPlayers; q++){
+    if (q === me) continue;
+    blockScore = Math.max(blockScore, lineScore(r, c, q) * 0.92);
+  }
+  const center = (BOARD_N-1)/2;
+  const dist = Math.abs(r-center) + Math.abs(c-center);
+  const centerBias = (BOARD_N - dist) * 0.6;
+  return Math.max(myScore, blockScore) + centerBias + Math.random()*0.5;
+}
+
+function lineScore(r, c, p){
+  let total = 0;
+  for (const [dr, dc] of DIRS){
+    const win = [];
+    for (let k = -4; k <= 4; k++){
+      const nr = r + dr*k, nc = c + dc*k;
+      if (!inBounds(nr,nc)){ win.push('#'); continue; }
+      if (k === 0) { win.push('M'); continue; }
+      const t = state.board[nr][nc];
+      if (!t) win.push('.');
+      else if (t.p === p) win.push('M');
+      else win.push('O');
+    }
+    total += patternScore(win);
+  }
+  return total;
+}
+
+function patternScore(win){
+  const s = win.join('');
+  if (s.includes('MMMMM')) return 1000000;
+  if (s.includes('.MMMM.')) return 50000;
+  if (/(\.MMMM[O#])|([O#]MMMM\.)/.test(s)) return 5000;
+  if (s.includes('MMMM')) return 4500;
+  if (s.includes('.MMM.')) return 1500;
+  if (/(\.MMM[O#])|([O#]MMM\.)/.test(s)) return 600;
+  if (s.includes('.MM.')) return 200;
+  if (/(\.MM[O#])|([O#]MM\.)/.test(s)) return 80;
+  if (s.includes('M')) return 10;
+  return 0;
+}
+
+/* =========================================================
+   Resize
+   ========================================================= */
+function fitBoard(){
+  const wrap = document.querySelector('.board-wrap');
+  if (!wrap) return;
+  const headerH = 60 + 100;
+  const avail = window.innerHeight - headerH - 40;
+  const availW = window.innerWidth - 24;
+  const size = Math.min(avail, availW, 720);
+  wrap.style.width = size + 'px';
+  wrap.style.maxHeight = size + 'px';
+}
+window.addEventListener('resize', fitBoard);
+window.addEventListener('orientationchange', fitBoard);
+fitBoard();
+</script>
+
+</body>
+</html>
