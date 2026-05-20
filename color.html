@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+/>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#FFD4E5" />
+<title>いろまぜラボ</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap"
+  rel="stylesheet"
+/>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #FFD4E5;
+    background-color: #FFD4E5;
+    overscroll-behavior: none;
+    touch-action: none;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  body {
+    font-family: "M PLUS Rounded 1c", -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  #root {
+    width: 100%;
+    height: 100%;
+  }
+  #loader {
+    position: absolute;
+    inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #FFE4D6 0%, #FFD4E5 45%, #E8D4FF 100%);
+    background-color: #FFD4E5;
+    color: #5C4033; font-weight: 800; font-size: 18px; letter-spacing: 1px;
+    z-index: 999;
+    transition: opacity 0.4s;
+  }
+  #loader.hidden { opacity: 0; pointer-events: none; }
+  #loader .dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    margin: 0 5px; display: inline-block;
+    animation: bounceDot 1s infinite ease-in-out both;
+  }
+  #loader .dot:nth-child(1) { background: #FF6B9D; background-color: #FF6B9D; animation-delay: -0.32s; }
+  #loader .dot:nth-child(2) { background: #FFD60A; background-color: #FFD60A; animation-delay: -0.16s; }
+  #loader .dot:nth-child(3) { background: #30D158; background-color: #30D158; }
+  @keyframes bounceDot {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+  }
+</style>
+
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js" defer></script>
+</head>
+<body>
+<div id="loader">
+  <div style="text-align:center;">
+    <div style="font-size:42px;margin-bottom:14px;">🎨</div>
+    <div>よみこみちゅう</div>
+    <div style="margin-top:18px;">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
+  </div>
+</div>
+<div id="root"></div>
+
+<script>
+const {
+  useState,
+  useEffect,
+  useRef,
+  useCallback
+} = React;
+
+/* =========================================================
+   いろまぜラボ — 4歳児向け 色混合あそびアプリ
+   ========================================================= */
+
+const COLORS = [{
+  id: 'red',
+  name: 'あか',
+  hex: '#FF453A'
+}, {
+  id: 'orange',
+  name: 'オレンジ',
+  hex: '#FF9F0A'
+}, {
+  id: 'yellow',
+  name: 'きいろ',
+  hex: '#FFD60A'
+}, {
+  id: 'green',
+  name: 'みどり',
+  hex: '#30D158'
+}, {
+  id: 'blue',
+  name: 'あお',
+  hex: '#0A84FF'
+}, {
+  id: 'purple',
+  name: 'むらさき',
+  hex: '#BF5AF2'
+}, {
+  id: 'pink',
+  name: 'ピンク',
+  hex: '#FF6B9D'
+}, {
+  id: 'brown',
+  name: 'ちゃいろ',
+  hex: '#A0522D'
+}, {
+  id: 'white',
+  name: 'しろ',
+  hex: '#FFFFFF'
+}, {
+  id: 'black',
+  name: 'くろ',
+  hex: '#2A2A2E'
+}];
+
+/* key は色IDをアルファベット順にソートして '+' で結合 */
+const MIX_TABLE = {
+  // 三原色まぜ
+  'blue+red': {
+    name: 'むらさき',
+    hex: '#A050E0'
+  },
+  'red+yellow': {
+    name: 'オレンジ',
+    hex: '#FF8C2A'
+  },
+  'blue+yellow': {
+    name: 'みどり',
+    hex: '#3CC85A'
+  },
+  // しろ系(明るくなる)
+  'red+white': {
+    name: 'ピンク',
+    hex: '#FFB3C1'
+  },
+  'blue+white': {
+    name: 'みずいろ',
+    hex: '#90C8F0'
+  },
+  'white+yellow': {
+    name: 'クリーム',
+    hex: '#FFF4B8'
+  },
+  'green+white': {
+    name: 'わかみどり',
+    hex: '#B5EAD7'
+  },
+  'purple+white': {
+    name: 'ふじいろ',
+    hex: '#D8B4F8'
+  },
+  'orange+white': {
+    name: 'はだいろ',
+    hex: '#FFD9B0'
+  },
+  'pink+white': {
+    name: 'うすピンク',
+    hex: '#FFE0EA'
+  },
+  'brown+white': {
+    name: 'ベージュ',
+    hex: '#D6B98E'
+  },
+  // くろ系(暗くなる)
+  'black+white': {
+    name: 'はいいろ',
+    hex: '#9E9E9E'
+  },
+  'black+red': {
+    name: 'えんじ',
+    hex: '#8B1A1A'
+  },
+  'black+blue': {
+    name: 'こんいろ',
+    hex: '#1A2A6E'
+  },
+  'black+yellow': {
+    name: 'からし',
+    hex: '#B8860B'
+  },
+  'black+green': {
+    name: 'ふかみどり',
+    hex: '#1F5030'
+  },
+  'black+purple': {
+    name: 'くろむらさき',
+    hex: '#4B1F70'
+  },
+  'black+orange': {
+    name: 'こげちゃ',
+    hex: '#5D3317'
+  },
+  'black+pink': {
+    name: 'あずきいろ',
+    hex: '#7A2A3A'
+  },
+  'black+brown': {
+    name: 'こげちゃ',
+    hex: '#3A2010'
+  },
+  // にじ色まぜ
+  'green+red': {
+    name: 'ちゃいろ',
+    hex: '#8B5A2B'
+  },
+  'purple+red': {
+    name: 'あかむらさき',
+    hex: '#C71585'
+  },
+  'pink+red': {
+    name: 'バラいろ',
+    hex: '#E91E63'
+  },
+  'orange+red': {
+    name: 'べにいろ',
+    hex: '#FF5018'
+  },
+  'brown+red': {
+    name: 'あかちゃ',
+    hex: '#A0522D'
+  },
+  'blue+green': {
+    name: 'あおみどり',
+    hex: '#1FA0A0'
+  },
+  'blue+purple': {
+    name: 'すみれいろ',
+    hex: '#6A5ACD'
+  },
+  'blue+pink': {
+    name: 'ふじむらさき',
+    hex: '#9370DB'
+  },
+  'blue+orange': {
+    name: 'カーキ',
+    hex: '#8B7B5A'
+  },
+  'blue+brown': {
+    name: 'こんちゃ',
+    hex: '#4A4A5A'
+  },
+  'green+yellow': {
+    name: 'きみどり',
+    hex: '#9ACD32'
+  },
+  'purple+yellow': {
+    name: 'うぐいす',
+    hex: '#A39530'
+  },
+  'pink+yellow': {
+    name: 'サーモン',
+    hex: '#FFA070'
+  },
+  'orange+yellow': {
+    name: 'やまぶき',
+    hex: '#FFB300'
+  },
+  'brown+yellow': {
+    name: 'きちゃ',
+    hex: '#C19A6B'
+  },
+  'green+purple': {
+    name: 'カーキ',
+    hex: '#6B6040'
+  },
+  'green+pink': {
+    name: 'サーモンみどり',
+    hex: '#A8B080'
+  },
+  'green+orange': {
+    name: 'おうど',
+    hex: '#C09030'
+  },
+  'brown+green': {
+    name: 'こけいろ',
+    hex: '#556B2F'
+  },
+  'pink+purple': {
+    name: 'モーブ',
+    hex: '#D080C8'
+  },
+  'orange+purple': {
+    name: 'あずきちゃ',
+    hex: '#A66075'
+  },
+  'brown+purple': {
+    name: 'あずきいろ',
+    hex: '#7A3A55'
+  },
+  'orange+pink': {
+    name: 'サーモン',
+    hex: '#FFA080'
+  },
+  'brown+pink': {
+    name: 'ローズちゃ',
+    hex: '#B07268'
+  },
+  'brown+orange': {
+    name: 'れんがいろ',
+    hex: '#B5651D'
+  }
+};
+function mixKey(a, b) {
+  return [a, b].sort().join('+');
+}
+function mixColors(c1, c2) {
+  if (c1.id === c2.id) return {
+    ...c1,
+    isKnown: true,
+    same: true
+  };
+  const known = MIX_TABLE[mixKey(c1.id, c2.id)];
+  if (known) return {
+    ...known,
+    isKnown: true,
+    same: false
+  };
+
+  // フォールバック:RGB平均
+  const hex2rgb = hex => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+  const [r1, g1, b1] = hex2rgb(c1.hex);
+  const [r2, g2, b2] = hex2rgb(c2.hex);
+  const r = Math.round((r1 + r2) / 2);
+  const g = Math.round((g1 + g2) / 2);
+  const b = Math.round((b1 + b2) / 2);
+  const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+  return {
+    name: `${c1.name}と${c2.name}`,
+    hex,
+    isKnown: false,
+    same: false
+  };
+}
+
+/* 明るい色かどうかを判定(文字色を決めるため) */
+function isLight(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 160;
+}
+
+/* =========================================================
+   音(Tone.js)
+   ========================================================= */
+const useSound = () => {
+  const synthRef = useRef(null);
+  const sparkleRef = useRef(null);
+  const initialized = useRef(false);
+  const init = useCallback(async () => {
+    if (initialized.current) return;
+    await Tone.start();
+    synthRef.current = new Tone.Synth({
+      oscillator: {
+        type: 'sine'
+      },
+      envelope: {
+        attack: 0.005,
+        decay: 0.15,
+        sustain: 0,
+        release: 0.1
+      }
+    }).toDestination();
+    synthRef.current.volume.value = -10;
+    sparkleRef.current = new Tone.PolySynth(Tone.Synth, {
+      oscillator: {
+        type: 'triangle'
+      },
+      envelope: {
+        attack: 0.005,
+        decay: 0.3,
+        sustain: 0,
+        release: 0.2
+      }
+    }).toDestination();
+    sparkleRef.current.volume.value = -14;
+    initialized.current = true;
+  }, []);
+  const pop = useCallback(async () => {
+    await init();
+    const notes = ['C5', 'D5', 'E5', 'G5', 'A5'];
+    synthRef.current.triggerAttackRelease(notes[Math.floor(Math.random() * notes.length)], '16n');
+  }, [init]);
+  const swoosh = useCallback(async () => {
+    await init();
+    synthRef.current.triggerAttackRelease('C4', '8n');
+    setTimeout(() => synthRef.current.triggerAttackRelease('E4', '8n'), 100);
+    setTimeout(() => synthRef.current.triggerAttackRelease('G4', '8n'), 200);
+  }, [init]);
+  const sparkle = useCallback(async () => {
+    await init();
+    sparkleRef.current.triggerAttackRelease(['C6', 'E6', 'G6'], '8n');
+    setTimeout(() => sparkleRef.current.triggerAttackRelease(['E6', 'G6', 'C7'], '8n'), 150);
+  }, [init]);
+  return {
+    pop,
+    swoosh,
+    sparkle
+  };
+};
+
+/* =========================================================
+   絵の具ドロップコンポーネント
+   ========================================================= */
+function PaintDrop({
+  color,
+  size = 64,
+  onClick,
+  selected,
+  showLabel = true,
+  idle = true
+}) {
+  const ringSize = size + 12;
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: onClick,
+    style: {
+      position: 'relative',
+      width: ringSize,
+      height: showLabel ? ringSize + 22 : ringSize,
+      background: 'transparent',
+      border: 'none',
+      padding: 0,
+      cursor: 'pointer',
+      outline: 'none',
+      WebkitTapHighlightColor: 'transparent',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'flex-start'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: ringSize,
+      height: ringSize,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      animation: idle ? `wobble-${color.id} 3.5s ease-in-out infinite` : 'none'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "drop-body",
+    style: {
+      width: size,
+      height: size,
+      borderRadius: '50%',
+      background: `radial-gradient(circle at 32% 28%, rgba(255,255,255,0.7) 0%, ${color.hex}ee 30%, ${color.hex} 60%, ${color.hex}cc 100%)`,
+      boxShadow: `
+              inset -3px -5px 10px rgba(0,0,0,0.18),
+              inset 3px 4px 8px rgba(255,255,255,0.45),
+              0 6px 14px ${color.hex}55,
+              0 2px 4px rgba(0,0,0,0.15)
+            `,
+      transform: selected ? 'scale(1.18)' : 'scale(1)',
+      transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+      position: 'relative',
+      border: color.id === 'white' ? '2px solid rgba(0,0,0,0.08)' : 'none'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: '14%',
+      left: '20%',
+      width: '28%',
+      height: '22%',
+      background: 'rgba(255,255,255,0.7)',
+      borderRadius: '50%',
+      filter: 'blur(2px)'
+    }
+  }))), showLabel && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginTop: '4px',
+      fontSize: '13px',
+      fontWeight: 800,
+      color: '#5C4033',
+      letterSpacing: '0.5px',
+      textShadow: '0 1px 0 rgba(255,255,255,0.6)'
+    }
+  }, color.name));
+}
+
+/* =========================================================
+   メインコンポーネント
+   ========================================================= */
+function IromazeLab() {
+  const [slot1, setSlot1] = useState(null);
+  const [slot2, setSlot2] = useState(null);
+  const [result, setResult] = useState(null);
+  const [phase, setPhase] = useState('idle'); // idle | mixing | revealed
+  const [collection, setCollection] = useState([]);
+  const [showBook, setShowBook] = useState(false);
+  const [sparkleSeed, setSparkleSeed] = useState(0);
+  const {
+    pop,
+    swoosh,
+    sparkle
+  } = useSound();
+  const mixTimerRef = useRef(null);
+  const appRef = useRef(null);
+
+  /* 鉄則③: 高さをJSで実pxに直接書き込む(100vh/100dvh の不安定さを回避) */
+  useEffect(() => {
+    const setAppHeight = () => {
+      const h = window.innerHeight;
+      document.documentElement.style.height = h + 'px';
+      document.body.style.height = h + 'px';
+      if (appRef.current) appRef.current.style.height = h + 'px';
+    };
+    setAppHeight();
+    const orientHandler = () => {
+      setTimeout(setAppHeight, 100);
+      setTimeout(setAppHeight, 500);
+    };
+    window.addEventListener('resize', setAppHeight);
+    window.addEventListener('orientationchange', orientHandler);
+    setTimeout(setAppHeight, 300);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', setAppHeight);
+      window.visualViewport.addEventListener('scroll', setAppHeight);
+    }
+    return () => {
+      window.removeEventListener('resize', setAppHeight);
+      window.removeEventListener('orientationchange', orientHandler);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', setAppHeight);
+        window.visualViewport.removeEventListener('scroll', setAppHeight);
+      }
+    };
+  }, []);
+
+  /* タイマーを安全に消すヘルパー */
+  const clearMixTimer = () => {
+    if (mixTimerRef.current) {
+      clearTimeout(mixTimerRef.current);
+      mixTimerRef.current = null;
+    }
+  };
+
+  /* アンマウント時のみクリア */
+  useEffect(() => () => clearMixTimer(), []);
+
+  /* 実際に混ぜる処理(タップハンドラから直接呼ぶ) */
+  const startMix = (c1, c2) => {
+    setPhase('mixing');
+    try {
+      swoosh();
+    } catch (e) {}
+    clearMixTimer();
+    mixTimerRef.current = setTimeout(() => {
+      mixTimerRef.current = null;
+      const mixed = mixColors(c1, c2);
+      setResult(mixed);
+      setPhase('revealed');
+      setSparkleSeed(s => s + 1);
+      try {
+        if (mixed.isKnown) sparkle();else pop();
+      } catch (e) {}
+      setCollection(prev => {
+        if (prev.some(c => c.hex.toLowerCase() === mixed.hex.toLowerCase())) return prev;
+        return [...prev, mixed];
+      });
+    }, 1100);
+  };
+  const handleColorTap = color => {
+    if (phase === 'mixing') return;
+    if (phase === 'revealed') {
+      // 結果が出ている状態でタップ → リセットして新しい色を1つめにセット
+      clearMixTimer();
+      setSlot1(color);
+      setSlot2(null);
+      setResult(null);
+      setPhase('idle');
+      try {
+        pop();
+      } catch (e) {}
+      return;
+    }
+    if (!slot1) {
+      setSlot1(color);
+      try {
+        pop();
+      } catch (e) {}
+    } else if (!slot2) {
+      setSlot2(color);
+      try {
+        pop();
+      } catch (e) {}
+      // 2色そろったので、ここで直接タイマーを起動(useEffect の cleanup 問題を回避)
+      startMix(slot1, color);
+    }
+  };
+  const handleReset = () => {
+    clearMixTimer();
+    setSlot1(null);
+    setSlot2(null);
+    setResult(null);
+    setPhase('idle');
+    try {
+      pop();
+    } catch (e) {}
+  };
+  const resultLight = result ? isLight(result.hex) : false;
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, `
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap');
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        button:active { transform: scale(0.95); }
+
+        /* それぞれの色のドロップに違う wobble を持たせる */
+        ${COLORS.map((c, i) => `
+          @keyframes wobble-${c.id} {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-${3 + i % 3}px) rotate(${i % 2 === 0 ? 2 : -2}deg); }
+          }
+        `).join('\n')}
+
+        @keyframes dropIn {
+          0%   { transform: translateY(-40px) scale(0.3); opacity: 0; }
+          60%  { transform: translateY(8px)   scale(1.2); opacity: 1; }
+          100% { transform: translateY(0)     scale(1);   opacity: 1; }
+        }
+
+        @keyframes fall {
+          0%   { transform: translate(0, 0)      scale(1);   opacity: 1; }
+          70%  { transform: translate(0, 100px)  scale(0.6); opacity: 0.7; }
+          100% { transform: translate(0, 130px)  scale(0.2); opacity: 0; }
+        }
+
+        @keyframes resultPop {
+          0%   { transform: scale(0)   rotate(-40deg); opacity: 0; }
+          50%  { transform: scale(1.25) rotate(15deg); opacity: 1; }
+          75%  { transform: scale(0.92) rotate(-5deg); }
+          100% { transform: scale(1)   rotate(0deg);   opacity: 1; }
+        }
+
+        @keyframes sparkleFloat {
+          0%   { transform: scale(0) rotate(0deg);   opacity: 0; }
+          30%  { transform: scale(1) rotate(120deg); opacity: 1; }
+          70%  { transform: scale(1.1) rotate(240deg); opacity: 1; }
+          100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
+
+        @keyframes nameSlide {
+          0%   { transform: translateY(20px); opacity: 0; }
+          100% { transform: translateY(0);    opacity: 1; }
+        }
+
+        @keyframes ripple {
+          0%   { transform: scale(0.9); opacity: 0.6; }
+          100% { transform: scale(1.6); opacity: 0; }
+        }
+
+        @keyframes swirl1 {
+          0%   { transform: translate(-50px, -30px) scale(1); opacity: 1; }
+          50%  { transform: translate(0, 0)         scale(1.1) rotate(180deg); opacity: 1; }
+          100% { transform: translate(0, 0)         scale(0.5); opacity: 0; }
+        }
+
+        @keyframes swirl2 {
+          0%   { transform: translate(50px, -30px)  scale(1); opacity: 1; }
+          50%  { transform: translate(0, 0)         scale(1.1) rotate(-180deg); opacity: 1; }
+          100% { transform: translate(0, 0)         scale(0.5); opacity: 0; }
+        }
+
+        @keyframes bgFloat {
+          0%, 100% { transform: translate(0, 0); }
+          50%      { transform: translate(20px, -15px); }
+        }
+
+        @keyframes bounceIcon {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-8px); }
+        }
+
+        .grain {
+          position: absolute; inset: 0;
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.4  0 0 0 0 0.3  0 0 0 0 0.2  0 0 0 0.18 0'/></filter><rect width='240' height='240' filter='url(%23n)' opacity='0.5'/></svg>");
+          mix-blend-mode: multiply;
+          opacity: 0.4;
+          pointer-events: none;
+        }
+      `), /*#__PURE__*/React.createElement("div", {
+    id: "app",
+    ref: appRef,
+    style: {
+      position: 'relative',
+      width: '100%',
+      height: '100vh',
+      /* JSで即上書きされる、初期表示用フォールバック */
+      display: 'flex',
+      flexDirection: 'column',
+      background: 'linear-gradient(135deg, #FFE4D6 0%, #FFD4E5 45%, #E8D4FF 100%)',
+      backgroundColor: '#FFD4E5',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      paddingLeft: 'max(0px, env(safe-area-inset-left, 0px))',
+      paddingRight: 'max(0px, env(safe-area-inset-right, 0px))',
+      overflow: 'hidden',
+      fontFamily: '"M PLUS Rounded 1c", -apple-system, sans-serif'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      pointerEvents: 'none',
+      overflow: 'hidden'
+    }
+  }, [{
+    c: '#FFC8DD',
+    s: 180,
+    t: 5,
+    l: -20,
+    d: 0
+  }, {
+    c: '#FFE5B4',
+    s: 140,
+    t: 50,
+    l: 80,
+    d: 1
+  }, {
+    c: '#C8E7FF',
+    s: 200,
+    t: 70,
+    l: -10,
+    d: 2
+  }, {
+    c: '#E0D4F7',
+    s: 160,
+    t: 20,
+    l: 75,
+    d: 0.5
+  }].map((b, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      position: 'absolute',
+      top: `${b.t}%`,
+      left: `${b.l}%`,
+      width: b.s,
+      height: b.s,
+      borderRadius: '50%',
+      background: `radial-gradient(circle, ${b.c}88 0%, ${b.c}00 70%)`,
+      backgroundColor: b.c + '44',
+      filter: 'blur(20px)',
+      animation: `bgFloat ${8 + i * 2}s ease-in-out infinite`,
+      animationDelay: `${b.d}s`
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "grain"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      width: '100%',
+      maxWidth: 440,
+      height: '100%',
+      margin: '0 auto',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      zIndex: 1
+    }
+  }, /*#__PURE__*/React.createElement("header", {
+    id: "topbar",
+    style: {
+      flexShrink: 0,
+      padding: '14px 20px 8px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    style: {
+      margin: 0,
+      fontSize: 28,
+      fontWeight: 900,
+      color: '#5C4033',
+      letterSpacing: '1.5px',
+      textShadow: '0 2px 0 rgba(255,255,255,0.7), 0 4px 8px rgba(0,0,0,0.08)',
+      lineHeight: 1
+    }
+  }, "\u3044\u308D\u307E\u305C\u30E9\u30DC"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: '4px 0 0',
+      fontSize: 12,
+      fontWeight: 700,
+      color: '#8B6F5A',
+      letterSpacing: '0.5px'
+    }
+  }, "\u3075\u305F\u3064 \u3048\u3089\u3093\u3067 \u307E\u305C\u3066\u307F\u3088\u3046")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setShowBook(true);
+      try {
+        pop();
+      } catch (e) {}
+    },
+    style: {
+      background: 'white',
+      backgroundColor: '#FFFFFF',
+      border: 'none',
+      borderRadius: 22,
+      padding: '0 14px',
+      fontSize: 14,
+      fontWeight: 800,
+      color: '#5C4033',
+      fontFamily: 'inherit',
+      boxShadow: '0 4px 10px rgba(0,0,0,0.08), inset 0 -2px 0 rgba(0,0,0,0.05)',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      minWidth: 60,
+      minHeight: 44,
+      /* 鉄則⑦: 44x44最低 */
+      touchAction: 'manipulation'
+    },
+    "aria-label": "\u305A\u304B\u3093\u3092\u958B\u304F"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 18
+    }
+  }, "\uD83D\uDCD6"), /*#__PURE__*/React.createElement("span", null, collection.length))), /*#__PURE__*/React.createElement("main", {
+    id: "content",
+    style: {
+      flex: 1,
+      minHeight: 0,
+      /* 鉄則④: これがないと flex 子要素がはみ出す */
+      position: 'relative',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      padding: '6px 20px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'rgba(255,255,255,0.55)',
+      backgroundColor: 'rgba(255,255,255,0.55)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderRadius: 32,
+      padding: '20px 20px 24px',
+      boxShadow: '0 12px 32px rgba(180, 100, 120, 0.15), inset 0 1px 0 rgba(255,255,255,0.8)',
+      border: '1px solid rgba(255,255,255,0.6)',
+      position: 'relative',
+      flex: '0 0 auto'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 16,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement(SlotDrop, {
+    color: slot1,
+    placeholder: "?",
+    key: `s1-${slot1?.id || 'e'}`,
+    fading: phase === 'mixing'
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 32,
+      fontWeight: 900,
+      color: '#B89878',
+      textShadow: '0 2px 0 rgba(255,255,255,0.8)'
+    }
+  }, "+"), /*#__PURE__*/React.createElement(SlotDrop, {
+    color: slot2,
+    placeholder: "?",
+    key: `s2-${slot2?.id || 'e'}`,
+    fading: phase === 'mixing'
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      margin: '4px 0 2px',
+      fontSize: 22,
+      fontWeight: 900,
+      color: '#B89878',
+      opacity: phase === 'idle' && !slot1 ? 0.3 : 1,
+      transition: 'opacity 0.3s'
+    }
+  }, "\u2193"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      minHeight: 180,
+      justifyContent: 'center',
+      position: 'relative'
+    }
+  }, phase === 'mixing' && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      width: 130,
+      height: 130,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      width: 60,
+      height: 60,
+      borderRadius: '50%',
+      background: slot1?.hex,
+      backgroundColor: slot1?.hex,
+      boxShadow: `0 0 20px ${slot1?.hex}88`,
+      animation: 'swirl1 1s cubic-bezier(0.5, 0, 0.5, 1) both'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      width: 60,
+      height: 60,
+      borderRadius: '50%',
+      background: slot2?.hex,
+      backgroundColor: slot2?.hex,
+      boxShadow: `0 0 20px ${slot2?.hex}88`,
+      animation: 'swirl2 1s cubic-bezier(0.5, 0, 0.5, 1) both'
+    }
+  })), phase === 'revealed' && result && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      width: 140,
+      height: 140,
+      borderRadius: '50%',
+      border: `3px solid ${result.hex}`,
+      animation: 'ripple 1.2s ease-out both',
+      opacity: 0
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      width: 140,
+      height: 140,
+      borderRadius: '50%',
+      border: `3px solid ${result.hex}`,
+      animation: 'ripple 1.2s ease-out 0.2s both',
+      opacity: 0
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 140,
+      height: 140,
+      borderRadius: '50%',
+      background: `radial-gradient(circle at 30% 28%, rgba(255,255,255,0.6) 0%, ${result.hex}ee 30%, ${result.hex} 65%, ${result.hex}dd 100%)`,
+      backgroundColor: result.hex,
+      /* 鉄則⑨: フォールバック */
+      boxShadow: `inset -6px -10px 22px rgba(0,0,0,0.2), inset 6px 8px 18px rgba(255,255,255,0.5), 0 14px 32px ${result.hex}66, 0 4px 8px rgba(0,0,0,0.15)`,
+      border: isLight(result.hex) ? '2px solid rgba(0,0,0,0.06)' : 'none',
+      animation: 'resultPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: '15%',
+      left: '22%',
+      width: '30%',
+      height: '24%',
+      background: 'rgba(255,255,255,0.65)',
+      borderRadius: '50%',
+      filter: 'blur(3px)'
+    }
+  })), result.isKnown && /*#__PURE__*/React.createElement(Sparkles, {
+    key: sparkleSeed,
+    hex: result.hex
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16,
+      padding: '8px 18px',
+      background: 'white',
+      backgroundColor: '#FFFFFF',
+      borderRadius: 24,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1), inset 0 -2px 0 rgba(0,0,0,0.04)',
+      animation: 'nameSlide 0.5s 0.3s both cubic-bezier(0.34, 1.56, 0.64, 1)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8
+    }
+  }, result.isKnown && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 18
+    }
+  }, "\u2728"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: result.name.length > 6 ? 18 : 22,
+      fontWeight: 900,
+      color: '#5C4033',
+      letterSpacing: '1px'
+    }
+  }, result.name), result.isKnown && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 18
+    }
+  }, "\u2728"))), phase === 'idle' && !slot1 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      color: '#A88878',
+      fontSize: 15,
+      fontWeight: 700,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 38,
+      animation: 'bounceIcon 2s ease-in-out infinite'
+    }
+  }, "\uD83C\uDFA8"), /*#__PURE__*/React.createElement("div", null, "\u3057\u305F\u304B\u3089 \u3044\u308D\u3092 \u3048\u3089\u3093\u3067\u306D")), phase === 'idle' && slot1 && !slot2 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      color: '#A88878',
+      fontSize: 15,
+      fontWeight: 700
+    }
+  }, "\u3082\u3046\u3072\u3068\u3064 \u3048\u3089\u3093\u3067\u306D \uD83D\uDC47")), (slot1 || slot2 || result) && /*#__PURE__*/React.createElement("button", {
+    onClick: handleReset,
+    style: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      background: 'rgba(255,255,255,0.92)',
+      backgroundColor: 'rgba(255,255,255,0.92)',
+      border: 'none',
+      borderRadius: '50%',
+      width: 44,
+      height: 44,
+      fontSize: 20,
+      cursor: 'pointer',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+      fontFamily: 'inherit',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      touchAction: 'manipulation'
+    },
+    "aria-label": "\u30EA\u30BB\u30C3\u30C8"
+  }, "\uD83D\uDD04"))), /*#__PURE__*/React.createElement("footer", {
+    id: "bottombar",
+    style: {
+      flexShrink: 0,
+      padding: '6px 20px',
+      paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'rgba(255,255,255,0.55)',
+      backgroundColor: 'rgba(255,255,255,0.55)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderRadius: 28,
+      padding: '14px 12px 10px',
+      boxShadow: '0 8px 24px rgba(180, 100, 120, 0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
+      border: '1px solid rgba(255,255,255,0.6)',
+      display: 'grid',
+      gridTemplateColumns: 'repeat(5, 1fr)',
+      gap: '6px 4px',
+      justifyItems: 'center'
+    }
+  }, COLORS.map(c => /*#__PURE__*/React.createElement(PaintDrop, {
+    key: c.id,
+    color: c,
+    size: 48,
+    selected: slot1?.id === c.id || slot2?.id === c.id,
+    onClick: () => handleColorTap(c)
+  }))))), showBook && /*#__PURE__*/React.createElement(BookModal, {
+    collection: collection,
+    onClose: () => {
+      setShowBook(false);
+      try {
+        pop();
+      } catch (e) {}
+    }
+  })));
+}
+
+/* =========================================================
+   スロットドロップ(まぜる前の2色を表示する場所)
+   ========================================================= */
+function SlotDrop({
+  color,
+  placeholder,
+  fading
+}) {
+  if (!color) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 64,
+        height: 64,
+        borderRadius: '50%',
+        border: '3px dashed #D4B4A4',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#C4A494',
+        fontSize: 26,
+        fontWeight: 900,
+        background: 'rgba(255,255,255,0.3)'
+      }
+    }, placeholder);
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 64,
+      height: 64,
+      borderRadius: '50%',
+      background: `radial-gradient(circle at 30% 28%, rgba(255,255,255,0.65) 0%, ${color.hex}ee 30%, ${color.hex} 65%)`,
+      boxShadow: `
+        inset -3px -5px 10px rgba(0,0,0,0.18),
+        inset 3px 4px 8px rgba(255,255,255,0.5),
+        0 6px 14px ${color.hex}66
+      `,
+      border: color.id === 'white' ? '2px solid rgba(0,0,0,0.08)' : 'none',
+      animation: fading ? 'fall 1s ease-in both' : 'dropIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: '15%',
+      left: '22%',
+      width: '28%',
+      height: '22%',
+      background: 'rgba(255,255,255,0.7)',
+      borderRadius: '50%',
+      filter: 'blur(2px)'
+    }
+  }));
+}
+
+/* =========================================================
+   きらきら粒子
+   ========================================================= */
+function Sparkles({
+  hex
+}) {
+  const sparks = Array.from({
+    length: 8
+  }, (_, i) => ({
+    x: Math.cos(i / 8 * Math.PI * 2) * (70 + Math.random() * 30),
+    y: Math.sin(i / 8 * Math.PI * 2) * (70 + Math.random() * 30),
+    delay: i * 0.06,
+    size: 12 + Math.random() * 10,
+    rot: Math.random() * 360
+  }));
+  return /*#__PURE__*/React.createElement(React.Fragment, null, sparks.map((s, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      position: 'absolute',
+      left: '50%',
+      top: '50%',
+      width: s.size,
+      height: s.size,
+      marginLeft: -s.size / 2,
+      marginTop: -s.size / 2,
+      transform: `translate(${s.x}px, ${s.y}px)`,
+      animation: `sparkleFloat 1.2s ease-out ${s.delay}s both`,
+      pointerEvents: 'none'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    width: "100%",
+    height: "100%"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z",
+    fill: "#FFD700",
+    stroke: "#FFA500",
+    strokeWidth: "0.5"
+  })))));
+}
+
+/* =========================================================
+   コレクションずかん
+   ========================================================= */
+function BookModal({
+  collection,
+  onClose
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: 'absolute',
+      inset: 0,
+      /* 鉄則②: fixed禁止、absolute使用 */
+      background: 'rgba(80, 50, 70, 0.45)',
+      backgroundColor: 'rgba(80, 50, 70, 0.45)',
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      zIndex: 200,
+      /* 鉄則⑧: モーダル=200 */
+      animation: 'fadeIn 0.3s both'
+    }
+  }, /*#__PURE__*/React.createElement("style", null, `
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+      `), /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      width: '100%',
+      maxWidth: 440,
+      background: 'linear-gradient(180deg, #FFF8F0 0%, #FFEEDD 100%)',
+      backgroundColor: '#FFF8F0',
+      /* 鉄則⑨: フォールバック */
+      borderRadius: '32px 32px 0 0',
+      padding: '20px 24px',
+      paddingBottom: 'max(32px, env(safe-area-inset-bottom, 32px))',
+      /* 鉄則⑥ */
+      maxHeight: '85%',
+      /* 鉄則③: vh禁止、親の%で指定 */
+      overflowY: 'auto',
+      touchAction: 'pan-y',
+      /* スクロールは縦のみ許可 */
+      animation: 'slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+      boxShadow: '0 -10px 40px rgba(0,0,0,0.2)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 50,
+      height: 5,
+      background: '#D4B4A4',
+      borderRadius: 3,
+      margin: '0 auto 18px'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: 0,
+      fontSize: 24,
+      fontWeight: 900,
+      color: '#5C4033'
+    }
+  }, "\uD83D\uDCD6 \u3044\u308D\u306E \u305A\u304B\u3093"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: '#A88878',
+      background: 'white',
+      padding: '6px 12px',
+      borderRadius: 14
+    }
+  }, collection.length, " \u3053 \u306F\u3063\u3051\u3093!")), collection.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      padding: '40px 20px',
+      color: '#A88878',
+      fontWeight: 700
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 60,
+      marginBottom: 12
+    }
+  }, "\uD83C\uDFA8"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: 0,
+      fontSize: 15
+    }
+  }, "\u3044\u308D\u3092 \u307E\u305C\u308B\u3068", /*#__PURE__*/React.createElement("br", null), "\u3053\u3053\u306B \u3042\u3064\u307E\u308B\u3088!")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: 14
+    }
+  }, collection.map((c, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      background: 'white',
+      borderRadius: 16,
+      padding: '12px 8px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 6,
+      boxShadow: '0 3px 8px rgba(0,0,0,0.06)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 56,
+      height: 56,
+      borderRadius: '50%',
+      background: `radial-gradient(circle at 30% 28%, rgba(255,255,255,0.6) 0%, ${c.hex}ee 35%, ${c.hex} 70%)`,
+      boxShadow: `
+                    inset -2px -4px 8px rgba(0,0,0,0.15),
+                    inset 2px 3px 6px rgba(255,255,255,0.4),
+                    0 4px 10px ${c.hex}55
+                  `,
+      border: isLight(c.hex) ? '2px solid rgba(0,0,0,0.06)' : 'none'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: c.name.length > 6 ? 10 : 12,
+      fontWeight: 800,
+      color: '#5C4033',
+      textAlign: 'center',
+      lineHeight: 1.2
+    }
+  }, c.name), c.isKnown && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11
+    }
+  }, "\u2728")))), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      marginTop: 24,
+      width: '100%',
+      padding: '14px',
+      background: 'linear-gradient(135deg, #FF8FA3 0%, #FFA07A 100%)',
+      color: 'white',
+      border: 'none',
+      borderRadius: 20,
+      fontSize: 16,
+      fontWeight: 900,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      boxShadow: '0 6px 14px rgba(255, 130, 130, 0.35)',
+      letterSpacing: '1px'
+    }
+  }, "\u3068\u3058\u308B")));
+}
+
+// マウント + ローダー除去
+function mountApp() {
+  try {
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(/*#__PURE__*/React.createElement(IromazeLab, null));
+    requestAnimationFrame(() => {
+      const loader = document.getElementById('loader');
+      if (loader) {
+        loader.classList.add('hidden');
+        setTimeout(() => loader.remove(), 500);
+      }
+    });
+  } catch (err) {
+    showLoaderError('描画エラー', err && err.message ? err.message : String(err));
+  }
+}
+
+function showLoaderError(title, detail) {
+  const loader = document.getElementById('loader');
+  if (!loader) return;
+  loader.innerHTML =
+    '<div style="text-align:center;padding:20px;max-width:300px;">' +
+      '<div style="font-size:42px;margin-bottom:14px;">⚠️</div>' +
+      '<div style="font-size:15px;font-weight:800;color:#5C4033;margin-bottom:8px;">' + title + '</div>' +
+      '<div style="font-size:11px;font-weight:600;color:#8B6F5A;word-break:break-all;">' + detail + '</div>' +
+    '</div>';
+}
+
+window.addEventListener('error', function(e) {
+  showLoaderError('スクリプト エラー', (e.message || 'unknown') + ' @ ' + (e.filename || ''));
+});
+
+// 8秒経っても React/ReactDOM が来なかったら CDN ブロックを表示
+setTimeout(function() {
+  if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+    showLoaderError(
+      'ライブラリが読み込めません',
+      'React: ' + typeof React + ' / ReactDOM: ' + typeof ReactDOM + ' — ネット接続か CDN ブロック設定をご確認ください'
+    );
+    return;
+  }
+  // React は来ているのに描画されていない=未マウント可能性
+  if (document.getElementById('root').childElementCount === 0) {
+    try { mountApp(); } catch(e) {}
+  }
+}, 8000);
+
+if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
+  mountApp();
+} else {
+  // 念のため load イベントで再試行
+  window.addEventListener('load', function() {
+    if (document.getElementById('root').childElementCount === 0 &&
+        typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
+      mountApp();
+    }
+  });
+}
+</script>
+</body>
+</html>
