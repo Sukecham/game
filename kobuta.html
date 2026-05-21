@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🐷 3びきの こぶた 🐷</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:'Zen Maru Gothic',sans-serif;
+    overflow:hidden;background:#87CEEB;
+    touch-action:manipulation;-webkit-user-select:none;user-select:none;
+    width:100vw;height:100dvh;
+  }
+  #app{width:100%;height:100%;position:relative;overflow:hidden}
+
+  /* TITLE */
+  #title{
+    position:absolute;inset:0;z-index:100;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:linear-gradient(180deg,#87CEEB 0%,#E0F4FF 55%,#7CB342 55%,#558B2F 100%);
+    transition:opacity .7s ease;
+  }
+  #title.hide{opacity:0;pointer-events:none}
+  .t-main{
+    font-size:clamp(2.2rem,10vw,4.5rem);font-weight:900;color:#fff;
+    text-shadow:3px 3px 0 #FF69B4,-2px -2px 0 #FF69B4,5px 5px 10px rgba(0,0,0,.15);
+    text-align:center;line-height:1.3;margin-bottom:.3rem;
+    animation:bounce 2s ease-in-out infinite;
+  }
+  .t-sub{font-size:clamp(.9rem,4vw,1.5rem);color:#fff;text-shadow:1px 1px 3px rgba(0,0,0,.2);margin-bottom:1.5rem}
+  @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .btn{
+    background:linear-gradient(135deg,#FF69B4,#FF1493);border:4px solid #fff;border-radius:50px;
+    padding:.8rem 2.5rem;font-family:inherit;font-size:clamp(1.1rem,5vw,1.8rem);font-weight:700;
+    color:#fff;cursor:pointer;box-shadow:0 5px 18px rgba(255,20,147,.4),0 3px 0 #C71585;
+    transition:transform .1s;animation:pulse 1.5s ease-in-out infinite;
+  }
+  .btn:active{transform:translateY(3px) scale(.97);box-shadow:0 1px 8px rgba(255,20,147,.4)}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+
+  /* GAME */
+  #game{position:absolute;inset:0;display:none}
+  #game.on{display:block}
+  #scene{position:absolute;inset:0;width:100%;height:100%}
+
+  .prog{
+    position:absolute;top:.6rem;left:50%;transform:translateX(-50%);
+    display:flex;gap:.3rem;background:rgba(255,255,255,.85);border-radius:20px;
+    padding:.35rem .7rem;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.08);
+  }
+  .dot{
+    width:clamp(9px,2.2vw,13px);height:clamp(9px,2.2vw,13px);border-radius:50%;
+    background:#ddd;transition:background .3s;
+  }
+  .dot.now{background:#FF69B4}.dot.ok{background:#FFD700}
+
+  #sbox{
+    position:absolute;bottom:0;left:0;right:0;z-index:50;
+    background:linear-gradient(0deg,rgba(255,255,255,.97) 80%,rgba(255,255,255,0));
+    padding:2rem 1.2rem 1.2rem;
+  }
+  #stxt{
+    font-size:clamp(1rem,4.2vw,1.5rem);font-weight:700;color:#4A2C2A;
+    text-align:center;line-height:1.7;max-width:500px;margin:0 auto;min-height:3.2em;
+    white-space:pre-line;
+  }
+  #tap{
+    font-size:clamp(.7rem,2.5vw,.95rem);color:#FF69B4;text-align:center;
+    margin-top:.4rem;animation:blink 1.2s ease-in-out infinite;
+  }
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+  #blowBtn{
+    position:absolute;bottom:10rem;left:50%;transform:translateX(-50%);
+    width:clamp(90px,24vw,130px);height:clamp(90px,24vw,130px);border-radius:50%;
+    background:linear-gradient(135deg,#87CEEB,#4FC3F7);border:5px solid #fff;
+    font-family:inherit;font-size:clamp(.8rem,3vw,1.2rem);font-weight:900;color:#fff;
+    cursor:pointer;box-shadow:0 6px 20px rgba(79,195,247,.5);z-index:70;display:none;
+    text-shadow:1px 1px 2px rgba(0,0,0,.2);transition:transform .08s;
+  }
+  #blowBtn:active{transform:translateX(-50%) scale(.88)}
+  #blowBtn.on{display:block}
+
+  #meter{
+    position:absolute;top:50%;right:.8rem;transform:translateY(-50%);
+    width:clamp(32px,7vw,48px);height:clamp(140px,28vh,200px);
+    background:rgba(255,255,255,.85);border-radius:24px;border:3px solid #FF69B4;
+    overflow:hidden;z-index:60;display:none;
+  }
+  #meter.on{display:block}
+  #fill{
+    position:absolute;bottom:0;width:100%;border-radius:0 0 21px 21px;
+    background:linear-gradient(180deg,#FF1493,#FF69B4);transition:height .12s;
+  }
+
+  .mat{
+    position:absolute;cursor:pointer;z-index:65;
+    font-size:clamp(2.2rem,9vw,3.5rem);
+    transition:transform .15s,opacity .25s;
+  }
+  .mat:active{transform:scale(.8)!important}
+
+  #celeb{
+    position:absolute;inset:0;background:rgba(0,0,0,.45);
+    display:none;align-items:center;justify-content:center;z-index:200;
+  }
+  #celeb.on{display:flex}
+  .cbox{
+    background:linear-gradient(135deg,#FFF5F7,#FFF);border-radius:28px;
+    padding:1.8rem 1.5rem;text-align:center;max-width:88vw;
+    box-shadow:0 16px 50px rgba(0,0,0,.3);animation:cpop .45s ease;
+  }
+  @keyframes cpop{0%{transform:scale(0) rotate(-8deg)}60%{transform:scale(1.08) rotate(2deg)}100%{transform:scale(1) rotate(0)}}
+  .ctitle{font-size:clamp(1.4rem,6vw,2.5rem);font-weight:900;color:#FF69B4;margin-bottom:.4rem;white-space:pre-line}
+  .cstars{font-size:clamp(1.8rem,8vw,3.5rem);margin:.7rem 0}
+  .cmsg{font-size:clamp(.85rem,3vw,1.2rem);color:#666;margin-bottom:1rem;line-height:1.5;white-space:pre-line}
+
+  .conf{position:absolute;pointer-events:none;z-index:300}
+
+  @keyframes shake{0%,100%{transform:translate(0)}25%{transform:translate(-5px,-1px) rotate(-1deg)}75%{transform:translate(5px,1px) rotate(1deg)}}
+  @keyframes hfall{0%{opacity:1}100%{transform:translateY(80px) rotate(12deg);opacity:0}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="title">
+    <svg viewBox="0 0 360 180" width="85%" style="max-width:380px;margin-bottom:.5rem">
+      <g transform="translate(65,75) scale(.8)">
+        <ellipse cx="0" cy="16" rx="26" ry="22" fill="#FFC8D6"/>
+        <circle cx="-14" cy="-6" r="11" fill="#FFB6C1"/><circle cx="-14" cy="-6" r="8" fill="#FFC8D6"/>
+        <circle cx="14" cy="-6" r="11" fill="#FFB6C1"/><circle cx="14" cy="-6" r="8" fill="#FFC8D6"/>
+        <circle cx="-8" cy="6" r="4" fill="#333"/><circle cx="8" cy="6" r="4" fill="#333"/>
+        <circle cx="-6.5" cy="4.5" r="1.5" fill="#fff"/><circle cx="9.5" cy="4.5" r="1.5" fill="#fff"/>
+        <ellipse cx="0" cy="17" rx="10" ry="7" fill="#FF91A4"/>
+        <ellipse cx="-3" cy="16.5" rx="2.2" ry="1.8" fill="#FF7093"/><ellipse cx="3" cy="16.5" rx="2.2" ry="1.8" fill="#FF7093"/>
+        <path d="M-6 24 Q0 30 6 24" fill="none" stroke="#FF7093" stroke-width="1.5" stroke-linecap="round"/>
+        <ellipse cx="-12" cy="40" rx="7" ry="4" fill="#FFB6C1"/><ellipse cx="12" cy="40" rx="7" ry="4" fill="#FFB6C1"/>
+        <ellipse cx="0" cy="-18" rx="22" ry="6" fill="#F0D060"/>
+        <rect x="-9" y="-30" width="18" height="13" rx="3" fill="#F0D060"/>
+        <rect x="-11" y="-19" width="22" height="2.5" fill="#DAA520"/>
+      </g>
+      <g transform="translate(180,68) scale(.85)">
+        <ellipse cx="0" cy="16" rx="28" ry="24" fill="#FFC8D6"/>
+        <circle cx="-15" cy="-8" r="12" fill="#FFB6C1"/><circle cx="-15" cy="-8" r="9" fill="#FFC8D6"/>
+        <circle cx="15" cy="-8" r="12" fill="#FFB6C1"/><circle cx="15" cy="-8" r="9" fill="#FFC8D6"/>
+        <circle cx="-8" cy="5" r="4.5" fill="#333"/><circle cx="8" cy="5" r="4.5" fill="#333"/>
+        <circle cx="-6.5" cy="3.5" r="1.5" fill="#fff"/><circle cx="9.5" cy="3.5" r="1.5" fill="#fff"/>
+        <ellipse cx="0" cy="17" rx="11" ry="8" fill="#FF91A4"/>
+        <ellipse cx="-3.5" cy="16.5" rx="2.2" ry="1.8" fill="#FF7093"/><ellipse cx="3.5" cy="16.5" rx="2.2" ry="1.8" fill="#FF7093"/>
+        <path d="M-6 25 Q0 31 6 25" fill="none" stroke="#FF7093" stroke-width="1.5" stroke-linecap="round"/>
+        <rect x="-15" y="24" width="30" height="16" rx="3" fill="#5DADE2"/>
+        <rect x="-9" y="20" width="5" height="6" rx="2" fill="#5DADE2"/><rect x="4" y="20" width="5" height="6" rx="2" fill="#5DADE2"/>
+        <circle cx="-7" cy="22" r="1.5" fill="#FFD700"/><circle cx="7" cy="22" r="1.5" fill="#FFD700"/>
+        <ellipse cx="-13" cy="42" rx="7" ry="4" fill="#FFB6C1"/><ellipse cx="13" cy="42" rx="7" ry="4" fill="#FFB6C1"/>
+      </g>
+      <g transform="translate(295,72) scale(.82)">
+        <ellipse cx="0" cy="16" rx="28" ry="24" fill="#FFC8D6"/>
+        <circle cx="-15" cy="-8" r="12" fill="#FFB6C1"/><circle cx="-15" cy="-8" r="9" fill="#FFC8D6"/>
+        <circle cx="15" cy="-8" r="12" fill="#FFB6C1"/><circle cx="15" cy="-8" r="9" fill="#FFC8D6"/>
+        <circle cx="-8" cy="5" r="4.5" fill="#333"/><circle cx="8" cy="5" r="4.5" fill="#333"/>
+        <circle cx="-6.5" cy="3.5" r="1.5" fill="#fff"/><circle cx="9.5" cy="3.5" r="1.5" fill="#fff"/>
+        <line x1="-13" y1="-2" x2="-4" y2="-1" stroke="#333" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="4" y1="-1" x2="13" y2="-2" stroke="#333" stroke-width="1.8" stroke-linecap="round"/>
+        <ellipse cx="0" cy="17" rx="11" ry="8" fill="#FF91A4"/>
+        <ellipse cx="-3.5" cy="16.5" rx="2.2" ry="1.8" fill="#FF7093"/><ellipse cx="3.5" cy="16.5" rx="2.2" ry="1.8" fill="#FF7093"/>
+        <path d="M-6 25 Q0 30 6 25" fill="none" stroke="#FF7093" stroke-width="1.5" stroke-linecap="round"/>
+        <ellipse cx="-13" cy="42" rx="7" ry="4" fill="#FFB6C1"/><ellipse cx="13" cy="42" rx="7" ry="4" fill="#FFB6C1"/>
+        <ellipse cx="0" cy="-20" rx="20" ry="6" fill="#E74C3C"/>
+        <path d="M-16,-20 Q-16,-34 0,-36 Q16,-34 16,-20" fill="#E74C3C"/>
+        <rect x="-18" y="-22" width="36" height="3.5" rx="1.5" fill="#C0392B"/>
+      </g>
+    </svg>
+    <div class="t-main">３びきの<br>こぶた</div>
+    <div class="t-sub">おはなし ゲーム</div>
+    <button class="btn" onclick="go()">はじめる ▶</button>
+  </div>
+
+  <div id="game">
+    <svg id="scene" viewBox="0 0 400 720" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#87CEEB"/><stop offset="70%" stop-color="#E0F4FF"/><stop offset="100%" stop-color="#C8E6C9"/>
+        </linearGradient>
+        <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1a1a3e"/><stop offset="50%" stop-color="#2d2d6b"/><stop offset="100%" stop-color="#3a3568"/>
+        </linearGradient>
+        <pattern id="strawP" width="8" height="8" patternUnits="userSpaceOnUse">
+          <rect width="8" height="8" fill="#F0D060"/><line x1="0" y1="0" x2="8" y2="8" stroke="#DAA520" stroke-width=".5"/>
+        </pattern>
+        <pattern id="woodP" width="12" height="6" patternUnits="userSpaceOnUse">
+          <rect width="12" height="6" fill="#8B6914"/><line x1="0" y1="2" x2="12" y2="2" stroke="#7A5D10" stroke-width=".7"/>
+          <line x1="0" y1="5" x2="12" y2="5" stroke="#9B7924" stroke-width=".4"/>
+        </pattern>
+        <pattern id="brickP" width="20" height="10" patternUnits="userSpaceOnUse">
+          <rect width="20" height="10" fill="#C0392B"/>
+          <rect x="0" y="0" width="9" height="4.5" rx=".4" fill="#E74C3C" stroke="#A93226" stroke-width=".3"/>
+          <rect x="11" y="0" width="9" height="4.5" rx=".4" fill="#D4342A" stroke="#A93226" stroke-width=".3"/>
+          <rect x="5" y="5.5" width="9" height="4.5" rx=".4" fill="#E74C3C" stroke="#A93226" stroke-width=".3"/>
+          <rect x="15" y="5.5" width="5" height="4.5" rx=".4" fill="#D4342A" stroke="#A93226" stroke-width=".3"/>
+          <rect x="0" y="5.5" width="4" height="4.5" rx=".4" fill="#D4342A" stroke="#A93226" stroke-width=".3"/>
+        </pattern>
+        <radialGradient id="sunG" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#FFF9C4"/><stop offset="50%" stop-color="#FFE082"/><stop offset="100%" stop-color="#FFB300"/>
+        </radialGradient>
+      </defs>
+      <g id="bgG"></g><g id="objG"></g><g id="charG"></g><g id="fxG"></g>
+    </svg>
+    <div class="prog" id="prog"></div>
+    <div id="sbox">
+      <div id="stxt"></div>
+      <div id="tap">タップして つぎへ ▶</div>
+    </div>
+    <button id="blowBtn">ふ〜！<br>🌬️</button>
+    <div id="meter"><div id="fill"></div></div>
+  </div>
+
+  <div id="celeb">
+    <div class="cbox">
+      <div class="ctitle" id="ct"></div>
+      <div class="cstars" id="cs"></div>
+      <div class="cmsg" id="cm"></div>
+      <button class="btn" id="cb" onclick="celebAct()">つぎへ ▶</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const VW=400,VH=720,GY=500;
+
+// ===== SVG CHARACTERS =====
+function pigSVG(id,x,y,sc=1){
+  const hats={
+    pig1:`<ellipse cx="0" cy="-20" rx="23" ry="6" fill="#F0D060"/>
+      <rect x="-10" y="-32" width="20" height="13" rx="3" fill="#F0D060"/>
+      <rect x="-12" y="-21" width="24" height="2.5" fill="#DAA520"/>`,
+    pig2:`<rect x="-16" y="22" width="32" height="18" rx="3" fill="#5DADE2"/>
+      <rect x="-10" y="17" width="5" height="7" rx="2" fill="#5DADE2"/>
+      <rect x="5" y="17" width="5" height="7" rx="2" fill="#5DADE2"/>
+      <circle cx="-8" cy="19.5" r="1.8" fill="#FFD700"/>
+      <circle cx="8" cy="19.5" r="1.8" fill="#FFD700"/>`,
+    pig3:`<ellipse cx="0" cy="-22" rx="21" ry="6" fill="#E74C3C"/>
+      <path d="M-17,-22 Q-17,-36 0,-38 Q17,-36 17,-22" fill="#E74C3C"/>
+      <rect x="-19" y="-24" width="38" height="3.5" rx="1.5" fill="#C0392B"/>
+      <line x1="-12" y1="-4" x2="-5" y2="-3" stroke="#333" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="5" y1="-3" x2="12" y2="-4" stroke="#333" stroke-width="1.8" stroke-linecap="round"/>`
+  };
+  return`<g transform="translate(${x},${y}) scale(${sc})">
+    <ellipse cx="0" cy="48" rx="22" ry="5" fill="rgba(0,0,0,.08)"/>
+    <ellipse cx="0" cy="14" rx="28" ry="24" fill="#FFB6C1"/>
+    <ellipse cx="0" cy="14" rx="24" ry="20" fill="#FFC8D6"/>
+    <circle cx="-14" cy="-6" r="12" fill="#FFB6C1"/><circle cx="-14" cy="-6" r="8.5" fill="#FFC8D6"/>
+    <circle cx="14" cy="-6" r="12" fill="#FFB6C1"/><circle cx="14" cy="-6" r="8.5" fill="#FFC8D6"/>
+    <circle cx="-8" cy="4" r="4.2" fill="#333"/><circle cx="8" cy="4" r="4.2" fill="#333"/>
+    <circle cx="-6.5" cy="2.5" r="1.6" fill="#fff"/><circle cx="9.5" cy="2.5" r="1.6" fill="#fff"/>
+    <ellipse cx="-17" cy="10" rx="5" ry="3.5" fill="rgba(255,150,170,.35)"/>
+    <ellipse cx="17" cy="10" rx="5" ry="3.5" fill="rgba(255,150,170,.35)"/>
+    <ellipse cx="0" cy="16" rx="10" ry="7.5" fill="#FF91A4"/>
+    <ellipse cx="-3" cy="15.5" rx="2.3" ry="1.8" fill="#FF7093"/>
+    <ellipse cx="3" cy="15.5" rx="2.3" ry="1.8" fill="#FF7093"/>
+    <path d="M-6 23 Q0 29 6 23" fill="none" stroke="#FF7093" stroke-width="1.6" stroke-linecap="round"/>
+    <ellipse cx="-11" cy="38" rx="7" ry="4" fill="#FFB6C1"/>
+    <ellipse cx="11" cy="38" rx="7" ry="4" fill="#FFB6C1"/>
+    <path d="M22,18 Q30,14 28,6 Q25,0 30,2" fill="none" stroke="#FFB6C1" stroke-width="2.5" stroke-linecap="round"/>
+    ${hats[id]||''}
+  </g>`;
+}
+
+function wolfSVG(x,y,sc=1,blow=false,tired=false){
+  const eyes=tired
+    ?`<line x1="-14" y1="-4" x2="-5" y2="-4" stroke="#333" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="5" y1="-4" x2="14" y2="-4" stroke="#333" stroke-width="2.5" stroke-linecap="round"/>`
+    :`<ellipse cx="-9" cy="-5" rx="4.5" ry="5.5" fill="#FFFFCC"/>
+      <circle cx="-9" cy="-4" r="2.8" fill="#333"/><circle cx="-7.5" cy="-5.5" r="1.1" fill="#fff"/>
+      <ellipse cx="9" cy="-5" rx="4.5" ry="5.5" fill="#FFFFCC"/>
+      <circle cx="9" cy="-4" r="2.8" fill="#333"/><circle cx="10.5" cy="-5.5" r="1.1" fill="#fff"/>
+      <line x1="-15" y1="-12" x2="-5" y2="-10" stroke="#444" stroke-width="2.2" stroke-linecap="round"/>
+      <line x1="5" y1="-10" x2="15" y2="-12" stroke="#444" stroke-width="2.2" stroke-linecap="round"/>`;
+  const mouth=blow
+    ?`<ellipse cx="0" cy="13" rx="7" ry="5" fill="#444"/><ellipse cx="0" cy="12" rx="4.5" ry="3.5" fill="#333"/>`
+    :tired
+    ?`<path d="M-7 11 Q0 7 7 11" fill="none" stroke="#555" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M18,-13 Q20,-18 22,-13 Q20,-8 18,-13Z" fill="#87CEEB"/>`
+    :`<path d="M-7 11 Q0 16 7 11" fill="none" stroke="#444" stroke-width="1.8" stroke-linecap="round"/>
+      <polygon points="-3.5,11 -2,15 -.5,11" fill="#fff"/><polygon points="1.5,11 3,15 4.5,11" fill="#fff"/>`;
+  const wind=blow
+    ?`<line x1="30" y1="8" x2="60" y2="5" stroke="#B0D4F1" stroke-width="2.8" stroke-linecap="round" opacity=".6">
+        <animate attributeName="x2" values="55;75;55" dur=".8s" repeatCount="indefinite"/>
+      </line>
+      <line x1="28" y1="15" x2="65" y2="17" stroke="#B0D4F1" stroke-width="2.2" stroke-linecap="round" opacity=".45">
+        <animate attributeName="x2" values="60;80;60" dur=".9s" repeatCount="indefinite"/>
+      </line>
+      <line x1="25" y1="22" x2="55" y2="24" stroke="#B0D4F1" stroke-width="1.8" stroke-linecap="round" opacity=".35">
+        <animate attributeName="x2" values="50;70;50" dur="1s" repeatCount="indefinite"/>
+      </line>` : '';
+  return`<g transform="translate(${x},${y}) scale(${sc})">
+    <ellipse cx="0" cy="48" rx="24" ry="6" fill="rgba(0,0,0,.1)"/>
+    <path d="M22,18 Q40,10 44,22 Q48,34 38,30" fill="#6B6B6B" stroke="#555" stroke-width=".8"/>
+    <ellipse cx="0" cy="10" rx="28" ry="26" fill="#6B6B6B"/>
+    <ellipse cx="0" cy="12" rx="20" ry="16" fill="#8B8B8B"/>
+    <ellipse cx="0" cy="18" rx="14" ry="10" fill="#9E9E9E"/>
+    <polygon points="-16,-20 -22,-42 -7,-26" fill="#6B6B6B"/>
+    <polygon points="-15,-22 -20,-38 -9,-27" fill="#9E9E9E"/>
+    <polygon points="16,-20 22,-42 7,-26" fill="#6B6B6B"/>
+    <polygon points="15,-22 20,-38 9,-27" fill="#9E9E9E"/>
+    ${eyes}
+    <ellipse cx="0" cy="4" rx="12" ry="9" fill="#8B8B8B"/>
+    <ellipse cx="0" cy="2" rx="7" ry="4" fill="#555"/>
+    <ellipse cx="-2.2" cy="1.5" rx="1.8" ry="1.3" fill="#333"/><ellipse cx="2.2" cy="1.5" rx="1.8" ry="1.3" fill="#333"/>
+    ${mouth}
+    <ellipse cx="-12" cy="36" rx="7.5" ry="4.5" fill="#6B6B6B"/>
+    <ellipse cx="12" cy="36" rx="7.5" ry="4.5" fill="#6B6B6B"/>
+    <line x1="-16" y1="40" x2="-18" y2="42" stroke="#444" stroke-width="1.3"/>
+    <line x1="-12" y1="40.5" x2="-12" y2="43" stroke="#444" stroke-width="1.3"/>
+    <line x1="12" y1="40.5" x2="12" y2="43" stroke="#444" stroke-width="1.3"/>
+    <line x1="16" y1="40" x2="18" y2="42" stroke="#444" stroke-width="1.3"/>
+    ${wind}
+  </g>`;
+}
+
+// ===== HOUSES =====
+function strawH(x,y){return`<g transform="translate(${x},${y})" class="house"><rect x="-50" y="-68" width="100" height="68" fill="url(#strawP)" rx="2"/><polygon points="-58,-68 0,-108 58,-68" fill="#F0D060" stroke="#DAA520" stroke-width="1.5"/><rect x="-12" y="-42" width="24" height="42" fill="#DAA520" rx="2"/><circle cx="8" cy="-21" r="2.5" fill="#8B6914"/><rect x="-38" y="-56" width="18" height="18" fill="#FFFDE7" stroke="#DAA520" stroke-width="1.2" rx="1"/><line x1="-29" y1="-56" x2="-29" y2="-38" stroke="#DAA520" stroke-width=".8"/><line x1="-38" y1="-47" x2="-20" y2="-47" stroke="#DAA520" stroke-width=".8"/></g>`}
+function woodH(x,y){return`<g transform="translate(${x},${y})" class="house"><rect x="-55" y="-76" width="110" height="76" fill="url(#woodP)" rx="2"/><polygon points="-63,-76 0,-120 63,-76" fill="#8B6914" stroke="#6B4F10" stroke-width="1.5"/><rect x="-14" y="-46" width="28" height="46" fill="#6B4F10" rx="2"/><circle cx="9" cy="-23" r="3" fill="#DAA520"/><rect x="-42" y="-64" width="20" height="20" fill="#FFFDE7" stroke="#6B4F10" stroke-width="1.5" rx="1"/><line x1="-32" y1="-64" x2="-32" y2="-44" stroke="#6B4F10" stroke-width="1"/><line x1="-42" y1="-54" x2="-22" y2="-54" stroke="#6B4F10" stroke-width="1"/><rect x="22" y="-64" width="20" height="20" fill="#FFFDE7" stroke="#6B4F10" stroke-width="1.5" rx="1"/><line x1="32" y1="-64" x2="32" y2="-44" stroke="#6B4F10" stroke-width="1"/><line x1="22" y1="-54" x2="42" y2="-54" stroke="#6B4F10" stroke-width="1"/></g>`}
+function brickH(x,y){return`<g transform="translate(${x},${y})" class="house"><rect x="-60" y="-86" width="120" height="86" fill="url(#brickP)" rx="2"/><polygon points="-68,-86 0,-134 68,-86" fill="#C0392B" stroke="#922B21" stroke-width="1.5"/><rect x="-16" y="-52" width="32" height="52" fill="#8B6914" rx="2.5"/><circle cx="11" cy="-26" r="3.5" fill="#DAA520"/><rect x="-48" y="-74" width="22" height="22" fill="#FFFDE7" stroke="#922B21" stroke-width="1.5" rx="1"/><line x1="-37" y1="-74" x2="-37" y2="-52" stroke="#922B21" stroke-width="1"/><line x1="-48" y1="-63" x2="-26" y2="-63" stroke="#922B21" stroke-width="1"/><rect x="26" y="-74" width="22" height="22" fill="#FFFDE7" stroke="#922B21" stroke-width="1.5" rx="1"/><line x1="37" y1="-74" x2="37" y2="-52" stroke="#922B21" stroke-width="1"/><line x1="26" y1="-63" x2="48" y2="-63" stroke="#922B21" stroke-width="1"/><rect x="30" y="-130" width="18" height="44" fill="url(#brickP)" rx="1"/><rect x="28" y="-133" width="22" height="5" fill="#922B21" rx="1.5"/></g>`}
+
+// ===== BACKGROUNDS =====
+function drawBG(t){
+  const g=document.getElementById('bgG');let s='';
+  const isN=t==='hill_night';
+  if(isN){
+    s+=`<rect width="${VW}" height="${VH}" fill="url(#night)"/>`;
+    for(let i=0;i<25;i++){const sx=Math.random()*VW,sy=Math.random()*300,sr=.8+Math.random()*1.5;
+      s+=`<circle cx="${sx}" cy="${sy}" r="${sr}" fill="#fff" opacity="${.4+Math.random()*.5}"><animate attributeName="opacity" values="${.4+Math.random()*.3};1;${.4+Math.random()*.3}" dur="${1+Math.random()*2}s" repeatCount="indefinite"/></circle>`}
+    s+=`<circle cx="340" cy="70" r="32" fill="#FFF9C4"/><circle cx="352" cy="62" r="28" fill="url(#night)"/>`;
+    s+=`<ellipse cx="200" cy="${VH}" rx="280" ry="200" fill="#2E5B1E"/><ellipse cx="200" cy="${VH}" rx="260" ry="185" fill="#3A6B28"/>`;
+  }else{
+    s+=`<rect width="${VW}" height="${VH}" fill="url(#sky)"/>`;
+    s+=`<circle cx="340" cy="65" r="36" fill="url(#sunG)"/>`;
+    for(let i=0;i<8;i++){const a=i*45*Math.PI/180;s+=`<line x1="${340+Math.cos(a)*44}" y1="${65+Math.sin(a)*44}" x2="${340+Math.cos(a)*60}" y2="${65+Math.sin(a)*60}" stroke="#FFB300" stroke-width="2.5" stroke-linecap="round" opacity=".5"/>`}
+    s+=cld(60,80,.7)+cld(220,120,.55)+cld(340,60,.5);
+    if(t==='meadow'){
+      s+=`<ellipse cx="200" cy="${VH}" rx="280" ry="200" fill="#7CB342"/><ellipse cx="200" cy="${VH}" rx="260" ry="185" fill="#8BC34A"/>`;
+      for(let i=0;i<10;i++){const fx=30+Math.random()*340,fy=GY+20+Math.random()*80;s+=flw(fx,fy,['#FF69B4','#FF6B6B','#FFD700','#9B59B6','#E91E63'][~~(Math.random()*5)])}
+      s+=bfly(120,430)+bfly(300,445);
+    }else if(t==='field'){
+      s+=`<ellipse cx="200" cy="${VH}" rx="280" ry="200" fill="#9E9D24"/><ellipse cx="200" cy="${VH}" rx="260" ry="185" fill="#C0CA33"/>`;
+      s+=`<ellipse cx="50" cy="${GY+50}" rx="22" ry="14" fill="#F0D060"/><ellipse cx="370" cy="${GY+60}" rx="18" ry="12" fill="#F0D060"/>`;
+    }else if(t==='forest'){
+      s+=`<ellipse cx="200" cy="${VH}" rx="280" ry="200" fill="#558B2F"/><ellipse cx="200" cy="${VH}" rx="260" ry="185" fill="#689F38"/>`;
+      s+=tre(25,GY-5)+tre(75,GY+10)+tre(335,GY)+tre(375,GY+12);
+    }else{
+      s+=`<ellipse cx="200" cy="${VH}" rx="280" ry="210" fill="#558B2F"/><ellipse cx="200" cy="${VH}" rx="260" ry="195" fill="#689F38"/>`;
+      s+=`<ellipse cx="80" cy="${GY+20}" rx="140" ry="40" fill="#7CB342" opacity=".4"/><ellipse cx="330" cy="${GY+30}" rx="120" ry="35" fill="#7CB342" opacity=".35"/>`;
+    }
+  }
+  g.innerHTML=s;
+}
+function cld(x,y,sc){return`<g transform="translate(${x},${y}) scale(${sc})" opacity=".8"><ellipse cx="0" cy="0" rx="35" ry="17" fill="#fff"/><ellipse cx="-20" cy="4" rx="22" ry="13" fill="#fff"/><ellipse cx="20" cy="4" rx="26" ry="15" fill="#fff"/><ellipse cx="8" cy="-8" rx="17" ry="12" fill="#fff"/></g>`}
+function flw(x,y,c){return`<g transform="translate(${x},${y})"><line x1="0" y1="0" x2="0" y2="12" stroke="#4CAF50" stroke-width="1.5"/><circle cx="-3" cy="-1.5" r="3" fill="${c}" opacity=".85"/><circle cx="3" cy="-1.5" r="3" fill="${c}" opacity=".85"/><circle cx="0" cy="-4.5" r="3" fill="${c}" opacity=".85"/><circle cx="0" cy="1.5" r="3" fill="${c}" opacity=".85"/><circle cx="0" cy="-1" r="2.2" fill="#FFD700"/></g>`}
+function bfly(x,y){return`<g><animateTransform attributeName="transform" type="translate" values="${x},${y};${x+15},${y-8};${x-8},${y+4};${x},${y}" dur="3.5s" repeatCount="indefinite"/><ellipse cx="-5" cy="0" rx="5" ry="3.5" fill="#FF69B4" opacity=".75"><animateTransform attributeName="transform" type="scale" values="1,1;.7,1;1,1" dur=".3s" repeatCount="indefinite"/></ellipse><ellipse cx="5" cy="0" rx="5" ry="3.5" fill="#FF69B4" opacity=".75"><animateTransform attributeName="transform" type="scale" values="1,1;.7,1;1,1" dur=".3s" repeatCount="indefinite"/></ellipse><rect x="-.8" y="-2.5" width="1.6" height="5" rx=".8" fill="#333"/></g>`}
+function tre(x,y){return`<g transform="translate(${x},${y})"><rect x="-6" y="0" width="12" height="30" fill="#5D4037" rx="2.5"/><ellipse cx="0" cy="-12" rx="28" ry="28" fill="#388E3C"/><ellipse cx="-12" cy="-4" rx="18" ry="20" fill="#43A047"/><ellipse cx="12" cy="-4" rx="18" ry="20" fill="#2E7D32"/><ellipse cx="0" cy="-20" rx="14" ry="14" fill="#4CAF50"/></g>`}
+
+// ===== SCENES (portrait: all chars within x=70~330) =====
+const S=[
+  {t:'story',bg:'meadow',ch:[['pig1',110,GY+10],['pig2',200,GY],['pig3',290,GY+10]],tx:'むかしむかし、なかよしの\nこぶたが ３びき いました。'},
+  {t:'story',bg:'meadow',ch:[['pig1',120,GY+15],['pig2',200,GY+5],['pig3',280,GY+15]],tx:'「じぶんたちの おうちを\nつくりなさい」\nおかあさんぶたが いいました。'},
+  {t:'story',bg:'field',ch:[['pig1',130,GY+20]],house:'straw',hx:280,hy:GY,tx:'いちばんめの こぶたは\nわらの おうちを つくりました。'},
+  {t:'build',mat:'straw',tx:'わらを タップして\nおうちを つくろう！',need:8},
+  {t:'story',bg:'forest',ch:[['pig2',120,GY+15]],house:'wood',hx:280,hy:GY,tx:'にばんめの こぶたは\nきの おうちを つくりました。'},
+  {t:'build',mat:'wood',tx:'きの いたを タップして\nおうちを つくろう！',need:8},
+  {t:'story',bg:'hill',ch:[['pig3',110,GY+15]],house:'brick',hx:280,hy:GY,tx:'さんばんめの こぶたは\nレンガの おうちを つくりました。'},
+  {t:'build',mat:'brick',tx:'レンガを タップして\nおうちを つくろう！',need:8},
+  {t:'story',bg:'field',ch:[['wolf',120,GY+10,1,false,false]],house:'straw',hx:290,hy:GY,tx:'そこへ おおかみが\nやってきました！\n「ふきとばしてやるぞ！」'},
+  {t:'blow',mat:'straw',bg:'field',hx:280,hy:GY,tx:'ボタンを れんだ して\nいきを ふこう！',diff:.55},
+  {t:'story',bg:'field',ch:[['pig1',270,GY+20],['wolf',110,GY+10,1,true,false]],debris:'straw',tx:'わらの おうちは\nふきとんでしまいました！\nこぶたは にげだしました。'},
+  {t:'story',bg:'forest',ch:[['wolf',100,GY+10,1,false,false],['pig1',270,GY+25,.7],['pig2',310,GY+20,.7]],house:'wood',hx:270,hy:GY,tx:'おおかみは きの おうちにも\nやってきました！'},
+  {t:'blow',mat:'wood',bg:'forest',hx:280,hy:GY,tx:'もういちど ふ〜っ！',diff:.4},
+  {t:'story',bg:'forest',ch:[['pig1',260,GY+25,.7],['pig2',310,GY+20,.7],['wolf',100,GY+10,1,true,false]],debris:'wood',tx:'きの おうちも\nふきとんでしまいました！\n２ひきは にげだしました。'},
+  {t:'story',bg:'hill',ch:[['pig1',140,GY+25,.75],['pig2',200,GY+20,.75],['pig3',260,GY+25,.75]],house:'brick',hx:310,hy:GY-5,tx:'こぶたたちは レンガの\nおうちに にげこみました。'},
+  {t:'story',bg:'hill',ch:[['wolf',110,GY+10,1,true,false]],house:'brick',hx:300,hy:GY-5,tx:'おおかみは ちからいっぱい\nふきました！\nでも びくともしません！'},
+  {t:'blow',mat:'brick',bg:'hill',hx:290,hy:GY-5,tx:'おおかみは なんども\nふきましたが…',diff:.12,impossible:true},
+  {t:'story',bg:'hill',ch:[['wolf',120,GY+15,1,false,true]],house:'brick',hx:300,hy:GY-5,tx:'レンガの おうちは\nぜったいに こわれません！\nおおかみは にげていきました。'},
+  {t:'story',bg:'hill_night',ch:[['pig1',130,GY+25,.8],['pig2',200,GY+20,.8],['pig3',270,GY+25,.8]],house:'brick',hx:310,hy:GY-5,ending:true,tx:'３びきの こぶたは なかよく\nレンガの おうちで くらしました。\nめでたし めでたし！'}
+];
+
+let cur=0,stars=0,bCnt=0,bPow=0,bInt=null,active=false,anim=false,fTxt='';
+
+function go(){
+  document.getElementById('title').classList.add('hide');
+  document.getElementById('game').classList.add('on');
+  setTimeout(()=>{document.getElementById('title').style.display='none';load(0)},700);
+}
+
+function load(i){
+  if(i>=S.length){finalC();return}
+  cur=i;const s=S[i];updProg();
+  document.querySelectorAll('.mat').forEach(e=>e.remove());
+  document.getElementById('meter').classList.remove('on');
+  document.getElementById('blowBtn').classList.remove('on');
+  if(bInt){clearInterval(bInt);bInt=null}
+  if(s.t==='story')loadStory(s);
+  else if(s.t==='build')loadBuild(s);
+  else if(s.t==='blow')loadBlow(s);
+}
+
+function loadStory(s){
+  active=false;drawBG(s.bg);
+  const obj=document.getElementById('objG'),ch=document.getElementById('charG'),fx=document.getElementById('fxG');
+  let oS='',cS='',fS='';
+  if(s.house){const hF={straw:strawH,wood:woodH,brick:brickH}[s.house];if(hF)oS+=hF(s.hx,s.hy)}
+  if(s.debris){const dc=s.debris==='straw'?'#F0D060':'#8B6914';
+    for(let i=0;i<10;i++){const dx=100+Math.random()*200,dy=GY-20+Math.random()*60,dr=2+Math.random()*6,da=Math.random()*360;
+    oS+=`<rect x="${dx}" y="${dy}" width="${dr*2}" height="${dr}" fill="${dc}" transform="rotate(${da},${dx},${dy})" opacity=".5"/>`}}
+  if(s.ch)s.ch.forEach(c=>{
+    if(c[0]==='wolf')cS+=wolfSVG(c[1],c[2],c[3]||1,c[4]||false,c[5]||false);
+    else cS+=pigSVG(c[0],c[1],c[2],c[3]||1)});
+  if(s.ending){
+    fS+=`<circle cx="${s.hx}" cy="${s.hy-40}" r="60" fill="#FF8C00" opacity=".12"><animate attributeName="r" values="60;70;60" dur="2s" repeatCount="indefinite"/></circle>`;
+    for(let i=0;i<3;i++)fS+=`<circle cx="${s.hx+30+i*4}" cy="${s.hy-135-i*25}" r="${6+i*3}" fill="#aaa" opacity="${.3-.08*i}"><animate attributeName="cy" values="${s.hy-135-i*25};${s.hy-150-i*25};${s.hy-135-i*25}" dur="${1.5+i*.5}s" repeatCount="indefinite"/></circle>`}
+  obj.innerHTML=oS;ch.innerHTML=cS;fx.innerHTML=fS;
+  document.getElementById('tap').style.display='block';
+  aTxt(s.tx);
+  document.getElementById('sbox').onclick=()=>{if(anim)fTxtFn();else load(cur+1)};
+}
+
+function loadBuild(s){
+  const bg=s.mat==='straw'?'field':s.mat==='wood'?'forest':'hill';drawBG(bg);
+  document.getElementById('objG').innerHTML='';document.getElementById('charG').innerHTML='';document.getElementById('fxG').innerHTML='';
+  bCnt=0;active=true;
+  document.getElementById('tap').style.display='none';
+  document.getElementById('sbox').onclick=null;
+  aTxt(s.tx);
+  const obj=document.getElementById('objG');const hx=200,hy=GY;
+  let gh=`<g transform="translate(${hx},${hy})" opacity=".18">`;
+  if(s.mat==='straw')gh+=`<rect x="-50" y="-68" width="100" height="68" fill="#F0D060" stroke="#DAA520" stroke-width="2" stroke-dasharray="6,3"/><polygon points="-58,-68 0,-108 58,-68" fill="none" stroke="#DAA520" stroke-width="2" stroke-dasharray="6,3"/>`;
+  else if(s.mat==='wood')gh+=`<rect x="-55" y="-76" width="110" height="76" fill="#8B6914" stroke="#6B4F10" stroke-width="2" stroke-dasharray="6,3"/><polygon points="-63,-76 0,-120 63,-76" fill="none" stroke="#6B4F10" stroke-width="2" stroke-dasharray="6,3"/>`;
+  else gh+=`<rect x="-60" y="-86" width="120" height="86" fill="#C0392B" stroke="#922B21" stroke-width="2" stroke-dasharray="6,3"/><polygon points="-68,-86 0,-134 68,-86" fill="none" stroke="#922B21" stroke-width="2" stroke-dasharray="6,3"/>`;
+  gh+=`</g>`;
+  let bp=`<g id="bpG">`;
+  for(let i=0;i<s.need;i++){const bx=115+(i%4)*48,by=GY+20+Math.floor(i/4)*18;
+    bp+=`<rect id="bp${i}" x="${bx}" y="${by}" width="40" height="12" rx="2.5" fill="#ddd" opacity=".4" stroke="#bbb" stroke-width=".7"/>`}
+  bp+=`</g>`;obj.innerHTML=gh+bp;
+  const em={straw:'🌾',wood:'🪵',brick:'🧱'}[s.mat];
+  for(let i=0;i<5;i++)spawnOne(em,s.mat);
+}
+
+function spawnOne(em,mat){
+  const el=document.createElement('div');el.className='mat';el.textContent=em;
+  el.style.left=(8+Math.random()*75)+'%';el.style.top=(18+Math.random()*35)+'%';
+  el.style.transform=`rotate(${-25+Math.random()*50}deg)`;
+  el.onclick=()=>collect(el,mat,em);
+  document.getElementById('game').appendChild(el);
+}
+
+function collect(el,mat,em){
+  if(!active)return;const s=S[cur];bCnt++;
+  el.style.transform='scale(1.5)';el.style.opacity='0';
+  setTimeout(()=>{el.remove();if(bCnt<=s.need)spawnOne(em,mat)},250);
+  const bp=document.getElementById('bp'+(bCnt-1));
+  if(bp){bp.setAttribute('fill',{straw:'#F0D060',wood:'#8B6914',brick:'#C0392B'}[mat]);bp.setAttribute('opacity','.8')}
+  pop();
+  if(bCnt>=s.need){active=false;
+    setTimeout(()=>{
+      const hF={straw:strawH,wood:woodH,brick:brickH}[mat];
+      document.getElementById('objG').innerHTML=hF(200,GY);
+      document.querySelectorAll('.mat').forEach(e=>e.remove());
+      miniC(mat==='straw'?'わらの おうち かんせい！':mat==='wood'?'きの おうち かんせい！':'レンガの おうち かんせい！');
+    },400)}
+}
+
+function loadBlow(s){
+  drawBG(s.bg);
+  const obj=document.getElementById('objG'),ch=document.getElementById('charG'),fx=document.getElementById('fxG');
+  const hF={straw:strawH,wood:woodH,brick:brickH}[s.mat];
+  obj.innerHTML=hF(s.hx,s.hy);ch.innerHTML=wolfSVG(120,GY+10,1,true,false);fx.innerHTML='';
+  bPow=0;active=true;
+  document.getElementById('fill').style.height='0%';
+  document.getElementById('meter').classList.add('on');
+  document.getElementById('blowBtn').classList.add('on');
+  document.getElementById('tap').style.display='none';
+  document.getElementById('sbox').onclick=null;
+  aTxt(s.tx);
+
+  let bc=0;const maxB=s.impossible?10:999;
+  let autoTimer=null;
+
+  document.getElementById('blowBtn').onclick=()=>{
+    if(!active)return;
+    bPow+=s.diff*14;bc++;
+    document.getElementById('fill').style.height=Math.min(bPow,100)+'%';
+    // Shake
+    const h=document.querySelector('.house');
+    if(h){h.style.animation='shake .12s ease';setTimeout(()=>{if(h)h.style.animation=''},150)}
+    // Wind
+    let w='';for(let i=0;i<3;i++){const wy=GY-20+Math.random()*40;
+      w+=`<line x1="160" y1="${wy}" x2="${220+Math.random()*60}" y2="${wy+(Math.random()-.5)*15}" stroke="#B0D4F1" stroke-width="${1.5+Math.random()*2}" stroke-linecap="round" opacity="${.3+Math.random()*.3}"/>`}
+    fx.innerHTML=w;setTimeout(()=>fx.innerHTML='',400);
+    pop();
+
+    if(!s.impossible&&bPow>=100){
+      active=false;if(bInt){clearInterval(bInt);bInt=null}if(autoTimer)clearTimeout(autoTimer);
+      document.getElementById('meter').classList.remove('on');document.getElementById('blowBtn').classList.remove('on');
+      if(h)h.style.animation='hfall .7s ease forwards';
+      setTimeout(()=>{stars+=3;load(cur+1)},900);return}
+
+    if(s.impossible&&bc>=maxB){
+      active=false;if(bInt){clearInterval(bInt);bInt=null}if(autoTimer)clearTimeout(autoTimer);
+      document.getElementById('meter').classList.remove('on');document.getElementById('blowBtn').classList.remove('on');
+      bPow=0;document.getElementById('fill').style.height='0%';
+      miniC('レンガの おうちは\nこわれない！');return}
+  };
+
+  if(bInt)clearInterval(bInt);
+  bInt=setInterval(()=>{
+    if(!active){clearInterval(bInt);bInt=null;return}
+    bPow=Math.max(0,bPow-1.2);document.getElementById('fill').style.height=Math.min(bPow,100)+'%';
+  },100);
+
+  if(s.impossible){
+    autoTimer=setTimeout(()=>{
+      if(!active)return;active=false;if(bInt){clearInterval(bInt);bInt=null}
+      document.getElementById('meter').classList.remove('on');document.getElementById('blowBtn').classList.remove('on');
+      miniC('レンガの おうちは\nこわれない！');
+    },8000);
+  }
+}
+
+function aTxt(t){const el=document.getElementById('stxt');fTxt=t;anim=true;el.textContent='';let i=0;
+  const iv=setInterval(()=>{if(i<t.length){el.textContent+=t[i];i++}else{clearInterval(iv);anim=false}},55);el._iv=iv}
+function fTxtFn(){const el=document.getElementById('stxt');if(el._iv)clearInterval(el._iv);el.textContent=fTxt;anim=false}
+
+function updProg(){const bar=document.getElementById('prog');const n=10;let h='';
+  for(let i=0;i<n;i++){const si=Math.floor(i*S.length/n);h+=`<div class="dot ${cur>si+S.length/n?'ok':cur>=si?'now':''}"></div>`}bar.innerHTML=h}
+
+function miniC(title){stars+=3;
+  document.getElementById('ct').textContent=title;document.getElementById('cs').textContent='⭐⭐⭐';
+  document.getElementById('cm').textContent='すごい！よく できたね！';
+  document.getElementById('cb').textContent='つぎへ ▶';
+  document.getElementById('celeb').classList.add('on');document.getElementById('celeb').dataset.fin='';cft()}
+function finalC(){
+  document.getElementById('ct').textContent='🎉 おめでとう！ 🎉';
+  document.getElementById('cs').textContent='⭐'.repeat(Math.min(Math.ceil(stars/3),9));
+  document.getElementById('cm').textContent='おはなし おしまい！\nとっても じょうずに できました！';
+  document.getElementById('cb').textContent='もういちど あそぶ 🔄';
+  document.getElementById('celeb').classList.add('on');document.getElementById('celeb').dataset.fin='1';cft()}
+function celebAct(){const c=document.getElementById('celeb');
+  if(c.dataset.fin==='1'){c.classList.remove('on');stars=0;cur=0;load(0)}
+  else{c.classList.remove('on');load(cur+1)}}
+
+function cft(){const ct=document.getElementById('app');
+  const cols=['#FF69B4','#FFD700','#FF6B6B','#87CEEB','#98FB98','#DDA0DD','#FF8C00','#00CED1'];
+  for(let i=0;i<45;i++){const el=document.createElement('div');el.className='conf';
+    el.style.left=Math.random()*100+'%';el.style.top='-10px';
+    el.style.background=cols[~~(Math.random()*cols.length)];
+    const sz=5+Math.random()*7;el.style.width=sz+'px';el.style.height=sz+'px';
+    el.style.borderRadius=Math.random()>.5?'50%':'2px';
+    const dur=1.2+Math.random()*1.8,del=Math.random()*.7,drift=-40+Math.random()*80;
+    el.animate([{transform:'translateY(0) translateX(0) rotate(0deg)',opacity:1},
+      {transform:`translateY(${window.innerHeight+20}px) translateX(${drift}px) rotate(${300+Math.random()*300}deg)`,opacity:.5}],
+      {duration:dur*1000,delay:del*1000,easing:'cubic-bezier(.25,.46,.45,.94)',fill:'forwards'});
+    ct.appendChild(el);setTimeout(()=>el.remove(),(dur+del)*1000+100)}}
+
+let actx;function pop(){try{if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();
+  const o=actx.createOscillator(),g=actx.createGain();o.connect(g);g.connect(actx.destination);
+  o.frequency.setValueAtTime(600,actx.currentTime);o.frequency.linearRampToValueAtTime(900,actx.currentTime+.08);
+  g.gain.setValueAtTime(.08,actx.currentTime);g.gain.linearRampToValueAtTime(0,actx.currentTime+.12);
+  o.start();o.stop(actx.currentTime+.12)}catch(e){}}
+</script>
+</body>
+</html>
