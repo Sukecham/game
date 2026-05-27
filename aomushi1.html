@@ -1,25 +1,363 @@
-```react
-import React, { useState, useEffect, useCallback } from 'react';
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>はらぺこあおむし - かずあそび</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
+    body { margin: 0; overflow: hidden; background-color: #f0f0f0; } /* iframe/環境全体の背景 */
+    
+    @keyframes wiggle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+    @keyframes bounce { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
+    @keyframes bob { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(2px); } }
+    @keyframes eat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    @keyframes flap { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.7); } }
+    @keyframes flapR { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.7); } }
+    @keyframes float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-10px) rotate(2deg); } }
+    @keyframes sparkle { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.3); } }
+    @keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(76,175,80,0.4); } 50% { box-shadow: 0 0 0 8px rgba(76,175,80,0); } }
+    @keyframes confetti { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+    @keyframes timerPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
-const App = () => {
-  const [gameState, setGameState] = useState('menu');
-  const [currentLevel, setCurrentLevel] = useState(0);
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [caterpillarSegments, setCaterpillarSegments] = useState(3);
-  const [showFeedback, setShowFeedback] = useState(null);
-  const [score, setScore] = useState(0);
-  const [attempts, setAttempts] = useState(0);
-  const [shuffledFoods, setShuffledFoods] = useState([]);
-  const [difficulty, setDifficulty] = useState('normal');
-  const [showHint, setShowHint] = useState(false);
-  const [generatedLevels, setGeneratedLevels] = useState([]);
-  const [perfectClears, setPerfectClears] = useState(0);
-  const [secretMode, setSecretMode] = useState(false);
-  const [secretTaps, setSecretTaps] = useState(0);
-  const [unlockedRare, setUnlockedRare] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(null);
+    #root {
+      width: 100vw;
+      height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      font-family: 'Zen Maru Gothic', sans-serif;
+    }
 
-  // 食べ物データ
+    /* 共通クラス */
+    .game-screen { display: none; min-height: 100vh; flex-direction: column; width: 100%; animation: fade-in 0.3s ease; }
+    .game-screen.active { display: flex; }
+    
+    /* --- メニュー画面 --- */
+    #menu-screen {
+      background: linear-gradient(180deg, #87CEEB 0%, #98FB98 50%, #90EE90 100%);
+      align-items: center; justify-content: center; padding: 20px; gap: 12px; position: relative; overflow: hidden;
+    }
+    #menu-screen.secret { background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+    
+    .title { font-size: clamp(1.5rem, 6vw, 2.8rem); color: #2E7D32; text-shadow: 2px 2px 0 #FFD700, 4px 4px 0 #FF6B6B; text-align: center; cursor: pointer; user-select: none; }
+    #menu-screen.secret .title { color: #FFD700; text-shadow: 0 0 10px #FFD700; }
+    
+    .subtitle { font-size: clamp(0.9rem, 3vw, 1.3rem); color: #4CAF50; background: rgba(255,255,255,0.7); padding: 4px 16px; border-radius: 15px; margin-top: 5px; user-select: none; text-align: center;}
+    #menu-screen.secret .subtitle { background: rgba(255,215,0,0.2); color: #FFD700; }
+    
+    .secret-hint { margin-top: 5px; font-size: 1rem; text-align: center; min-height: 24px; }
+
+    .diff-area { background: rgba(255,255,255,0.92); padding: 12px 18px; border-radius: 18px; text-align: center; width: 100%; max-width: 380px; z-index: 10;}
+    .diff-label { font-size: 0.95rem; color: #555; margin-bottom: 8px; }
+    .diff-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    
+    .diff-btn { padding: 10px 12px; border: 3px solid #ddd; border-radius: 14px; background: white; font-family: inherit; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 95px; flex: 1;}
+    .diff-btn.sel { border-color: #4CAF50; background: #E8F5E9; transform: scale(1.05); box-shadow: 0 4px 12px rgba(76,175,80,0.3); }
+    .diff-btn:hover:not(.sel) { transform: scale(1.03); }
+    .diff-name { font-size: 1rem; font-weight: 700; pointer-events: none; }
+    .diff-desc { font-size: 0.65rem; color: #888; pointer-events: none; }
+
+    .secret-info { background: rgba(255,215,0,0.15); border: 2px solid #FFD700; padding: 15px 25px; border-radius: 18px; text-align: center; color: #FFD700; display: none; z-index: 10;}
+    .secret-info p:first-child { font-size: 1.1rem; font-weight: 700; }
+    .secret-info .desc { font-size: 0.85rem; margin-top: 5px; opacity: 0.9; }
+
+    .start-btn { background: linear-gradient(180deg, #FF6B6B 0%, #E74C3C 100%); border: none; border-radius: 50px; padding: 14px 36px; font-family: inherit; font-size: clamp(1.1rem, 4vw, 1.5rem); font-weight: 700; color: white; cursor: pointer; box-shadow: 0 5px 0 #C0392B, 0 8px 16px rgba(0,0,0,0.2); transition: all 0.1s; display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 10; width: 80%; max-width: 300px;}
+    #menu-screen.secret .start-btn { background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%); box-shadow: 0 5px 0 #FF8C00, 0 0 20px rgba(255,215,0,0.5); color: #1a1a2e; }
+    .start-btn:active { transform: translateY(2px); box-shadow: 0 3px 0 #C0392B; }
+    #menu-screen.secret .start-btn:active { box-shadow: 0 3px 0 #FF8C00; }
+
+    .back-btn { background: transparent; border: 2px solid rgba(255,255,255,0.3); padding: 6px 16px; border-radius: 18px; color: rgba(255,255,255,0.7); font-family: inherit; font-size: 0.85rem; cursor: pointer; display: none; z-index: 10;}
+    
+    .floating { position: absolute; font-size: 1.8rem; animation: float 5s ease-in-out infinite; opacity: 0.6; pointer-events: none; z-index: 1;}
+
+    /* --- プレイ画面 --- */
+    #play-screen { background: linear-gradient(180deg, #87CEEB 0%, #98FB98 60%, #228B22 100%); padding: 10px; gap: 8px; }
+    #play-screen.secret { background: linear-gradient(180deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%); }
+
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.92); border-radius: 14px; }
+    #play-screen.secret .header { background: rgba(30,30,50,0.9); border: 1px solid #FFD700; }
+    .day { background: linear-gradient(135deg, #FF6B6B, #FFD93D); padding: 6px 14px; border-radius: 16px; color: white; font-weight: 700; font-size: clamp(0.85rem, 2.8vw, 1.1rem); }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .timer { background: #2196F3; padding: 5px 10px; border-radius: 14px; color: white; font-weight: 700; font-size: 0.95rem; display: none; }
+    .timer.warn { background: #F44336; animation: timerPulse 0.5s ease infinite; }
+    .score-badge { background: #4CAF50; padding: 5px 12px; border-radius: 16px; color: white; font-weight: 700; font-size: clamp(0.85rem, 2.8vw, 1rem); }
+
+    .instr-area { background: rgba(255,255,255,0.92); padding: 10px 14px; border-radius: 14px; text-align: center; }
+    #play-screen.secret .instr-area { background: rgba(30,30,50,0.9); border: 1px solid #FFD700; }
+    .instr { font-size: clamp(0.9rem, 3vw, 1.15rem); color: #2E7D32; font-weight: 600; line-height: 1.3; }
+    #play-screen.secret .instr { color: #FFD700; }
+    .math-display { background: #FFF9C4; padding: 5px 14px; border-radius: 10px; margin: 5px 0; font-size: 1.1rem; font-weight: 700; color: #F57C00; display: inline-block; display: none; }
+    #play-screen.secret .math-display { background: rgba(255,215,0,0.2); color: #FFD700; }
+    
+    .hint-container { margin-top: 5px; }
+    .hint-btn { background: #FFE082; border: none; padding: 6px 16px; border-radius: 10px; font-family: inherit; font-size: 0.85rem; font-weight: bold; cursor: pointer; color: #5D4037;}
+    .hint-btn:active { transform: scale(0.95); }
+    .hint-text { margin-top: 5px; color: #666; font-size: 0.85rem; background: #FFF8E1; padding: 5px 10px; border-radius: 8px; display: none; font-weight: bold;}
+
+    .caterpillar-area { display: flex; justify-content: center; align-items: center; min-height: 70px; margin: 5px 0;}
+
+    .sel-info { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+    .sel-counter { background: linear-gradient(145deg, #fff, #f5f5f5); padding: 7px 16px; border-radius: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; }
+    #play-screen.secret .sel-counter { background: rgba(30,30,50,0.9); border: 1px solid #FFD700; }
+    .counter-label { font-size: 0.85rem; color: #666; font-weight: bold;}
+    #play-screen.secret .counter-label { color: #ccc; }
+    .counter-num { font-size: 1.5rem; font-weight: 900; color: #9E9E9E; transition: all 0.3s; min-width: 28px; text-align: center; }
+    .counter-num.active { color: #E74C3C; transform: scale(1.1); }
+    .counter-target { font-size: 1rem; color: #4CAF50; font-weight: 700; }
+    .clear-btn { background: linear-gradient(145deg, #FFE0E0, #FFCDD2); border: 2px solid #E57373; padding: 5px 12px; border-radius: 10px; font-family: inherit; font-size: 0.8rem; font-weight: 600; color: #C62828; cursor: pointer; display: none;}
+    .clear-btn:active { background: linear-gradient(145deg, #EF9A9A, #FFCDD2); transform: scale(0.95); }
+
+    .food-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 8px; padding: 12px; background: rgba(255,255,255,0.95); border-radius: 18px; margin-bottom: 10px; flex-grow: 1; align-content: start;}
+    #play-screen.secret .food-grid { background: rgba(30,30,50,0.9); border: 1px solid #FFD700; }
+
+    .food-item { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #fff, #f0f0f0); border: 3px solid #D0D0D0; border-radius: 12px; cursor: pointer; transition: all 0.2s; position: relative; overflow: visible; -webkit-tap-highlight-color: transparent;}
+    .food-item.selected { background: linear-gradient(145deg, #C8F7C5, #81E878); border: 4px solid #2E7D32; box-shadow: 0 0 0 3px rgba(46,125,50,0.3), 0 4px 12px rgba(46,125,50,0.4); transform: scale(1.03); animation: pulse 1.5s ease infinite; }
+    .food-item.disabled { opacity: 0.6; pointer-events: none; }
+    .food-emoji { font-size: clamp(2rem, 8vw, 2.8rem); pointer-events: none;}
+    .food-item.selected .food-emoji { transform: scale(1.1); }
+
+    .check-circle { position: absolute; top: -6px; right: -6px; width: 26px; height: 26px; background: linear-gradient(135deg, #4CAF50, #2E7D32); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); animation: pop 0.3s ease; pointer-events: none;}
+    .check-mark { color: white; font-size: 1rem; font-weight: 900; }
+    .sel-badge { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #FF6B6B, #E74C3C); color: white; font-size: 0.75rem; font-weight: 900; padding: 2px 8px; border-radius: 10px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); pointer-events: none;}
+    .tap-hint { position: absolute; top: 50%; left: 50%; width: 80%; height: 80%; border: 2px dashed #BDBDBD; border-radius: 10px; transform: translate(-50%, -50%); opacity: 0.4; pointer-events: none; }
+    .food-item.selected .tap-hint { display: none; }
+
+    .check-btn { background: linear-gradient(180deg, #FF6B6B 0%, #E74C3C 100%); border: none; border-radius: 50px; padding: 14px 30px; font-family: inherit; font-size: clamp(1.1rem, 3.5vw, 1.35rem); font-weight: 700; color: white; cursor: pointer; box-shadow: 0 4px 0 #C0392B, 0 6px 14px rgba(0,0,0,0.2); align-self: center; margin-bottom: 20px; width: 80%; max-width: 300px; display: flex; justify-content: center; align-items: center;}
+    .check-btn:active:not(.disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #C0392B; }
+    .check-btn.disabled { background: #BDBDBD; box-shadow: 0 4px 0 #9E9E9E; pointer-events: none; opacity: 0.7; }
+
+    .feedback { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; align-items: center; justify-content: center; z-index: 100; }
+    .feedback.active { display: flex; }
+    .feedback.correct { background: rgba(76,175,80,0.85); }
+    .feedback.wrong, .feedback.timeout { background: rgba(255,152,0,0.85); }
+    .feedback-content { text-align: center; color: white; animation: pop 0.4s ease; }
+    .feedback-emoji { font-size: 5rem; display: block; margin-bottom: 8px; }
+    .feedback-content p { font-size: 2rem; font-weight: 900; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+
+    .level-dots { display: flex; justify-content: center; gap: 8px; padding: 8px; margin-bottom: 10px;}
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.5); border: 2px solid white; }
+    .dot.done { background: #4CAF50; border-color: #2E7D32; }
+    .dot.current { background: #FFD700; border-color: #FFA000; transform: scale(1.2); animation: pulse 1s ease infinite; }
+
+    /* --- レベルクリア画面 --- */
+    #level-complete-screen { background: linear-gradient(180deg, #FFF9C4 0%, #FFECB3 50%, #FFE082 100%); align-items: center; justify-content: center; padding: 20px; }
+    #level-complete-screen.secret { background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+    
+    .lc-content { text-align: center; background: rgba(255,255,255,0.95); padding: 25px 20px; border-radius: 22px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); max-width: 360px; width: 100%; }
+    #level-complete-screen.secret .lc-content { background: rgba(30,30,50,0.95); border: 2px solid #FFD700; }
+    
+    .lc-title { font-size: clamp(1.6rem, 6vw, 2.2rem); color: #FF6B6B; margin-bottom: 12px; font-weight: 900;}
+    #level-complete-screen.secret .lc-title { color: #FFD700; }
+    
+    .stars-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+    .star { font-size: 2.5rem; opacity: 0; animation: pop 0.4s ease forwards; }
+    .star.empty { filter: grayscale(1); opacity: 0.3; animation: none; }
+    
+    .lc-score { background: linear-gradient(135deg, #4CAF50, #8BC34A); padding: 12px 22px; border-radius: 16px; margin: 15px 0; }
+    .lc-score p:first-child { color: rgba(255,255,255,0.9); font-size: 0.9rem; font-weight: bold;}
+    .lc-score .val { color: white; font-size: 2rem; font-weight: 900; }
+    
+    .perfect-badge { background: linear-gradient(135deg, #FFD700, #FFA500); color: white; padding: 8px 16px; border-radius: 20px; font-weight: 900; font-size: 1.1rem; margin: 10px auto; display: inline-block; box-shadow: 0 4px 8px rgba(255,165,0,0.3); animation: pulse 1.5s infinite; display: none;}
+    
+    .lc-progress { margin: 15px 0; }
+    .progress-bar { height: 12px; background: #E0E0E0; border-radius: 10px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);}
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A); border-radius: 10px; transition: width 0.5s ease-out; width: 0%;}
+    .progress-text { color: #666; font-size: 0.9rem; margin-top: 6px; font-weight: bold;}
+    
+    .next-btn { background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%); border: none; border-radius: 50px; padding: 16px 30px; font-family: inherit; font-size: 1.25rem; font-weight: 900; color: white; cursor: pointer; box-shadow: 0 5px 0 #2E7D32, 0 8px 15px rgba(0,0,0,0.2); margin-top: 15px; width: 90%; }
+    .next-btn:active { transform: translateY(2px); box-shadow: 0 3px 0 #2E7D32; }
+
+    /* --- ゲームクリア画面 --- */
+    #complete-screen { background: linear-gradient(180deg, #E8F5E9 0%, #C8E6C9 50%, #A5D6A7 100%); align-items: center; justify-content: center; padding: 20px; position: relative; overflow: hidden; }
+    #complete-screen.secret { background: linear-gradient(180deg, #0f0c29 0%, #302b63 50%, #24243e 100%); }
+    
+    .butterfly-container { width: 100%; max-width: 280px; margin-bottom: 10px; animation: float 3s ease-in-out infinite; }
+    
+    .complete-title { font-size: clamp(1.8rem, 7vw, 2.8rem); color: #E74C3C; text-shadow: 2px 2px 0 #FFD700; font-weight: 900; text-align: center; margin-top: 10px; z-index: 10;}
+    #complete-screen.secret .complete-title { color: #FFD700; text-shadow: 0 0 15px #FFD700; }
+    
+    .complete-msg { font-size: clamp(1.1rem, 4vw, 1.4rem); color: #2E7D32; text-align: center; margin: 15px 0; line-height: 1.5; font-weight: bold; z-index: 10; white-space: pre-line;}
+    #complete-screen.secret .complete-msg { color: #ddd; }
+    
+    .rare-info { display: none; flex-direction: column; align-items: center; z-index: 10;}
+    .rare-name { font-size: 1.4rem; font-weight: 900; color: #FFD700; text-shadow: 0 2px 5px rgba(0,0,0,0.3); margin-top: 10px; text-align: center; background: rgba(0,0,0,0.4); padding: 4px 15px; border-radius: 20px;}
+    .rare-desc { font-size: 1rem; color: #fff; text-align: center; margin-top: 5px; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.5);}
+    
+    .final-score { background: rgba(255,255,255,0.95); padding: 15px 30px; border-radius: 20px; text-align: center; margin: 20px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 10; width: 90%; max-width: 320px;}
+    #complete-screen.secret .final-score { background: rgba(30,30,50,0.9); border: 2px solid #FFD700; }
+    .final-score p:first-child { color: #666; font-size: 1rem; font-weight: bold;}
+    #complete-screen.secret .final-score p:first-child { color: #ccc; }
+    .final-score .big { font-size: 2.8rem; font-weight: 900; color: #4CAF50; margin-top: 5px;}
+    #complete-screen.secret .final-score .big { color: #FFD700; }
+    
+    .confetti { position: absolute; width: 12px; height: 12px; border-radius: 50%; top: -20px; pointer-events: none; z-index: 1;}
+    
+    .restart-btn { background: linear-gradient(180deg, #2196F3 0%, #1976D2 100%); border: none; border-radius: 50px; padding: 16px 40px; font-family: inherit; font-size: clamp(1.2rem, 4vw, 1.5rem); font-weight: 900; color: white; cursor: pointer; box-shadow: 0 5px 0 #0D47A1, 0 8px 15px rgba(0,0,0,0.2); margin-top: 10px; z-index: 10; width: 80%; max-width: 300px;}
+    .restart-btn:active { transform: translateY(2px); box-shadow: 0 3px 0 #0D47A1; }
+
+    /* SVGコンテナ */
+    .svg-container { width: 100%; display: flex; justify-content: center; }
+  </style>
+</head>
+<body>
+<div id="root">
+  <!-- メニュー画面 -->
+  <div id="menu-screen" class="game-screen active">
+    <div id="title-container">
+      <h1 class="title">はらぺこあおむし</h1>
+      <p class="subtitle" id="menu-subtitle">かずあそび パズル</p>
+      <div class="secret-hint" id="secret-hint-display"></div>
+    </div>
+    
+    <div class="svg-container" style="max-width: 320px;" id="menu-caterpillar">
+      <!-- SVG generated by JS -->
+    </div>
+    
+    <div class="diff-area" id="diff-area">
+      <p class="diff-label">むずかしさを えらんでね</p>
+      <div class="diff-btns">
+        <button class="diff-btn sel" data-diff="easy">
+          <span class="diff-name">🌱 かんたん</span>
+          <span class="diff-desc">かずを かぞえよう</span>
+        </button>
+        <button class="diff-btn" data-diff="normal">
+          <span class="diff-name">🌿 ふつう</span>
+          <span class="diff-desc">たしざんも あるよ</span>
+        </button>
+        <button class="diff-btn" data-diff="hard">
+          <span class="diff-name">🌳 むずかしい</span>
+          <span class="diff-desc">ひきざん＆タイマー</span>
+        </button>
+      </div>
+    </div>
+    
+    <div class="secret-info" id="secret-info">
+      <p>🌈 スペシャルステージ 🌈</p>
+      <p class="desc">クリアすると レアな ちょうちょが！</p>
+    </div>
+    
+    <button class="start-btn" id="start-btn">
+      <span class="btn-icon">🎮</span>スタート！<span class="btn-icon">🎮</span>
+    </button>
+    
+    <button class="back-btn" id="back-to-normal-btn">ふつうモードに もどる</button>
+    
+    <div id="floating-emojis"></div>
+  </div>
+
+  <!-- プレイ画面 -->
+  <div id="play-screen" class="game-screen">
+    <header class="header">
+      <span class="day" id="play-day">げつようび</span>
+      <div class="header-right">
+        <span class="timer" id="play-timer">⏱️ 30</span>
+        <span class="score-badge" id="play-score">⭐ 0</span>
+      </div>
+    </header>
+
+    <div class="instr-area">
+      <p class="instr" id="play-instr"></p>
+      <div class="math-display" id="play-math"></div>
+      <div class="hint-container" id="hint-container">
+        <button class="hint-btn" id="hint-btn">💡 ヒント</button>
+        <p class="hint-text" id="hint-text"></p>
+      </div>
+    </div>
+    
+    <div class="svg-container caterpillar-area" id="play-caterpillar">
+      <!-- SVG generated by JS -->
+    </div>
+    
+    <div class="sel-info">
+      <div class="sel-counter">
+        <span class="counter-label">えらんだかず</span>
+        <span class="counter-num" id="sel-count">0</span>
+        <span class="counter-target" id="target-count">/ 0</span>
+      </div>
+      <button class="clear-btn" id="clear-btn">ぜんぶ けす 🗑️</button>
+    </div>
+    
+    <div class="food-grid" id="food-grid">
+      <!-- Food items generated by JS -->
+    </div>
+    
+    <button class="check-btn disabled" id="check-btn">たべさせる！ 🍴</button>
+    
+    <div class="level-dots" id="level-dots">
+      <!-- Dots generated by JS -->
+    </div>
+
+    <!-- フィードバックオーバーレイ -->
+    <div class="feedback" id="feedback-overlay">
+      <div class="feedback-content">
+        <span class="feedback-emoji" id="feedback-emoji"></span>
+        <p id="feedback-text"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- レベルクリア画面 -->
+  <div id="level-complete-screen" class="game-screen">
+    <div class="lc-content">
+      <h2 class="lc-title">🎉 クリア！ 🎉</h2>
+      <div class="stars-row" id="lc-stars">
+        <span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span>
+      </div>
+      <div class="lc-score">
+        <p>スコア</p>
+        <p class="val"><span id="lc-score-val">0</span>てん</p>
+      </div>
+      <div class="perfect-badge" id="lc-perfect">✨ パーフェクト！ ✨</div>
+      
+      <div class="svg-container" style="max-width: 280px; margin: 15px auto;" id="lc-caterpillar">
+        <!-- SVG generated by JS -->
+      </div>
+      
+      <div class="lc-progress">
+        <div class="progress-bar">
+          <div class="progress-fill" id="lc-progress-fill"></div>
+        </div>
+        <p class="progress-text"><span id="lc-current-level">1</span> / <span id="lc-total-levels">5</span></p>
+      </div>
+      <button class="next-btn" id="next-level-btn">つぎの ひへ →</button>
+    </div>
+  </div>
+
+  <!-- ゲームクリア画面 -->
+  <div id="complete-screen" class="game-screen">
+    <div class="svg-container butterfly-container" id="complete-butterfly">
+      <!-- SVG generated by JS -->
+    </div>
+    
+    <div class="rare-info" id="rare-info">
+      <div class="rare-name" id="rare-name"></div>
+      <div class="rare-desc" id="rare-desc"></div>
+    </div>
+    
+    <h2 class="complete-title" id="complete-title">おめでとう！</h2>
+    <p class="complete-msg" id="complete-msg"></p>
+    
+    <div class="final-score">
+      <p>さいしゅうスコア</p>
+      <p class="big"><span id="final-score-val">0</span>てん</p>
+    </div>
+    
+    <div class="stars-row" id="final-stars" style="margin-bottom: 20px;">
+      <span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span>
+    </div>
+    
+    <div id="confetti-container"></div>
+    
+    <button class="restart-btn" id="restart-btn">もういちど あそぶ</button>
+  </div>
+</div>
+
+<script>
+  // --- データ定義 ---
   const allFoods = [
     { emoji: '🍎', name: 'りんご', color: 'red' },
     { emoji: '🍐', name: 'なし', color: 'green' },
@@ -55,63 +393,13 @@ const App = () => {
     pink: ['🍑', '🍰', '🧁'],
   };
 
-  // 難易度設定
   const difficultySettings = {
-    easy: {
-      levelCount: 5,
-      maxNumber: 4,
-      minNumber: 2,
-      distractorCount: 2,
-      timeLimit: null,
-      mathProblems: false,
-      colorProblems: false,
-      multipleTypes: false,
-      subtraction: false,
-      hints: true,
-      foodPool: allFoods.slice(0, 6), // 基本の果物のみ
-    },
-    normal: {
-      levelCount: 7,
-      maxNumber: 6,
-      minNumber: 3,
-      distractorCount: 4,
-      timeLimit: null,
-      mathProblems: true,
-      colorProblems: true,
-      multipleTypes: false,
-      subtraction: false,
-      hints: true,
-      foodPool: allFoods.slice(0, 12),
-    },
-    hard: {
-      levelCount: 10,
-      maxNumber: 10,
-      minNumber: 4,
-      distractorCount: 7,
-      timeLimit: 45,
-      mathProblems: true,
-      colorProblems: true,
-      multipleTypes: true,
-      subtraction: true,
-      hints: false,
-      foodPool: allFoods.slice(0, 18),
-    },
-    secret: {
-      levelCount: 12,
-      maxNumber: 12,
-      minNumber: 5,
-      distractorCount: 10,
-      timeLimit: 30,
-      mathProblems: true,
-      colorProblems: true,
-      multipleTypes: true,
-      subtraction: true,
-      hints: false,
-      foodPool: allFoods,
-    },
+    easy: { levelCount: 5, maxNumber: 4, minNumber: 2, distractorCount: 2, timeLimit: null, mathProblems: false, colorProblems: false, multipleTypes: false, subtraction: false, hints: true, foodPool: allFoods.slice(0, 6) },
+    normal: { levelCount: 7, maxNumber: 6, minNumber: 3, distractorCount: 4, timeLimit: null, mathProblems: true, colorProblems: true, multipleTypes: false, subtraction: false, hints: true, foodPool: allFoods.slice(0, 12) },
+    hard: { levelCount: 10, maxNumber: 10, minNumber: 4, distractorCount: 7, timeLimit: 45, mathProblems: true, colorProblems: true, multipleTypes: true, subtraction: true, hints: false, foodPool: allFoods.slice(0, 18) },
+    secret: { levelCount: 12, maxNumber: 12, minNumber: 5, distractorCount: 10, timeLimit: 30, mathProblems: true, colorProblems: true, multipleTypes: true, subtraction: true, hints: false, foodPool: allFoods },
   };
 
-  // レアキャラ
   const rareCharacters = [
     { id: 'golden', name: 'きんいろちょうちょ', desc: 'キラキラ ひかる', condition: 'パーフェクト3回', gradient: ['#FFD700', '#FFA500', '#FF8C00'] },
     { id: 'rainbow', name: 'にじいろちょうちょ', desc: 'なないろに かがやく', condition: 'ひみつモードクリア', gradient: ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#9B59B6'] },
@@ -120,9 +408,278 @@ const App = () => {
     { id: 'space', name: 'うちゅうちょうちょ', desc: 'ほしが またたく', condition: '全クリア', gradient: ['#1a1a2e', '#4a4e69', '#9a8c98'] },
   ];
 
-  // 問題生成
-  const generateLevels = useCallback((diff) => {
-    const s = difficultySettings[diff];
+  // --- 状態変数 ---
+  let state = {
+    screen: 'menu', // menu, play, levelComplete, complete
+    difficulty: 'easy',
+    secretMode: false,
+    secretTaps: 0,
+    generatedLevels: [],
+    currentLevelIndex: 0,
+    shuffledFoods: [],
+    selectedItems: [],
+    caterpillarSegments: 3,
+    score: 0,
+    attempts: 0,
+    perfectClears: 0,
+    timeLeft: null,
+    timerInterval: null,
+    isFeedbackShowing: false,
+    unlockedRare: null
+  };
+
+  // --- DOM要素 ---
+  const screens = {
+    menu: document.getElementById('menu-screen'),
+    play: document.getElementById('play-screen'),
+    levelComplete: document.getElementById('level-complete-screen'),
+    complete: document.getElementById('complete-screen')
+  };
+
+  // メニュー用
+  const titleContainer = document.getElementById('title-container');
+  const secretHintDisplay = document.getElementById('secret-hint-display');
+  const menuSubtitle = document.getElementById('menu-subtitle');
+  const diffArea = document.getElementById('diff-area');
+  const diffBtns = document.querySelectorAll('.diff-btn');
+  const secretInfo = document.getElementById('secret-info');
+  const startBtn = document.getElementById('start-btn');
+  const backToNormalBtn = document.getElementById('back-to-normal-btn');
+  const floatingEmojis = document.getElementById('floating-emojis');
+  const menuCaterpillarContainer = document.getElementById('menu-caterpillar');
+
+  // プレイ画面用
+  const playDay = document.getElementById('play-day');
+  const playTimer = document.getElementById('play-timer');
+  const playScore = document.getElementById('play-score');
+  const playInstr = document.getElementById('play-instr');
+  const playMath = document.getElementById('play-math');
+  const hintContainer = document.getElementById('hint-container');
+  const hintBtn = document.getElementById('hint-btn');
+  const hintText = document.getElementById('hint-text');
+  const playCaterpillarContainer = document.getElementById('play-caterpillar');
+  const selCount = document.getElementById('sel-count');
+  const targetCount = document.getElementById('target-count');
+  const clearBtn = document.getElementById('clear-btn');
+  const foodGrid = document.getElementById('food-grid');
+  const checkBtn = document.getElementById('check-btn');
+  const levelDots = document.getElementById('level-dots');
+  const feedbackOverlay = document.getElementById('feedback-overlay');
+  const feedbackEmoji = document.getElementById('feedback-emoji');
+  const feedbackText = document.getElementById('feedback-text');
+
+  // レベルクリア画面用
+  const lcCaterpillarContainer = document.getElementById('lc-caterpillar');
+  const lcStarsContainer = document.getElementById('lc-stars');
+  const lcScoreVal = document.getElementById('lc-score-val');
+  const lcPerfect = document.getElementById('lc-perfect');
+  const lcProgressFill = document.getElementById('lc-progress-fill');
+  const lcCurrentLevel = document.getElementById('lc-current-level');
+  const lcTotalLevels = document.getElementById('lc-total-levels');
+  const nextLevelBtn = document.getElementById('next-level-btn');
+
+  // ゲームクリア画面用
+  const completeButterflyContainer = document.getElementById('complete-butterfly');
+  const completeTitle = document.getElementById('complete-title');
+  const completeMsg = document.getElementById('complete-msg');
+  const finalScoreVal = document.getElementById('final-score-val');
+  const finalStarsContainer = document.getElementById('final-stars');
+  const confettiContainer = document.getElementById('confetti-container');
+  const restartBtn = document.getElementById('restart-btn');
+  const rareInfo = document.getElementById('rare-info');
+  const rareName = document.getElementById('rare-name');
+  const rareDesc = document.getElementById('rare-desc');
+
+  // --- SVG生成関数 ---
+  function createCaterpillarSVG(segments, stateType = 'normal', isSecret = false) {
+    const minSegs = Math.min(segments, 20);
+    let circlesHTML = '';
+    
+    // 胴体
+    for (let i = 0; i < minSegs; i++) {
+      const x = 360 - i * 18;
+      const y = 50 + Math.sin(i * 0.5) * 4;
+      const r = i === 0 ? 0 : Math.max(5, 14 - i * 0.5);
+      const hue = isSecret ? (i * 30) % 360 : 120 + i * 3;
+      circlesHTML += `<circle cx="${x}" cy="${y}" r="${r}" fill="hsl(${hue}, 70%, ${50 + i}%)" style="animation: wiggle 2s ease-in-out infinite ${i * 0.05}s;" />`;
+    }
+
+    // 頭部アニメーション設定
+    let headAnim = 'bob 1.5s ease-in-out infinite';
+    if (stateType === 'happy') headAnim = 'bounce 0.4s ease infinite';
+    else if (stateType === 'eating') headAnim = 'eat 0.3s ease';
+
+    // 頭部の色
+    const headBase = isSecret ? '#FFD700' : '#E74C3C';
+    const headDark = isSecret ? '#FFA500' : '#C0392B';
+    const antenna = isSecret ? '#FFD700' : '#27AE60';
+    
+    // 口の形
+    const mouthPath = stateType === 'happy' ? "M 363 58 Q 370 67 377 58" : "M 365 56 Q 370 60 375 56";
+
+    return `
+      <svg viewBox="0 0 400 100" style="width: 100%; height: auto;">
+        ${circlesHTML}
+        <g style="animation: ${headAnim}; transform-origin: 370px 45px;">
+          <circle cx="370" cy="45" r="22" fill="${headBase}" />
+          <circle cx="370" cy="45" r="18" fill="${headDark}" />
+          <line x1="362" y1="28" x2="354" y2="15" stroke="${antenna}" stroke-width="3" stroke-linecap="round" />
+          <line x1="378" y1="28" x2="386" y2="15" stroke="${antenna}" stroke-width="3" stroke-linecap="round" />
+          <circle cx="354" cy="12" r="4" fill="#E74C3C" />
+          <circle cx="386" cy="12" r="4" fill="#E74C3C" />
+          <circle cx="363" cy="42" r="7" fill="white" />
+          <circle cx="377" cy="42" r="7" fill="white" />
+          <circle cx="364" cy="43" r="3" fill="#2C3E50" />
+          <circle cx="378" cy="43" r="3" fill="#2C3E50" />
+          <path d="${mouthPath}" stroke="#2C3E50" stroke-width="2" fill="none" stroke-linecap="round" />
+          <circle cx="355" cy="50" r="4" fill="#FFB6C1" opacity="0.5" />
+          <circle cx="385" cy="50" r="4" fill="#FFB6C1" opacity="0.5" />
+        </g>
+      </svg>
+    `;
+  }
+
+  function createButterflySVG(rareData) {
+    const colors = rareData ? rareData.gradient : ['#FF6B6B', '#FFD93D', '#6BCB77'];
+    
+    let stops1 = '';
+    let stops2 = '';
+    colors.forEach((c, i) => {
+      const offset = (i * 100 / (colors.length - 1)) + '%';
+      stops1 += `<stop offset="${offset}" stop-color="${c}" />`;
+    });
+    [...colors].reverse().forEach((c, i) => {
+      const offset = (i * 100 / (colors.length - 1)) + '%';
+      stops2 += `<stop offset="${offset}" stop-color="${c}" />`;
+    });
+
+    let sparkles = '';
+    if (rareData && rareData.id === 'golden') {
+      sparkles = `
+        <circle cx="45" cy="50" r="5" fill="white" opacity="0.8" style="animation: sparkle 1s ease infinite;" />
+        <circle cx="155" cy="50" r="5" fill="white" opacity="0.8" style="animation: sparkle 1s ease infinite 0.5s;" />
+      `;
+    }
+
+    return `
+      <svg viewBox="0 0 200 140" style="width: 100%; height: auto;">
+        <defs>
+          <linearGradient id="wing1" x1="0%" y1="0%" x2="100%" y2="100%">
+            ${stops1}
+          </linearGradient>
+          <linearGradient id="wing2" x1="0%" y1="100%" x2="100%" y2="0%">
+            ${stops2}
+          </linearGradient>
+        </defs>
+        <ellipse cx="55" cy="55" rx="45" ry="35" fill="url(#wing1)" style="transform-origin: 100% 50%; animation: flap 0.25s ease-in-out infinite;" />
+        <ellipse cx="52" cy="95" rx="30" ry="25" fill="url(#wing2)" style="transform-origin: 100% 50%; animation: flap 0.25s ease-in-out infinite;" />
+        <ellipse cx="145" cy="55" rx="45" ry="35" fill="url(#wing1)" style="transform-origin: 0% 50%; animation: flapR 0.25s ease-in-out infinite;" />
+        <ellipse cx="148" cy="95" rx="30" ry="25" fill="url(#wing2)" style="transform-origin: 0% 50%; animation: flapR 0.25s ease-in-out infinite;" />
+        <ellipse cx="100" cy="70" rx="10" ry="38" fill="#5D4037" />
+        <circle cx="100" cy="30" r="13" fill="#C0392B" />
+        <path d="M 93 20 Q 86 6 80 8" stroke="#5D4037" stroke-width="2.5" fill="none" />
+        <path d="M 107 20 Q 114 6 120 8" stroke="#5D4037" stroke-width="2.5" fill="none" />
+        <circle cx="80" cy="8" r="3" fill="#E74C3C" />
+        <circle cx="120" cy="8" r="3" fill="#E74C3C" />
+        <circle cx="95" cy="28" r="4" fill="white" /><circle cx="105" cy="28" r="4" fill="white" />
+        <circle cx="96" cy="29" r="2" fill="#2C3E50" /><circle cx="106" cy="29" r="2" fill="#2C3E50" />
+        <circle cx="48" cy="52" r="10" fill="rgba(255,255,255,0.4)" />
+        <circle cx="152" cy="52" r="10" fill="rgba(255,255,255,0.4)" />
+        ${sparkles}
+      </svg>
+    `;
+  }
+
+  // --- ゲームロジック ---
+
+  // 画面切り替え
+  function showScreen(screenId) {
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[screenId].classList.add('active');
+    state.screen = screenId;
+    
+    // シークレットモードのスタイル適用
+    const secretClassAction = state.secretMode ? 'add' : 'remove';
+    Object.values(screens).forEach(s => s.classList[secretClassAction]('secret'));
+  }
+
+  // メニュー初期化
+  function initMenu() {
+    state.secretTaps = 0;
+    secretHintDisplay.innerText = '';
+    
+    menuCaterpillarContainer.innerHTML = createCaterpillarSVG(state.secretMode ? 12 : 8, 'happy', state.secretMode);
+    
+    // 浮遊する絵文字
+    floatingEmojis.innerHTML = '';
+    const emojis = state.secretMode ? ['🌟', '✨', '💫', '⭐', '🎀', '🎊'] : ['🍎', '🍐', '🍇', '🍓', '🍊', '🍉'];
+    emojis.forEach((e, i) => {
+      const span = document.createElement('span');
+      span.className = 'floating';
+      span.innerText = e;
+      span.style.top = `${10 + (i * 14) % 75}%`;
+      span.style.left = `${5 + (i * 16) % 88}%`;
+      span.style.animationDelay = `${i * 0.7}s`;
+      floatingEmojis.appendChild(span);
+    });
+
+    updateMenuUI();
+    showScreen('menu');
+  }
+
+  function updateMenuUI() {
+    if (state.secretMode) {
+      menuSubtitle.innerText = '🌟 ひみつモード 🌟';
+      diffArea.style.display = 'none';
+      secretInfo.style.display = 'block';
+      backToNormalBtn.style.display = 'block';
+      startBtn.innerHTML = '<span class="btn-icon">🌟</span>スタート！<span class="btn-icon">🌟</span>';
+    } else {
+      menuSubtitle.innerText = 'かずあそび パズル';
+      diffArea.style.display = 'block';
+      secretInfo.style.display = 'none';
+      backToNormalBtn.style.display = 'none';
+      startBtn.innerHTML = '<span class="btn-icon">🎮</span>スタート！<span class="btn-icon">🎮</span>';
+      
+      diffBtns.forEach(btn => {
+        if (btn.dataset.diff === state.difficulty) btn.classList.add('sel');
+        else btn.classList.remove('sel');
+      });
+    }
+  }
+
+  // 難易度選択イベント
+  diffBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.difficulty = btn.dataset.diff;
+      updateMenuUI();
+    });
+  });
+
+  // シークレットタップ
+  titleContainer.addEventListener('click', () => {
+    if (state.secretMode) return;
+    state.secretTaps++;
+    
+    if (state.secretTaps >= 10) {
+      state.secretMode = true;
+      state.secretTaps = 0;
+      initMenu(); // 再描画
+    } else {
+      secretHintDisplay.innerText = '🌟'.repeat(state.secretTaps);
+    }
+  });
+
+  backToNormalBtn.addEventListener('click', () => {
+    state.secretMode = false;
+    state.difficulty = 'easy'; // デフォルトに戻す
+    initMenu();
+  });
+
+  // レベル生成
+  function generateLevels() {
+    const diffKey = state.secretMode ? 'secret' : state.difficulty;
+    const s = difficultySettings[diffKey];
     const levels = [];
     const days = ['げつようび', 'かようび', 'すいようび', 'もくようび', 'きんようび', 'どようび', 'にちようび', 'Day 8', 'Day 9', 'Day 10', 'Day 11', 'Day 12'];
 
@@ -216,486 +773,372 @@ const App = () => {
       if (level) levels.push(level);
     }
     return levels;
-  }, []);
+  }
 
-  // ゲーム開始
-  useEffect(() => {
-    if (gameState === 'playing' && generatedLevels.length === 0) {
-      setGeneratedLevels(generateLevels(secretMode ? 'secret' : difficulty));
-    }
-  }, [gameState, difficulty, secretMode, generatedLevels.length, generateLevels]);
+  // ゲームスタート
+  startBtn.addEventListener('click', () => {
+    state.generatedLevels = generateLevels();
+    state.currentLevelIndex = 0;
+    state.score = 0;
+    state.perfectClears = 0;
+    state.caterpillarSegments = 3;
+    state.unlockedRare = null;
+    
+    initLevel();
+    showScreen('play');
+  });
 
-  const currentLevelData = generatedLevels[currentLevel];
-  const settings = difficultySettings[secretMode ? 'secret' : difficulty];
-
-  // シャッフル
-  useEffect(() => {
-    if (currentLevelData) {
-      setShuffledFoods(currentLevelData.foods.map((food, i) => ({ food, id: i })).sort(() => Math.random() - 0.5));
-    }
-  }, [currentLevelData]);
-
-  // タイマー
-  useEffect(() => {
-    if (gameState === 'playing' && settings.timeLimit) {
-      setTimeLeft(settings.timeLimit);
-    }
-  }, [gameState, currentLevel, settings.timeLimit]);
-
-  useEffect(() => {
-    if (!timeLeft || timeLeft <= 0 || gameState !== 'playing') return;
-    const timer = setInterval(() => {
-      setTimeLeft(t => {
-        if (t <= 1) {
-          setShowFeedback('timeout');
-          setTimeout(() => { setShowFeedback(null); setSelectedItems([]); setAttempts(a => a + 1); setTimeLeft(settings.timeLimit); }, 1500);
-          return t;
+  // タイマー管理
+  function startTimer() {
+    clearInterval(state.timerInterval);
+    const diffKey = state.secretMode ? 'secret' : state.difficulty;
+    const settings = difficultySettings[diffKey];
+    
+    if (settings.timeLimit) {
+      state.timeLeft = settings.timeLimit;
+      playTimer.style.display = 'block';
+      updateTimerUI();
+      
+      state.timerInterval = setInterval(() => {
+        if (state.isFeedbackShowing || state.screen !== 'play') return;
+        
+        state.timeLeft--;
+        updateTimerUI();
+        
+        if (state.timeLeft <= 0) {
+          handleTimeout();
         }
-        return t - 1;
+      }, 1000);
+    } else {
+      playTimer.style.display = 'none';
+    }
+  }
+
+  function updateTimerUI() {
+    playTimer.innerText = `⏱️ ${state.timeLeft}`;
+    if (state.timeLeft <= 10) {
+      playTimer.classList.add('warn');
+    } else {
+      playTimer.classList.remove('warn');
+    }
+  }
+
+  function handleTimeout() {
+    showFeedback('timeout');
+    setTimeout(() => {
+      hideFeedback();
+      state.selectedItems = [];
+      state.attempts++;
+      updateSelectionUI();
+      renderFoodGrid();
+      
+      const diffKey = state.secretMode ? 'secret' : state.difficulty;
+      state.timeLeft = difficultySettings[diffKey].timeLimit;
+      updateTimerUI();
+    }, 1500);
+  }
+
+  // レベル初期化
+  function initLevel() {
+    const levelData = state.generatedLevels[state.currentLevelIndex];
+    state.shuffledFoods = levelData.foods.map((food, i) => ({ food, id: i })).sort(() => Math.random() - 0.5);
+    state.selectedItems = [];
+    state.attempts = 0;
+    state.isFeedbackShowing = false;
+
+    // UI更新
+    playDay.innerText = levelData.day;
+    playScore.innerText = `⭐ ${state.score}`;
+    playInstr.innerText = levelData.instruction;
+    
+    if (levelData.math) {
+      playMath.innerText = `🔢 ${levelData.math}`;
+      playMath.style.display = 'inline-block';
+    } else {
+      playMath.style.display = 'none';
+    }
+
+    const diffKey = state.secretMode ? 'secret' : state.difficulty;
+    const settings = difficultySettings[diffKey];
+    
+    if (settings.hints) {
+      hintContainer.style.display = 'block';
+      hintText.innerText = levelData.hint;
+      hintText.style.display = 'none'; // 最初は隠す
+    } else {
+      hintContainer.style.display = 'none';
+    }
+
+    updateCaterpillarUI('normal');
+    updateSelectionUI();
+    renderFoodGrid();
+    renderLevelDots();
+    startTimer();
+  }
+
+  hintBtn.addEventListener('click', () => {
+    hintText.style.display = hintText.style.display === 'none' ? 'block' : 'none';
+  });
+
+  function updateCaterpillarUI(animState) {
+    playCaterpillarContainer.innerHTML = createCaterpillarSVG(state.caterpillarSegments, animState, state.secretMode);
+  }
+
+  function updateSelectionUI() {
+    const count = state.selectedItems.length;
+    const levelData = state.generatedLevels[state.currentLevelIndex];
+    
+    selCount.innerText = count;
+    targetCount.innerText = `/ ${levelData.targetCount}`;
+    
+    if (count > 0) {
+      selCount.classList.add('active');
+      clearBtn.style.display = 'inline-block';
+      checkBtn.classList.remove('disabled');
+    } else {
+      selCount.classList.remove('active');
+      clearBtn.style.display = 'none';
+      checkBtn.classList.add('disabled');
+    }
+  }
+
+  clearBtn.addEventListener('click', () => {
+    if (state.isFeedbackShowing) return;
+    state.selectedItems = [];
+    updateSelectionUI();
+    renderFoodGrid();
+  });
+
+  // 食べ物グリッド描画
+  function renderFoodGrid() {
+    foodGrid.innerHTML = '';
+    
+    state.shuffledFoods.forEach(item => {
+      const isSelected = state.selectedItems.includes(item.id);
+      const order = state.selectedItems.indexOf(item.id) + 1;
+      
+      const btn = document.createElement('button');
+      btn.className = `food-item ${isSelected ? 'selected' : ''} ${state.isFeedbackShowing ? 'disabled' : ''}`;
+      
+      let innerHTML = `<span class="food-emoji">${item.food}</span>`;
+      
+      if (isSelected) {
+        innerHTML += `
+          <div class="check-circle"><span class="check-mark">✓</span></div>
+          <div class="sel-badge">${order}</div>
+        `;
+      } else {
+        innerHTML += `<div class="tap-hint"></div>`;
+      }
+      
+      btn.innerHTML = innerHTML;
+      
+      btn.addEventListener('click', () => {
+        if (state.isFeedbackShowing) return;
+        
+        if (isSelected) {
+          state.selectedItems = state.selectedItems.filter(id => id !== item.id);
+        } else {
+          state.selectedItems.push(item.id);
+        }
+        updateSelectionUI();
+        renderFoodGrid();
       });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft, gameState, settings.timeLimit]);
+      
+      foodGrid.appendChild(btn);
+    });
+  }
 
-  const toggleItem = (id) => {
-    if (showFeedback) return;
-    setSelectedItems(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  };
+  function renderLevelDots() {
+    levelDots.innerHTML = '';
+    state.generatedLevels.forEach((_, i) => {
+      const span = document.createElement('span');
+      let className = 'dot';
+      if (i < state.currentLevelIndex) className += ' done';
+      if (i === state.currentLevelIndex) className += ' current';
+      span.className = className;
+      levelDots.appendChild(span);
+    });
+  }
 
-  const checkAnswer = useCallback(() => {
-    if (!currentLevelData) return;
-    const selected = selectedItems.map(id => shuffledFoods.find(f => f.id === id)?.food);
+  // 答え合わせ
+  checkBtn.addEventListener('click', () => {
+    if (state.selectedItems.length === 0 || state.isFeedbackShowing) return;
+    
+    state.isFeedbackShowing = true;
+    clearInterval(state.timerInterval); // タイマー停止
+    
+    const levelData = state.generatedLevels[state.currentLevelIndex];
+    const selectedFoods = state.selectedItems.map(id => state.shuffledFoods.find(f => f.id === id).food);
     let isCorrect = false;
 
-    if (currentLevelData.type === 'multiple') {
-      const targets = currentLevelData.targetFood;
-      const allTargetsInGrid = shuffledFoods.filter(f => targets.includes(f.food)).length;
-      const correctSelected = selected.filter(f => targets.includes(f)).length;
-      const wrongSelected = selected.filter(f => !targets.includes(f)).length;
-      isCorrect = correctSelected === allTargetsInGrid && wrongSelected === 0;
+    if (levelData.type === 'multiple') {
+      const targets = levelData.targetFood;
+      const allTargetsInGrid = state.shuffledFoods.filter(f => targets.includes(f.food)).length;
+      const correctSelected = selectedFoods.filter(f => targets.includes(f)).length;
+      const wrongSelected = selectedFoods.filter(f => !targets.includes(f)).length;
+      isCorrect = (correctSelected === allTargetsInGrid) && (wrongSelected === 0);
     } else {
-      const correct = selected.filter(f => f === currentLevelData.targetFood).length;
-      const wrong = selected.filter(f => f !== currentLevelData.targetFood).length;
-      isCorrect = correct === currentLevelData.targetCount && wrong === 0;
+      const correct = selectedFoods.filter(f => f === levelData.targetFood).length;
+      const wrong = selectedFoods.filter(f => f !== levelData.targetFood).length;
+      isCorrect = (correct === levelData.targetCount) && (wrong === 0);
     }
 
-    setAttempts(a => a + 1);
+    state.attempts++;
+
     if (isCorrect) {
-      const pts = attempts === 0 ? 100 : Math.max(50, 100 - attempts * 20);
-      setShowFeedback('correct');
-      setScore(s => s + pts);
-      setCaterpillarSegments(seg => seg + currentLevelData.targetCount);
-      if (attempts === 0) setPerfectClears(p => p + 1);
-      
-      setTimeout(() => {
-        setShowFeedback(null);
-        if (currentLevel < generatedLevels.length - 1) {
-          setGameState('levelComplete');
-        } else {
-          if (secretMode) setUnlockedRare(rareCharacters[1]);
-          else if (perfectClears >= 2) setUnlockedRare(rareCharacters[0]);
-          else if (difficulty === 'hard') setUnlockedRare(rareCharacters[3]);
-          setGameState('complete');
-        }
-      }, 1500);
+      handleCorrect();
     } else {
-      setShowFeedback('wrong');
-      setTimeout(() => setShowFeedback(null), 1200);
+      handleWrong();
     }
-  }, [selectedItems, shuffledFoods, currentLevelData, currentLevel, attempts, generatedLevels.length, secretMode, perfectClears, difficulty, rareCharacters]);
+  });
 
-  const nextLevel = () => { setCurrentLevel(c => c + 1); setSelectedItems([]); setAttempts(0); setGameState('playing'); };
-
-  const resetGame = () => {
-    setGameState('menu'); setCurrentLevel(0); setSelectedItems([]); setCaterpillarSegments(3);
-    setScore(0); setAttempts(0); setGeneratedLevels([]); setPerfectClears(0); setUnlockedRare(null); setTimeLeft(null);
-  };
-
-  const handleSecretTap = () => {
-    setSecretTaps(t => { if (t >= 9) { setSecretMode(true); return 0; } return t + 1; });
-  };
-
-  // あおむし
-  const Caterpillar = ({ segments, eating, happy }) => (
-    <svg viewBox="0 0 400 100" style={{ width: '100%', maxWidth: 350 }}>
-      {Array.from({ length: Math.min(segments, 20) }).map((_, i) => {
-        const x = 360 - i * 18;
-        const y = 50 + Math.sin(i * 0.5) * 4;
-        const r = i === 0 ? 0 : Math.max(5, 14 - i * 0.5);
-        const hue = secretMode ? (i * 30) % 360 : 120 + i * 3;
-        return <circle key={i} cx={x} cy={y} r={r} fill={`hsl(${hue}, 70%, ${50 + i}%)`} style={{ animation: 'wiggle 2s ease-in-out infinite', animationDelay: `${i * 0.05}s` }} />;
-      })}
-      <g style={{ animation: happy ? 'bounce 0.4s ease infinite' : eating ? 'eat 0.3s ease' : 'bob 1.5s ease-in-out infinite' }}>
-        <circle cx="370" cy="45" r="22" fill={secretMode ? '#FFD700' : '#E74C3C'} />
-        <circle cx="370" cy="45" r="18" fill={secretMode ? '#FFA500' : '#C0392B'} />
-        <line x1="362" y1="28" x2="354" y2="15" stroke={secretMode ? '#FFD700' : '#27AE60'} strokeWidth="3" strokeLinecap="round" />
-        <line x1="378" y1="28" x2="386" y2="15" stroke={secretMode ? '#FFD700' : '#27AE60'} strokeWidth="3" strokeLinecap="round" />
-        <circle cx="354" cy="12" r="4" fill="#E74C3C" />
-        <circle cx="386" cy="12" r="4" fill="#E74C3C" />
-        <circle cx="363" cy="42" r="7" fill="white" />
-        <circle cx="377" cy="42" r="7" fill="white" />
-        <circle cx="364" cy="43" r="3" fill="#2C3E50" />
-        <circle cx="378" cy="43" r="3" fill="#2C3E50" />
-        <path d={happy ? "M 363 58 Q 370 67 377 58" : "M 365 56 Q 370 60 375 56"} stroke="#2C3E50" strokeWidth="2" fill="none" strokeLinecap="round" />
-        <circle cx="355" cy="50" r="4" fill="#FFB6C1" opacity="0.5" />
-        <circle cx="385" cy="50" r="4" fill="#FFB6C1" opacity="0.5" />
-      </g>
-    </svg>
-  );
-
-  // 蝶々
-  const Butterfly = ({ rare }) => {
-    const colors = rare ? rare.gradient : ['#FF6B6B', '#FFD93D', '#6BCB77'];
-    return (
-      <svg viewBox="0 0 200 140" style={{ width: '100%', maxWidth: 240 }}>
-        <defs>
-          <linearGradient id="wing1" x1="0%" y1="0%" x2="100%" y2="100%">
-            {colors.map((c, i) => <stop key={i} offset={`${i * 100 / (colors.length - 1)}%`} stopColor={c} />)}
-          </linearGradient>
-          <linearGradient id="wing2" x1="0%" y1="100%" x2="100%" y2="0%">
-            {colors.slice().reverse().map((c, i) => <stop key={i} offset={`${i * 100 / (colors.length - 1)}%`} stopColor={c} />)}
-          </linearGradient>
-        </defs>
-        <ellipse cx="55" cy="55" rx="45" ry="35" fill="url(#wing1)" style={{ transformOrigin: '100% 50%', animation: 'flap 0.25s ease-in-out infinite' }} />
-        <ellipse cx="52" cy="95" rx="30" ry="25" fill="url(#wing2)" style={{ transformOrigin: '100% 50%', animation: 'flap 0.25s ease-in-out infinite' }} />
-        <ellipse cx="145" cy="55" rx="45" ry="35" fill="url(#wing1)" style={{ transformOrigin: '0% 50%', animation: 'flapR 0.25s ease-in-out infinite' }} />
-        <ellipse cx="148" cy="95" rx="30" ry="25" fill="url(#wing2)" style={{ transformOrigin: '0% 50%', animation: 'flapR 0.25s ease-in-out infinite' }} />
-        <ellipse cx="100" cy="70" rx="10" ry="38" fill="#5D4037" />
-        <circle cx="100" cy="30" r="13" fill="#C0392B" />
-        <path d="M 93 20 Q 86 6 80 8" stroke="#5D4037" strokeWidth="2.5" fill="none" />
-        <path d="M 107 20 Q 114 6 120 8" stroke="#5D4037" strokeWidth="2.5" fill="none" />
-        <circle cx="80" cy="8" r="3" fill="#E74C3C" />
-        <circle cx="120" cy="8" r="3" fill="#E74C3C" />
-        <circle cx="95" cy="28" r="4" fill="white" /><circle cx="105" cy="28" r="4" fill="white" />
-        <circle cx="96" cy="29" r="2" fill="#2C3E50" /><circle cx="106" cy="29" r="2" fill="#2C3E50" />
-        <circle cx="48" cy="52" r="10" fill="rgba(255,255,255,0.4)" />
-        <circle cx="152" cy="52" r="10" fill="rgba(255,255,255,0.4)" />
-        {rare?.id === 'golden' && <>
-          <circle cx="45" cy="50" r="5" fill="white" opacity="0.8" style={{ animation: 'sparkle 1s ease infinite' }} />
-          <circle cx="155" cy="50" r="5" fill="white" opacity="0.8" style={{ animation: 'sparkle 1s ease infinite 0.5s' }} />
-        </>}
-      </svg>
-    );
-  };
-
-  // CSS
-  const styles = `
-    @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap');
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    @keyframes wiggle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
-    @keyframes bounce { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
-    @keyframes bob { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(2px); } }
-    @keyframes eat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-    @keyframes flap { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.7); } }
-    @keyframes flapR { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.7); } }
-    @keyframes float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-10px) rotate(2deg); } }
-    @keyframes sparkle { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.3); } }
-    @keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
-    @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(76,175,80,0.4); } 50% { box-shadow: 0 0 0 8px rgba(76,175,80,0); } }
-    @keyframes confetti { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
-    @keyframes timerPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-
-    .game { min-height: 100vh; font-family: 'Zen Maru Gothic', sans-serif; display: flex; flex-direction: column; }
-    .menu { background: linear-gradient(180deg, #87CEEB 0%, #98FB98 50%, #90EE90 100%); align-items: center; justify-content: center; padding: 20px; gap: 12px; position: relative; overflow: hidden; }
-    .menu.secret { background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
-    .title { font-size: clamp(1.5rem, 6vw, 2.8rem); color: #2E7D32; text-shadow: 2px 2px 0 #FFD700, 4px 4px 0 #FF6B6B; text-align: center; cursor: pointer; }
-    .menu.secret .title { color: #FFD700; text-shadow: 0 0 10px #FFD700; }
-    .subtitle { font-size: clamp(0.9rem, 3vw, 1.3rem); color: #4CAF50; background: rgba(255,255,255,0.7); padding: 4px 16px; border-radius: 15px; margin-top: 5px; }
-    .menu.secret .subtitle { background: rgba(255,215,0,0.2); color: #FFD700; }
-    .secret-hint { margin-top: 5px; font-size: 1rem; }
-
-    .diff-area { background: rgba(255,255,255,0.92); padding: 12px 18px; border-radius: 18px; text-align: center; width: 100%; max-width: 380px; }
-    .diff-label { font-size: 0.95rem; color: #555; margin-bottom: 8px; }
-    .diff-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-    .diff-btn { padding: 10px 12px; border: 3px solid #ddd; border-radius: 14px; background: white; font-family: inherit; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 95px; }
-    .diff-btn.sel { border-color: #4CAF50; background: #E8F5E9; transform: scale(1.05); box-shadow: 0 4px 12px rgba(76,175,80,0.3); }
-    .diff-btn:hover { transform: scale(1.03); }
-    .diff-name { font-size: 1rem; font-weight: 700; }
-    .diff-desc { font-size: 0.65rem; color: #888; }
-
-    .secret-info { background: rgba(255,215,0,0.15); border: 2px solid #FFD700; padding: 15px 25px; border-radius: 18px; text-align: center; color: #FFD700; }
-    .secret-info p:first-child { font-size: 1.1rem; font-weight: 700; }
-    .secret-info .desc { font-size: 0.85rem; margin-top: 5px; opacity: 0.9; }
-
-    .start-btn { background: linear-gradient(180deg, #FF6B6B 0%, #E74C3C 100%); border: none; border-radius: 50px; padding: 14px 36px; font-family: inherit; font-size: clamp(1.1rem, 4vw, 1.5rem); font-weight: 700; color: white; cursor: pointer; box-shadow: 0 5px 0 #C0392B, 0 8px 16px rgba(0,0,0,0.2); transition: all 0.1s; display: flex; align-items: center; gap: 10px; }
-    .menu.secret .start-btn { background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%); box-shadow: 0 5px 0 #FF8C00, 0 0 20px rgba(255,215,0,0.5); color: #1a1a2e; }
-    .start-btn:hover { transform: translateY(-2px); }
-    .start-btn:active { transform: translateY(2px); box-shadow: 0 3px 0 #C0392B; }
-
-    .back-btn { background: transparent; border: 2px solid rgba(255,255,255,0.3); padding: 6px 16px; border-radius: 18px; color: rgba(255,255,255,0.7); font-family: inherit; font-size: 0.85rem; cursor: pointer; }
-    .back-btn:hover { background: rgba(255,255,255,0.1); }
-
-    .floating { position: absolute; font-size: 1.8rem; animation: float 5s ease-in-out infinite; opacity: 0.6; pointer-events: none; }
-
-    .play { background: linear-gradient(180deg, #87CEEB 0%, #98FB98 60%, #228B22 100%); padding: 10px; gap: 8px; }
-    .play.secret { background: linear-gradient(180deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%); }
-
-    .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.92); border-radius: 14px; }
-    .play.secret .header { background: rgba(30,30,50,0.9); border: 1px solid #FFD700; }
-    .day { background: linear-gradient(135deg, #FF6B6B, #FFD93D); padding: 6px 14px; border-radius: 16px; color: white; font-weight: 700; font-size: clamp(0.85rem, 2.8vw, 1.1rem); }
-    .header-right { display: flex; align-items: center; gap: 8px; }
-    .timer { background: #2196F3; padding: 5px 10px; border-radius: 14px; color: white; font-weight: 700; font-size: 0.95rem; }
-    .timer.warn { background: #F44336; animation: timerPulse 0.5s ease infinite; }
-    .score-badge { background: #4CAF50; padding: 5px 12px; border-radius: 16px; color: white; font-weight: 700; font-size: clamp(0.85rem, 2.8vw, 1rem); }
-
-    .instr-area { background: rgba(255,255,255,0.92); padding: 10px 14px; border-radius: 14px; text-align: center; }
-    .play.secret .instr-area { background: rgba(30,30,50,0.9); border: 1px solid #FFD700; }
-    .instr { font-size: clamp(0.9rem, 3vw, 1.15rem); color: #2E7D32; font-weight: 600; line-height: 1.3; }
-    .play.secret .instr { color: #FFD700; }
-    .math { background: #FFF9C4; padding: 5px 14px; border-radius: 10px; margin: 5px 0; font-size: 1.1rem; font-weight: 700; color: #F57C00; display: inline-block; }
-    .play.secret .math { background: rgba(255,215,0,0.2); color: #FFD700; }
-    .hint-btn { background: #FFE082; border: none; padding: 4px 12px; border-radius: 10px; font-family: inherit; font-size: 0.8rem; cursor: pointer; margin-top: 5px; }
-    .hint-btn:hover { background: #FFD54F; }
-    .hint { margin-top: 5px; color: #666; font-size: 0.8rem; background: #FFF8E1; padding: 5px 10px; border-radius: 8px; }
-
-    .caterpillar-area { display: flex; justify-content: center; align-items: center; min-height: 70px; }
-
-    .sel-info { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
-    .sel-counter { background: linear-gradient(145deg, #fff, #f5f5f5); padding: 7px 16px; border-radius: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; }
-    .play.secret .sel-counter { background: rgba(30,30,50,0.9); border: 1px solid #FFD700; }
-    .counter-label { font-size: 0.85rem; color: #666; }
-    .play.secret .counter-label { color: #ccc; }
-    .counter-num { font-size: 1.5rem; font-weight: 900; color: #9E9E9E; transition: all 0.3s; min-width: 28px; text-align: center; }
-    .counter-num.active { color: #E74C3C; transform: scale(1.1); }
-    .counter-target { font-size: 1rem; color: #4CAF50; font-weight: 700; }
-    .clear-btn { background: linear-gradient(145deg, #FFE0E0, #FFCDD2); border: 2px solid #E57373; padding: 5px 12px; border-radius: 10px; font-family: inherit; font-size: 0.8rem; font-weight: 600; color: #C62828; cursor: pointer; }
-    .clear-btn:hover:not(:disabled) { background: linear-gradient(145deg, #FFCDD2, #EF9A9A); transform: scale(1.05); }
-    .clear-btn:disabled { opacity: 0.5; }
-
-    .food-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 8px; padding: 12px; background: rgba(255,255,255,0.95); border-radius: 18px; }
-    .play.secret .food-grid { background: rgba(30,30,50,0.9); border: 1px solid #FFD700; }
-
-    .food-item { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #fff, #f0f0f0); border: 3px solid #D0D0D0; border-radius: 12px; cursor: pointer; transition: all 0.2s; position: relative; overflow: visible; }
-    .food-item:hover:not(:disabled) { transform: scale(1.06); border-color: #FFD54F; }
-    .food-item.selected { background: linear-gradient(145deg, #C8F7C5, #81E878); border: 4px solid #2E7D32; box-shadow: 0 0 0 3px rgba(46,125,50,0.3), 0 4px 12px rgba(46,125,50,0.4); transform: scale(1.03); animation: pulse 1.5s ease infinite; }
-    .food-item:disabled { opacity: 0.6; cursor: not-allowed; }
-    .food-emoji { font-size: clamp(1.8rem, 6vw, 2.5rem); }
-    .food-item.selected .food-emoji { transform: scale(1.1); }
-
-    .check-circle { position: absolute; top: -6px; right: -6px; width: 26px; height: 26px; background: linear-gradient(135deg, #4CAF50, #2E7D32); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); animation: pop 0.3s ease; }
-    .check-mark { color: white; font-size: 1rem; font-weight: 900; }
-    .sel-badge { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #FF6B6B, #E74C3C); color: white; font-size: 0.75rem; font-weight: 900; padding: 2px 8px; border-radius: 10px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-    .tap-hint { position: absolute; top: 50%; left: 50%; width: 80%; height: 80%; border: 2px dashed #BDBDBD; border-radius: 10px; transform: translate(-50%, -50%); opacity: 0.4; pointer-events: none; }
-
-    .check-btn { background: linear-gradient(180deg, #FF6B6B 0%, #E74C3C 100%); border: none; border-radius: 50px; padding: 14px 30px; font-family: inherit; font-size: clamp(1.1rem, 3.5vw, 1.35rem); font-weight: 700; color: white; cursor: pointer; box-shadow: 0 4px 0 #C0392B, 0 6px 14px rgba(0,0,0,0.2); align-self: center; }
-    .check-btn:hover:not(:disabled) { transform: translateY(-2px); }
-    .check-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #C0392B; }
-    .check-btn:disabled { background: #BDBDBD; box-shadow: 0 4px 0 #9E9E9E; cursor: not-allowed; }
-
-    .feedback { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 100; }
-    .feedback.correct { background: rgba(76,175,80,0.85); }
-    .feedback.wrong, .feedback.timeout { background: rgba(255,152,0,0.85); }
-    .feedback-content { text-align: center; color: white; animation: pop 0.4s ease; }
-    .feedback-emoji { font-size: 4rem; display: block; margin-bottom: 8px; }
-    .feedback-content p { font-size: 1.8rem; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
-
-    .level-dots { display: flex; justify-content: center; gap: 8px; padding: 8px; }
-    .dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.5); border: 2px solid white; }
-    .dot.done { background: #4CAF50; border-color: #2E7D32; }
-    .dot.current { background: #FFD700; border-color: #FFA000; transform: scale(1.2); animation: pulse 1s ease infinite; }
-
-    .level-complete { background: linear-gradient(180deg, #FFF9C4 0%, #FFECB3 50%, #FFE082 100%); align-items: center; justify-content: center; padding: 20px; }
-    .level-complete.secret { background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
-    .lc-content { text-align: center; background: rgba(255,255,255,0.95); padding: 22px; border-radius: 22px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); max-width: 360px; width: 100%; }
-    .level-complete.secret .lc-content { background: rgba(30,30,50,0.95); border: 2px solid #FFD700; }
-    .lc-title { font-size: clamp(1.6rem, 6vw, 2.2rem); color: #FF6B6B; margin-bottom: 12px; }
-    .level-complete.secret .lc-title { color: #FFD700; }
-    .stars-row { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; }
-    .star { font-size: 2.2rem; animation: pop 0.4s ease backwards; }
-    .star.empty { opacity: 0.3; filter: grayscale(1); }
-    .lc-score { background: linear-gradient(135deg, #4CAF50, #8BC34A); padding: 10px 22px; border-radius: 16px; margin: 10px 0; }
-    .lc-score p:first-child { color: rgba(255,255,255,0.9); font-size: 0.85rem; }
-    .lc-score .val { color: white; font-size: 1.8rem; font-weight: 900; }
-    .perfect { background: linear-gradient(135deg, #FFD700, #FFA500); color: white; padding: 6px 16px; border-radius: 16px; font-weight: 700; font-size: 1rem; margin: 8px 0; }
-    .lc-progress { margin: 12px 0; }
-    .progress-bar { height: 10px; background: #E0E0E0; border-radius: 8px; overflow: hidden; }
-    .progress-fill { height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A); border-radius: 8px; transition: width 0.5s; }
-    .progress-text { color: #888; font-size: 0.8rem; margin-top: 4px; }
-    .next-btn { background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%); border: none; border-radius: 50px; padding: 14px 30px; font-family: inherit; font-size: 1.15rem; font-weight: 700; color: white; cursor: pointer; box-shadow: 0 4px 0 #2E7D32; margin-top: 10px; }
-    .next-btn:hover { transform: translateY(-2px); }
-    .next-btn:active { transform: translateY(2px); }
-
-    .complete { background: linear-gradient(180deg, #E8F5E9 0%, #C8E6C9 50%, #A5D6A7 100%); align-items: center; justify-content: center; padding: 20px; position: relative; overflow: hidden; }
-    .complete.secret { background: linear-gradient(180deg, #0f0c29 0%, #302b63 50%, #24243e 100%); }
-    .butterfly-area { width: 100%; max-width: 240px; margin-bottom: 10px; animation: float 3s ease-in-out infinite; }
-    .complete-title { font-size: clamp(1.8rem, 7vw, 2.8rem); color: #E74C3C; text-shadow: 2px 2px 0 #FFD700; }
-    .complete.secret .complete-title { color: #FFD700; text-shadow: 0 0 15px #FFD700; }
-    .complete-msg { font-size: clamp(1rem, 3.5vw, 1.4rem); color: #2E7D32; text-align: center; margin: 10px 0; line-height: 1.4; }
-    .complete.secret .complete-msg { color: #ccc; }
-    .rare-name { font-size: 1.2rem; font-weight: 900; color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.5); margin-top: 8px; text-align: center; }
-    .rare-desc { font-size: 0.85rem; color: #888; text-align: center; }
-    .final-score { background: rgba(255,255,255,0.9); padding: 14px 30px; border-radius: 18px; text-align: center; margin: 10px 0; }
-    .complete.secret .final-score { background: rgba(255,215,0,0.15); border: 2px solid #FFD700; }
-    .final-score p:first-child { color: #666; font-size: 0.85rem; }
-    .complete.secret .final-score p:first-child { color: #ccc; }
-    .final-score .big { font-size: 2.2rem; font-weight: 900; color: #4CAF50; }
-    .complete.secret .final-score .big { color: #FFD700; }
-    .confetti { position: absolute; width: 10px; height: 10px; border-radius: 50%; top: -20px; animation: confetti 3s ease-in-out infinite; pointer-events: none; }
-    .restart-btn { background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%); border: none; border-radius: 50px; padding: 14px 28px; font-family: inherit; font-size: clamp(1rem, 3.2vw, 1.2rem); font-weight: 700; color: white; cursor: pointer; box-shadow: 0 4px 0 #2E7D32; margin-top: 10px; }
-    .restart-btn:hover { transform: translateY(-2px); }
-    .restart-btn:active { transform: translateY(2px); }
-  `;
-
-  // メニュー画面
-  if (gameState === 'menu') {
-    return (
-      <div className={`game menu ${secretMode ? 'secret' : ''}`}>
-        <style>{styles}</style>
-        <div onClick={handleSecretTap}>
-          <h1 className="title">はらぺこあおむし</h1>
-          <p className="subtitle">{secretMode ? '🌟 ひみつモード 🌟' : 'かずあそび パズル'}</p>
-          {secretTaps > 0 && secretTaps < 10 && !secretMode && <div className="secret-hint">{'🌟'.repeat(secretTaps)}</div>}
-        </div>
-        <div style={{ width: '100%', maxWidth: 320 }}><Caterpillar segments={secretMode ? 12 : 8} happy={true} /></div>
-        
-        {!secretMode && (
-          <div className="diff-area">
-            <p className="diff-label">むずかしさを えらんでね</p>
-            <div className="diff-btns">
-              <button className={`diff-btn ${difficulty === 'easy' ? 'sel' : ''}`} onClick={() => setDifficulty('easy')}>
-                <span className="diff-name">🌱 かんたん</span>
-                <span className="diff-desc">かずを かぞえよう</span>
-              </button>
-              <button className={`diff-btn ${difficulty === 'normal' ? 'sel' : ''}`} onClick={() => setDifficulty('normal')}>
-                <span className="diff-name">🌿 ふつう</span>
-                <span className="diff-desc">たしざんも あるよ</span>
-              </button>
-              <button className={`diff-btn ${difficulty === 'hard' ? 'sel' : ''}`} onClick={() => setDifficulty('hard')}>
-                <span className="diff-name">🌳 むずかしい</span>
-                <span className="diff-desc">ひきざん＆タイマー</span>
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {secretMode && (
-          <div className="secret-info">
-            <p>🌈 スペシャルステージ 🌈</p>
-            <p className="desc">クリアすると レアな ちょうちょが！</p>
-          </div>
-        )}
-        
-        <button className="start-btn" onClick={() => setGameState('playing')}>
-          <span>{secretMode ? '🌟' : '🎮'}</span>スタート！<span>{secretMode ? '🌟' : '🎮'}</span>
-        </button>
-        
-        {secretMode && <button className="back-btn" onClick={() => { setSecretMode(false); setSecretTaps(0); }}>ふつうモードに もどる</button>}
-        
-        {(secretMode ? ['🌟', '✨', '💫', '⭐', '🎀', '🎊'] : ['🍎', '🍐', '🍇', '🍓', '🍊', '🍉']).map((e, i) => (
-          <span key={i} className="floating" style={{ top: `${10 + (i * 14) % 75}%`, left: `${5 + (i * 16) % 88}%`, animationDelay: `${i * 0.7}s` }}>{e}</span>
-        ))}
-      </div>
-    );
+  function showFeedback(type) {
+    feedbackOverlay.className = `feedback active ${type}`;
+    if (type === 'correct') {
+      feedbackEmoji.innerText = '🎉';
+      feedbackText.innerText = 'せいかい！';
+    } else if (type === 'wrong') {
+      feedbackEmoji.innerText = '🤔';
+      feedbackText.innerText = 'もういちど！';
+    } else if (type === 'timeout') {
+      feedbackEmoji.innerText = '⏰';
+      feedbackText.innerText = 'じかんぎれ！';
+    }
   }
 
-  // レベルクリア画面
-  if (gameState === 'levelComplete') {
-    const stars = attempts === 0 ? 3 : attempts <= 2 ? 2 : 1;
-    return (
-      <div className={`game level-complete ${secretMode ? 'secret' : ''}`}>
-        <style>{styles}</style>
-        <div className="lc-content">
-          <h2 className="lc-title">🎉 クリア！ 🎉</h2>
-          <div className="stars-row">
-            {[0, 1, 2].map(i => <span key={i} className={`star ${i < stars ? '' : 'empty'}`} style={{ animationDelay: `${i * 0.2}s` }}>{i < stars ? '⭐' : '☆'}</span>)}
-          </div>
-          <div className="lc-score"><p>スコア</p><p className="val">{score}てん</p></div>
-          {attempts === 0 && <div className="perfect">✨ パーフェクト！ ✨</div>}
-          <div style={{ width: '100%', maxWidth: 280, margin: '10px auto' }}><Caterpillar segments={caterpillarSegments} happy={true} /></div>
-          <div className="lc-progress">
-            <div className="progress-bar"><div className="progress-fill" style={{ width: `${((currentLevel + 1) / generatedLevels.length) * 100}%` }} /></div>
-            <p className="progress-text">{currentLevel + 1} / {generatedLevels.length}</p>
-          </div>
-          <button className="next-btn" onClick={nextLevel}>つぎの ひへ →</button>
-        </div>
-      </div>
-    );
+  function hideFeedback() {
+    feedbackOverlay.classList.remove('active');
+    state.isFeedbackShowing = false;
   }
 
-  // クリア画面
-  if (gameState === 'complete') {
-    const stars = Math.min(3, Math.floor(score / 200));
-    return (
-      <div className={`game complete ${secretMode ? 'secret' : ''}`}>
-        <style>{styles}</style>
-        <div className="butterfly-area"><Butterfly rare={unlockedRare} /></div>
-        {unlockedRare && <><div className="rare-name">{unlockedRare.name}</div><div className="rare-desc">{unlockedRare.desc}</div></>}
-        <h2 className="complete-title">{unlockedRare ? '🌟 レアキャラ ゲット！ 🌟' : 'おめでとう！'}</h2>
-        <p className="complete-msg">{unlockedRare ? `${unlockedRare.name}が なかまに なったよ！` : 'あおむしが きれいな\nちょうちょに なったよ！'}</p>
-        <div className="final-score"><p>さいしゅうスコア</p><p className="big">{score}てん</p></div>
-        <div className="stars-row">{[0, 1, 2].map(i => <span key={i} className={`star ${i < stars ? '' : 'empty'}`} style={{ animationDelay: `${i * 0.2}s` }}>{i < stars ? '⭐' : '☆'}</span>)}</div>
-        {Array.from({ length: 25 }).map((_, i) => <span key={i} className="confetti" style={{ left: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 2}s`, backgroundColor: (unlockedRare?.gradient || ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#9B59B6'])[i % 5] }} />)}
-        <button className="restart-btn" onClick={resetGame}>もういちど あそぶ</button>
-      </div>
-    );
+  function handleCorrect() {
+    const pts = state.attempts === 1 ? 100 : Math.max(50, 100 - (state.attempts - 1) * 20);
+    state.score += pts;
+    state.caterpillarSegments += state.generatedLevels[state.currentLevelIndex].targetCount;
+    
+    if (state.attempts === 1) state.perfectClears++;
+    
+    showFeedback('correct');
+    updateCaterpillarUI('eating');
+    
+    // スコア更新
+    playScore.innerText = `⭐ ${state.score}`;
+
+    setTimeout(() => {
+      hideFeedback();
+      
+      if (state.currentLevelIndex < state.generatedLevels.length - 1) {
+        showLevelComplete();
+      } else {
+        checkRareUnlock();
+        showComplete();
+      }
+    }, 1500);
   }
 
-  // プレイ画面
-  if (!currentLevelData) return <div className="game"><style>{styles}</style>Loading...</div>;
+  function handleWrong() {
+    showFeedback('wrong');
+    setTimeout(() => {
+      hideFeedback();
+      startTimer(); // タイマー再開
+    }, 1200);
+  }
 
-  return (
-    <div className={`game play ${secretMode ? 'secret' : ''}`}>
-      <style>{styles}</style>
-      <header className="header">
-        <span className="day">{currentLevelData.day}</span>
-        <div className="header-right">
-          {settings.timeLimit && <span className={`timer ${timeLeft && timeLeft <= 10 ? 'warn' : ''}`}>⏱️ {timeLeft}</span>}
-          <span className="score-badge">⭐ {score}</span>
-        </div>
-      </header>
+  // レベルクリア画面処理
+  function showLevelComplete() {
+    const stars = state.attempts === 1 ? 3 : (state.attempts <= 3 ? 2 : 1);
+    
+    lcStarsContainer.innerHTML = [0, 1, 2].map(i => {
+      const isFilled = i < stars;
+      return `<span class="star ${isFilled ? '' : 'empty'}" style="animation-delay: ${i * 0.2}s">${isFilled ? '⭐' : '☆'}</span>`;
+    }).join('');
+    
+    lcScoreVal.innerText = state.score;
+    lcPerfect.style.display = (state.attempts === 1) ? 'inline-block' : 'none';
+    
+    lcCaterpillarContainer.innerHTML = createCaterpillarSVG(state.caterpillarSegments, 'happy', state.secretMode);
+    
+    // プログレスバー（少し遅れてアニメーション）
+    lcProgressFill.style.width = '0%';
+    setTimeout(() => {
+      const percent = ((state.currentLevelIndex + 1) / state.generatedLevels.length) * 100;
+      lcProgressFill.style.width = `${percent}%`;
+    }, 100);
+    
+    lcCurrentLevel.innerText = state.currentLevelIndex + 1;
+    lcTotalLevels.innerText = state.generatedLevels.length;
+    
+    showScreen('levelComplete');
+  }
 
-      <div className="instr-area">
-        <p className="instr">{currentLevelData.instruction}</p>
-        {currentLevelData.math && <div className="math">🔢 {currentLevelData.math}</div>}
-        {settings.hints && <>
-          <button className="hint-btn" onClick={() => setShowHint(!showHint)}>💡 ヒント</button>
-          {showHint && <p className="hint">{currentLevelData.hint}</p>}
-        </>}
-      </div>
-      
-      <div className="caterpillar-area"><Caterpillar segments={caterpillarSegments} eating={showFeedback === 'correct'} happy={showFeedback === 'correct'} /></div>
-      
-      <div className="sel-info">
-        <div className="sel-counter">
-          <span className="counter-label">えらんだかず</span>
-          <span className={`counter-num ${selectedItems.length > 0 ? 'active' : ''}`}>{selectedItems.length}</span>
-          <span className="counter-target">/ {currentLevelData.targetCount}</span>
-        </div>
-        {selectedItems.length > 0 && <button className="clear-btn" onClick={() => setSelectedItems([])} disabled={showFeedback !== null}>ぜんぶ けす 🗑️</button>}
-      </div>
-      
-      <div className="food-grid">
-        {shuffledFoods.map(item => {
-          const sel = selectedItems.includes(item.id);
-          const order = selectedItems.indexOf(item.id) + 1;
-          return (
-            <button key={item.id} className={`food-item ${sel ? 'selected' : ''}`} onClick={() => toggleItem(item.id)} disabled={showFeedback !== null}>
-              <span className="food-emoji">{item.food}</span>
-              {sel && <><div className="check-circle"><span className="check-mark">✓</span></div><div className="sel-badge">{order}</div></>}
-              {!sel && <div className="tap-hint" />}
-            </button>
-          );
-        })}
-      </div>
-      
-      <button className="check-btn" onClick={checkAnswer} disabled={selectedItems.length === 0 || showFeedback !== null}>たべさせる！ 🍴</button>
-      
-      {showFeedback && (
-        <div className={`feedback ${showFeedback}`}>
-          <div className="feedback-content">
-            <span className="feedback-emoji">{showFeedback === 'correct' ? '🎉' : showFeedback === 'timeout' ? '⏰' : '🤔'}</span>
-            <p>{showFeedback === 'correct' ? 'せいかい！' : showFeedback === 'timeout' ? 'じかんぎれ！' : 'もういちど！'}</p>
-          </div>
-        </div>
-      )}
-      
-      <div className="level-dots">
-        {generatedLevels.map((_, i) => <span key={i} className={`dot ${i < currentLevel ? 'done' : ''} ${i === currentLevel ? 'current' : ''}`} />)}
-      </div>
-    </div>
-  );
-};
+  nextLevelBtn.addEventListener('click', () => {
+    state.currentLevelIndex++;
+    initLevel();
+    showScreen('play');
+  });
 
-export default App;
+  // レアキャラ判定
+  function checkRareUnlock() {
+    if (state.secretMode) {
+      state.unlockedRare = rareCharacters[1]; // にじいろ
+    } else if (state.perfectClears >= 2) {
+      state.unlockedRare = rareCharacters[0]; // きんいろ
+    } else if (state.difficulty === 'hard') {
+      state.unlockedRare = rareCharacters[3]; // ほのお
+    } else if (state.score === state.generatedLevels.length * 100) {
+      state.unlockedRare = rareCharacters[2]; // クリスタル
+    }
+  }
 
-```
+  // ゲームクリア画面処理
+  function showComplete() {
+    completeButterflyContainer.innerHTML = createButterflySVG(state.unlockedRare);
+    
+    if (state.unlockedRare) {
+      rareInfo.style.display = 'flex';
+      rareName.innerText = state.unlockedRare.name;
+      rareDesc.innerText = state.unlockedRare.desc;
+      completeTitle.innerText = '🌟 レアキャラ ゲット！ 🌟';
+      completeMsg.innerText = `${state.unlockedRare.name}が なかまに なったよ！`;
+    } else {
+      rareInfo.style.display = 'none';
+      completeTitle.innerText = 'おめでとう！';
+      completeMsg.innerText = 'あおむしが きれいな\nちょうちょに なったよ！';
+    }
+    
+    finalScoreVal.innerText = state.score;
+    
+    const maxScore = state.generatedLevels.length * 100;
+    const stars = Math.min(3, Math.max(1, Math.floor((state.score / maxScore) * 3)));
+    
+    finalStarsContainer.innerHTML = [0, 1, 2].map(i => {
+      const isFilled = i < stars;
+      return `<span class="star ${isFilled ? '' : 'empty'}" style="animation-delay: ${i * 0.2}s">${isFilled ? '⭐' : '☆'}</span>`;
+    }).join('');
+    
+    // 紙吹雪生成
+    confettiContainer.innerHTML = '';
+    const colors = state.unlockedRare?.gradient || ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#9B59B6'];
+    for(let i=0; i<30; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      confetti.style.left = `${Math.random() * 100}%`;
+      confetti.style.animationDelay = `${Math.random() * 2}s`;
+      confetti.style.backgroundColor = colors[i % colors.length];
+      confettiContainer.appendChild(confetti);
+    }
+    
+    showScreen('complete');
+  }
+
+  restartBtn.addEventListener('click', () => {
+    initMenu();
+  });
+
+  // 初期化実行
+  initMenu();
+
+</script>
+</body>
+</html>
