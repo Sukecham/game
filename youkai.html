@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>妖怪合体 — 隠岐百鬼盤</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700;800&family=Yuji+Syuku&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sumi:#16110d;--washi:#efe6d2;--kin:#c9a24b;--kin-bright:#f0cf7a;--aka:#a4332b;
+  --line:rgba(201,162,75,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:'Shippori Mincho',serif;
+  background:radial-gradient(120% 90% at 50% -10%, #2a2017 0%, #18120c 45%, #0d0a07 100%);
+  color:var(--washi);min-height:100dvh;display:flex;flex-direction:column;align-items:center;
+  overflow-x:hidden;position:relative;user-select:none;touch-action:none;
+}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(circle at 20% 30%, rgba(201,162,75,.05) 0 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(201,162,75,.04) 0 1px, transparent 1px);
+  background-size:90px 90px,140px 140px;opacity:.7;}
+.wrap{position:relative;z-index:2;width:100%;max-width:460px;padding:18px 16px 30px;display:flex;flex-direction:column;align-items:center}
+header{width:100%;display:flex;flex-direction:column;align-items:center;margin-bottom:8px}
+.title{font-family:'Yuji Syuku',serif;font-size:32px;letter-spacing:.18em;
+  background:linear-gradient(180deg,var(--kin-bright),var(--kin) 60%,#8a6a28);
+  -webkit-background-clip:text;background-clip:text;color:transparent;display:flex;align-items:center;gap:.4em;}
+.title .seal{font-family:'Yuji Syuku',serif;color:var(--washi);background:var(--aka);
+  width:34px;height:34px;border-radius:6px;display:grid;place-items:center;line-height:1.05;
+  letter-spacing:0;box-shadow:0 0 0 1px rgba(255,220,180,.25), inset 0 0 12px rgba(0,0,0,.3);
+  transform:rotate(-4deg);font-size:11px;padding:3px;text-align:center}
+.subtitle{font-size:11px;color:rgba(239,230,210,.55);letter-spacing:.3em;margin-top:4px}
+.scorebar{display:flex;gap:10px;width:100%;max-width:380px;margin:14px 0 10px}
+.scorecard{flex:1;background:linear-gradient(180deg,rgba(40,30,20,.9),rgba(20,15,10,.9));
+  border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center;
+  box-shadow:inset 0 1px 0 rgba(255,220,160,.06)}
+.scorecard .lab{font-size:10px;letter-spacing:.25em;color:var(--kin);opacity:.85}
+.scorecard .val{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.board-frame{position:relative;padding:12px;border-radius:18px;
+  background:linear-gradient(180deg,#241a10,#16100a);
+  box-shadow:0 0 0 1px rgba(201,162,75,.35),0 0 0 6px rgba(20,14,9,.9),0 0 0 7px rgba(201,162,75,.2),0 22px 50px -16px rgba(0,0,0,.9)}
+#game{display:block;border-radius:10px;touch-action:none}
+.hint{margin-top:14px;font-size:12px;color:rgba(239,230,210,.55);text-align:center;letter-spacing:.06em;line-height:1.7}
+.hint b{color:var(--kin)}
+.btns{display:flex;gap:10px;margin-top:14px;width:100%;max-width:380px}
+.btn{flex:1;background:linear-gradient(180deg,rgba(50,38,24,.95),rgba(28,20,12,.95));
+  border:1px solid var(--line);color:var(--washi);font-family:'Shippori Mincho';font-size:13px;
+  font-weight:600;letter-spacing:.1em;padding:11px;border-radius:11px;cursor:pointer;transition:.18s;
+  box-shadow:inset 0 1px 0 rgba(255,220,160,.08)}
+.btn:hover{border-color:var(--kin);color:var(--kin-bright)}
+.btn:active{transform:scale(.97)}
+.modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(8,6,4,.82)}
+.modal.open{display:flex}
+.modal-card{background:linear-gradient(180deg,#241a10,#140e08);border:1px solid var(--line);
+  border-radius:16px;max-width:400px;width:100%;max-height:80dvh;overflow-y:auto;padding:20px;
+  box-shadow:0 0 0 1px rgba(201,162,75,.3),0 20px 60px rgba(0,0,0,.7)}
+.modal-card h2{font-family:'Yuji Syuku';font-size:20px;color:var(--kin-bright);text-align:center;letter-spacing:.2em;margin-bottom:14px}
+.dex-row{display:flex;align-items:center;gap:12px;padding:8px;border-bottom:1px solid rgba(201,162,75,.1)}
+.dex-chip{width:46px;height:46px;border-radius:10px;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
+.dex-chip svg{width:64%;height:64%}
+.dex-info .dn{font-size:14px;font-weight:700}
+.dex-info .dd{font-size:11px;color:rgba(239,230,210,.55);margin-top:2px;line-height:1.5}
+.modal-close{margin-top:14px;width:100%;text-align:center;background:var(--aka);color:var(--washi);
+  border:none;padding:11px;border-radius:10px;font-family:'Shippori Mincho';font-size:14px;letter-spacing:.2em;cursor:pointer}
+.over{position:fixed;inset:0;z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(8,6,4,.88);gap:18px;text-align:center;padding:30px}
+.over.show{display:flex}
+.over .om{font-family:'Yuji Syuku';font-size:38px;color:var(--aka);letter-spacing:.3em;text-shadow:0 0 30px rgba(164,51,43,.6)}
+.over .os{font-size:16px}.over .of{font-size:13px;color:var(--kin)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title"><span class="seal">隠岐<br>百鬼</span>妖怪合体</div>
+    <div class="subtitle">— 隠岐 百鬼盤 —</div>
+  </header>
+  <div class="scorebar">
+    <div class="scorecard"><div class="lab">こだま</div><div class="val" id="score">0</div></div>
+    <div class="scorecard"><div class="lab">最高位</div><div class="val" id="best">壱</div></div>
+  </div>
+  <div class="board-frame"><canvas id="game"></canvas></div>
+  <div class="hint">盤を<b>上下左右にスワイプ</b>（PCは矢印キー）。<br>同じ妖怪がぶつかると合体して進化する。</div>
+  <div class="btns">
+    <button class="btn" id="dexBtn">妖怪図鑑</button>
+    <button class="btn" id="resetBtn">封印やり直し</button>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-card"><h2>妖怪図鑑</h2><div id="dexList"></div>
+  <button class="modal-close" id="closeBtn">閉じる</button></div>
+</div>
+<div class="over" id="over">
+  <div class="om">封 印 終 了</div>
+  <div class="os">到達：<span id="overRank">—</span></div>
+  <div class="of">こだま <span id="overScore">0</span></div>
+  <button class="btn" style="max-width:200px" id="overReset">もう一度封じる</button>
+</div>
+
+<script>
+/* ===== 妖怪データ ===== */
+const KANJI=["壱","弐","参","肆","伍","陸","漆","捌","玖","拾"];
+
+function S(inner){return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`}
+function tanuki(){return S(`<ellipse cx="50" cy="60" rx="30" ry="28" fill="#7a5c3a"/><ellipse cx="50" cy="66" rx="20" ry="18" fill="#e8dcc4"/><circle cx="30" cy="34" r="11" fill="#5e4628"/><circle cx="70" cy="34" r="11" fill="#5e4628"/><ellipse cx="38" cy="50" rx="9" ry="11" fill="#2b1d10"/><ellipse cx="62" cy="50" rx="9" ry="11" fill="#2b1d10"/><circle cx="38" cy="50" r="4.5" fill="#fff"/><circle cx="62" cy="50" r="4.5" fill="#fff"/><circle cx="39" cy="51" r="2" fill="#1a120a"/><circle cx="63" cy="51" r="2" fill="#1a120a"/><ellipse cx="50" cy="64" rx="5" ry="4" fill="#2b1d10"/><path d="M44 72 q6 5 12 0" stroke="#2b1d10" stroke-width="2" fill="none" stroke-linecap="round"/>`)}
+function kitsune(){return S(`<path d="M22 30 L34 56 L18 54 Z" fill="#e9d9b8"/><path d="M78 30 L66 56 L82 54 Z" fill="#e9d9b8"/><path d="M24 33 L32 50 L24 49Z" fill="#c2452f"/><path d="M76 33 L68 50 L76 49Z" fill="#c2452f"/><ellipse cx="50" cy="58" rx="28" ry="26" fill="#f4ead6"/><ellipse cx="50" cy="70" rx="12" ry="10" fill="#fff"/><path d="M30 52 q8 -4 14 2" stroke="#c2452f" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M70 52 q-8 -4 -14 2" stroke="#c2452f" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M36 50 l8 6 -8 4Z" fill="#2b1d10"/><path d="M64 50 l-8 6 8 4Z" fill="#2b1d10"/><ellipse cx="50" cy="68" rx="4" ry="3" fill="#c2452f"/>`)}
+function kappa(){return S(`<ellipse cx="50" cy="58" rx="28" ry="27" fill="#4f9e6c"/><ellipse cx="50" cy="40" rx="22" ry="9" fill="#d7eee0"/><ellipse cx="50" cy="38" rx="13" ry="5" fill="#bfe0cc"/><circle cx="38" cy="54" r="8" fill="#fff"/><circle cx="62" cy="54" r="8" fill="#fff"/><circle cx="39" cy="55" r="4" fill="#1c3a26"/><circle cx="61" cy="55" r="4" fill="#1c3a26"/><path d="M40 70 q10 7 20 0" stroke="#1c3a26" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="50" cy="64" rx="6" ry="4" fill="#e4b34d"/>`)}
+function kamaitachi(){return S(`<ellipse cx="50" cy="56" rx="26" ry="28" fill="#c2cdd6"/><path d="M34 30 L40 50 L30 48Z" fill="#9aa6b2"/><path d="M66 30 L60 50 L70 48Z" fill="#9aa6b2"/><ellipse cx="40" cy="54" rx="6" ry="9" fill="#2a3138"/><ellipse cx="60" cy="54" rx="6" ry="9" fill="#2a3138"/><circle cx="40" cy="52" r="2.5" fill="#ffd24a"/><circle cx="60" cy="52" r="2.5" fill="#ffd24a"/><path d="M20 60 q14 6 0 12" fill="#e9eef2" stroke="#8d9aa6" stroke-width="1.5"/><path d="M80 60 q-14 6 0 12" fill="#e9eef2" stroke="#8d9aa6" stroke-width="1.5"/><path d="M44 70 q6 4 12 0" stroke="#2a3138" stroke-width="2.5" fill="none" stroke-linecap="round"/>`)}
+function chochin(){return S(`<rect x="42" y="14" width="16" height="6" rx="2" fill="#3a2a18"/><path d="M30 24 q20 -8 40 0 q6 28 0 52 q-20 8 -40 0 q-6 -26 0 -52Z" fill="#f0a93c"/><path d="M32 38 h36 M30 52 h40 M32 66 h36" stroke="#b9701f" stroke-width="2"/><ellipse cx="40" cy="48" rx="5" ry="7" fill="#2b1206"/><ellipse cx="60" cy="48" rx="5" ry="7" fill="#2b1206"/><path d="M36 66 q14 10 28 0" fill="#2b1206"/><path d="M40 66 q10 -6 20 0" fill="#fff"/>`)}
+function karakasa(){return S(`<path d="M50 18 q34 18 36 40 H14 q2 -22 36 -40Z" fill="#c45b62"/><path d="M50 18 v40 M30 30 v28 M70 30 v28 M20 46 v12 M80 46 v12" stroke="#7d2a30" stroke-width="2"/><rect x="47" y="56" width="6" height="26" rx="3" fill="#5a3a20"/><circle cx="50" cy="46" r="9" fill="#fff"/><circle cx="50" cy="46" r="4.5" fill="#1a120a"/><path d="M40 70 q10 12 0 16" fill="#a4332b"/>`)}
+function yukionna(){return S(`<path d="M50 16 q22 4 22 30 q0 30 -22 40 q-22 -10 -22 -40 q0 -26 22 -30Z" fill="#dff0ff"/><path d="M50 16 q-16 4 -18 28 q10 -6 18 -4Z" fill="#fff"/><ellipse cx="42" cy="50" rx="3.5" ry="6" fill="#3a6da0"/><ellipse cx="58" cy="50" rx="3.5" ry="6" fill="#3a6da0"/><path d="M44 64 q6 4 12 0" stroke="#6a9ccd" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="30" cy="34" r="1.6" fill="#fff"/><circle cx="72" cy="40" r="1.6" fill="#fff"/>`)}
+function tengu(){return S(`<circle cx="50" cy="52" r="30" fill="#d23b2e"/><path d="M50 40 L50 74" stroke="#7d1810" stroke-width="10" stroke-linecap="round"/><ellipse cx="34" cy="46" rx="7" ry="5" fill="#fff"/><ellipse cx="66" cy="46" rx="7" ry="5" fill="#fff"/><circle cx="34" cy="46" r="2.6" fill="#1a120a"/><circle cx="66" cy="46" r="2.6" fill="#1a120a"/><path d="M22 36 q12 -6 22 0" stroke="#3a0d08" stroke-width="3" fill="none"/><path d="M78 36 q-12 -6 -22 0" stroke="#3a0d08" stroke-width="3" fill="none"/><path d="M36 68 q14 8 28 0" stroke="#3a0d08" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M40 20 h20 l-10 12Z" fill="#2b1206"/>`)}
+function orochi(){return S(`<path d="M20 76 q6 -34 30 -30 q24 4 30 -22" fill="none" stroke="#6f8f3a" stroke-width="14" stroke-linecap="round"/><circle cx="78" cy="26" r="13" fill="#7ba03f"/><ellipse cx="73" cy="24" rx="3" ry="4.5" fill="#ffdf3a"/><ellipse cx="83" cy="24" rx="3" ry="4.5" fill="#ffdf3a"/><circle cx="73" cy="25" r="1.5" fill="#1a120a"/><circle cx="83" cy="25" r="1.5" fill="#1a120a"/><path d="M86 30 l8 4 -7 3Z" fill="#c23"/>`)}
+function oni(){return S(`<circle cx="50" cy="54" r="30" fill="#caa24b"/><path d="M30 30 q-4 -16 6 -20 q2 12 8 16Z" fill="#efe6d2"/><path d="M70 30 q4 -16 -6 -20 q-2 12 -8 16Z" fill="#efe6d2"/><path d="M26 48 q10 -8 18 0" stroke="#5a3a08" stroke-width="3" fill="none"/><path d="M74 48 q-10 -8 -18 0" stroke="#5a3a08" stroke-width="3" fill="none"/><ellipse cx="38" cy="52" rx="5" ry="6" fill="#a4101a"/><ellipse cx="62" cy="52" rx="5" ry="6" fill="#a4101a"/><circle cx="38" cy="52" r="2" fill="#ffe"/><circle cx="62" cy="52" r="2" fill="#ffe"/><path d="M34 68 q16 12 32 0 q-16 6 -32 0Z" fill="#5a1208"/><path d="M38 68 l3 7 M50 70 v8 M62 68 l-3 7" stroke="#fff" stroke-width="2.5"/><circle cx="50" cy="22" r="4" fill="#a4332b"/>`)}
+
+const YOUKAI=[
+  {n:"豆狸",c1:"#8a6d4b",c2:"#5e4628",svg:tanuki},
+  {n:"白狐",c1:"#f4ead6",c2:"#d8c39a",svg:kitsune},
+  {n:"河童",c1:"#5fae7a",c2:"#2f7a4d",svg:kappa},
+  {n:"鎌鼬",c1:"#cfd6dc",c2:"#8d9aa6",svg:kamaitachi},
+  {n:"提灯火",c1:"#f2a13c",c2:"#c25a1e",svg:chochin},
+  {n:"唐傘",c1:"#c45b62",c2:"#8a2f37",svg:karakasa},
+  {n:"雪女",c1:"#bfe2ff",c2:"#6fa8d6",svg:yukionna},
+  {n:"天狗",c1:"#d23b2e",c2:"#7d1810",svg:tengu},
+  {n:"大蛇",c1:"#6f8f3a",c2:"#3a5418",svg:orochi},
+  {n:"百鬼王",c1:"#caa24b",c2:"#7c5a14",svg:oni}
+];
+const DESC=["山に潜む化け狸","稲荷の使い白狐","川辺の水妖","風を斬る妖","夜道の怪火","一つ目の傘お化け","冷気の雪精","赤面の山伏妖","八岐の巨蛇","百鬼を統べる大王"];
+
+/* SVGを画像にプリロード */
+const IMG=[];let loaded=0;
+function preload(cb){
+  let done=false;
+  const finish=()=>{if(!done&&loaded>=YOUKAI.length){done=true;cb();}};
+  YOUKAI.forEach((y,i)=>{
+    const img=new Image();
+    img.onload=()=>{loaded++;finish();};
+    img.onerror=()=>{loaded++;finish();};
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(y.svg());
+    IMG[i]=img;
+  });
+  // フォント・画像が遅くても1秒で開始
+  setTimeout(()=>{if(!done){done=true;cb();}},1000);
+}
+
+/* ===== ゲーム本体（2048系スワイプ） ===== */
+const SIZE=4;
+const cv=document.getElementById('game');
+const ctx=cv.getContext('2d');
+let DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+let CSS=0, GAP=0, CELL=0, PAD=0;
+let grid=[];
+let anims=[];
+let score=0, maxLvl=0;
+let animating=false, animStart=0;
+const ANIM_MS=110;
+
+function setupCanvas(){
+  const frameW=Math.min(356, window.innerWidth-32-24);
+  CSS=Math.floor(frameW);
+  PAD=Math.round(CSS*0.03);
+  GAP=Math.round(CSS*0.025);
+  CELL=Math.floor((CSS-PAD*2-GAP*(SIZE-1))/SIZE);
+  CSS=PAD*2+GAP*(SIZE-1)+CELL*SIZE;
+  cv.style.width=CSS+'px';cv.style.height=CSS+'px';
+  cv.width=Math.round(CSS*DPR);cv.height=Math.round(CSS*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+function cellXY(r,c){return {x:PAD+c*(CELL+GAP), y:PAD+r*(CELL+GAP)};}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+function drawCellBg(){
+  ctx.clearRect(0,0,CSS,CSS);
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    const{x,y}=cellXY(r,c);
+    roundRect(x,y,CELL,CELL,CELL*0.14);
+    ctx.fillStyle='rgba(12,9,6,.7)';ctx.fill();
+    ctx.strokeStyle='rgba(201,162,75,.08)';ctx.lineWidth=1;ctx.stroke();
+  }
+}
+function drawTile(lvl,px,py,scale){
+  const y=YOUKAI[lvl];
+  const s=CELL*scale, off=(CELL-s)/2;
+  const x=px+off, yy=py+off, rad=s*0.14;
+  ctx.save();
+  roundRect(x,yy,s,s,rad);
+  const g=ctx.createLinearGradient(x,yy,x+s,yy+s);
+  g.addColorStop(0,y.c1);g.addColorStop(1,y.c2);
+  ctx.fillStyle=g;ctx.fill();
+  ctx.save();
+  roundRect(x,yy,s,s,rad);ctx.clip();
+  const hl=ctx.createLinearGradient(x,yy,x,yy+s*0.5);
+  hl.addColorStop(0,'rgba(255,255,255,.28)');hl.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=hl;ctx.fillRect(x,yy,s,s*0.5);
+  if(IMG[lvl]&&IMG[lvl].complete&&IMG[lvl].naturalWidth){
+    const iw=s*0.66;ctx.drawImage(IMG[lvl],x+(s-iw)/2,yy+(s-iw)/2+s*0.04,iw,iw);
+  }
+  ctx.restore();
+  ctx.fillStyle='rgba(255,255,255,.92)';
+  ctx.font=`600 ${Math.round(s*0.13)}px 'Shippori Mincho',serif`;
+  ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.shadowColor='rgba(0,0,0,.7)';ctx.shadowBlur=3;
+  ctx.fillText(y.n, x+s/2, yy+s*0.05);
+  ctx.font=`700 ${Math.round(s*0.13)}px 'Shippori Mincho',serif`;
+  ctx.textAlign='right';ctx.textBaseline='bottom';
+  ctx.fillText(KANJI[lvl]||lvl+1, x+s-s*0.08, yy+s-s*0.04);
+  ctx.shadowBlur=0;
+  ctx.restore();
+}
+function render(){
+  drawCellBg();
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    if(grid[r][c]>=0){const{x,y}=cellXY(r,c);drawTile(grid[r][c],x,y,1);}
+  }
+}
+function renderAnim(t){
+  drawCellBg();
+  const k=Math.min(1,t/ANIM_MS);
+  const ease=1-Math.pow(1-k,3);
+  for(const a of anims){
+    const f=cellXY(a.fromR,a.fromC), to=cellXY(a.toR,a.toC);
+    const x=f.x+(to.x-f.x)*ease, y=f.y+(to.y-f.y)*ease;
+    drawTile(a.lvl,x,y,1);
+  }
+}
+
+function slideLine(line){
+  const n=line.length;
+  const vals=[],origIdx=[];
+  for(let i=0;i<n;i++)if(line[i]>=0){vals.push(line[i]);origIdx.push(i);}
+  const res=Array(n).fill(-1);
+  const moves=[],merges=[];
+  let gained=0,pos=0,vi=0;
+  while(vi<vals.length){
+    if(vi+1<vals.length && vals[vi]===vals[vi+1] && vals[vi]<YOUKAI.length-1){
+      const nl=vals[vi]+1;
+      res[pos]=nl;
+      moves.push({from:origIdx[vi],to:pos,lvl:vals[vi]});
+      moves.push({from:origIdx[vi+1],to:pos,lvl:vals[vi+1]});
+      merges.push({to:pos,lvl:nl});
+      gained+=(nl+1)*10; if(nl>maxLvl)maxLvl=nl;
+      vi+=2; pos++;
+    }else if(vi+1<vals.length && vals[vi]===vals[vi+1] && vals[vi]===YOUKAI.length-1){
+      moves.push({from:origIdx[vi],to:pos,lvl:vals[vi]});
+      moves.push({from:origIdx[vi+1],to:pos,lvl:vals[vi+1]});
+      res[pos]=-1; gained+=500;
+      vi+=2; // posは進めない（消滅）
+    }else{
+      res[pos]=vals[vi];
+      moves.push({from:origIdx[vi],to:pos,lvl:vals[vi]});
+      vi++; pos++;
+    }
+  }
+  return {res,moves,merges,gained};
+}
+
+function move(dir){
+  if(animating)return;
+  let changed=false, totalGained=0;
+  anims=[];
+  const mergeCells=[];
+  for(let i=0;i<SIZE;i++){
+    let line=[],coords=[];
+    for(let j=0;j<SIZE;j++){
+      let r,c;
+      if(dir==='L'){r=i;c=j;} else if(dir==='R'){r=i;c=SIZE-1-j;}
+      else if(dir==='U'){r=j;c=i;} else {r=SIZE-1-j;c=i;}
+      line.push(grid[r][c]); coords.push([r,c]);
+    }
+    const {res,moves,merges,gained}=slideLine(line);
+    totalGained+=gained;
+    for(let j=0;j<SIZE;j++)if(res[j]!==line[j])changed=true;
+    for(const m of moves){
+      const [fr,fc]=coords[m.from], [tr,tc]=coords[m.to];
+      anims.push({fromR:fr,fromC:fc,toR:tr,toC:tc,lvl:m.lvl});
+    }
+    for(const mg of merges){const[tr,tc]=coords[mg.to];mergeCells.push({r:tr,c:tc});}
+    for(let j=0;j<SIZE;j++){const[r,c]=coords[j];grid[r][c]=res[j];}
+  }
+  if(!changed){render();return;}
+  score+=totalGained;
+  animating=true;animStart=performance.now();
+  function step(now){
+    const t=now-animStart;
+    renderAnim(t);
+    if(t<ANIM_MS){requestAnimationFrame(step);}
+    else{
+      animating=false;
+      render();
+      flashMerges(mergeCells);
+      spawn();
+      render();
+      updateUI();
+      if(isOver())gameOver();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function flashMerges(cells){
+  cells.forEach(m=>{
+    const{x,y}=cellXY(m.r,m.c);
+    const cx=x+CELL/2, cy=y+CELL/2;
+    ctx.save();
+    const g=ctx.createRadialGradient(cx,cy,2,cx,cy,CELL*0.7);
+    g.addColorStop(0,'rgba(255,235,180,.85)');g.addColorStop(.5,'rgba(240,207,122,.3)');g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,CELL*0.7,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  });
+}
+
+function emptyCells(){const e=[];for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(grid[r][c]<0)e.push([r,c]);return e;}
+function spawn(){
+  const e=emptyCells();if(!e.length)return;
+  const[r,c]=e[Math.floor(Math.random()*e.length)];
+  grid[r][c]=Math.random()<0.85?0:1;
+}
+function isOver(){
+  if(emptyCells().length)return false;
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    const v=grid[r][c];
+    if(r+1<SIZE&&grid[r+1][c]===v)return false;
+    if(c+1<SIZE&&grid[r][c+1]===v)return false;
+  }
+  return true;
+}
+function gameOver(){
+  document.getElementById('overRank').textContent=YOUKAI[maxLvl].n+'（'+(KANJI[maxLvl]||maxLvl+1)+'）';
+  document.getElementById('overScore').textContent=score;
+  document.getElementById('over').classList.add('show');
+}
+function updateUI(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('best').textContent=KANJI[maxLvl]||maxLvl+1;
+}
+function reset(){
+  grid=Array.from({length:SIZE},()=>Array(SIZE).fill(-1));
+  score=0;maxLvl=0;animating=false;anims=[];
+  document.getElementById('over').classList.remove('show');
+  spawn();spawn();
+  render();updateUI();
+}
+
+window.addEventListener('keydown',e=>{
+  const k=e.key;
+  if(k==='ArrowLeft'){move('L');e.preventDefault();}
+  else if(k==='ArrowRight'){move('R');e.preventDefault();}
+  else if(k==='ArrowUp'){move('U');e.preventDefault();}
+  else if(k==='ArrowDown'){move('D');e.preventDefault();}
+});
+let sx=0,sy=0,sActive=false;
+cv.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY;sActive=true;});
+cv.addEventListener('pointerup',e=>{
+  if(!sActive)return;sActive=false;
+  const dx=e.clientX-sx, dy=e.clientY-sy;
+  const ax=Math.abs(dx), ay=Math.abs(dy);
+  if(Math.max(ax,ay)<18)return;
+  if(ax>ay)move(dx>0?'R':'L'); else move(dy>0?'D':'U');
+});
+cv.addEventListener('pointercancel',()=>sActive=false);
+cv.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+
+function buildDex(){
+  const list=document.getElementById('dexList');list.innerHTML='';
+  YOUKAI.forEach((y,i)=>{
+    const row=document.createElement('div');row.className='dex-row';
+    const chip=document.createElement('div');chip.className='dex-chip';
+    chip.style.background=`linear-gradient(155deg,${y.c1},${y.c2})`;
+    chip.innerHTML=y.svg();
+    const info=document.createElement('div');info.className='dex-info';
+    info.innerHTML=`<div class="dn">${KANJI[i]||i+1}・${y.n}</div><div class="dd">${DESC[i]}</div>`;
+    row.appendChild(chip);row.appendChild(info);list.appendChild(row);
+  });
+}
+document.getElementById('dexBtn').onclick=()=>{buildDex();document.getElementById('modal').classList.add('open')};
+document.getElementById('closeBtn').onclick=()=>document.getElementById('modal').classList.remove('open');
+document.getElementById('modal').onclick=e=>{if(e.target.id==='modal')document.getElementById('modal').classList.remove('open')};
+document.getElementById('resetBtn').onclick=reset;
+document.getElementById('overReset').onclick=reset;
+window.addEventListener('resize',()=>{setupCanvas();render();});
+
+setupCanvas();
+preload(()=>{reset();});
+</script>
+</body>
+</html>
