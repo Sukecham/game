@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -7,16 +6,10 @@
     <title>SUKE'S TURF</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Noto+Sans+JP:wght@400;700;900&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* ターフ（芝）用の緑色カラーパレット */
         :root { 
-            --gold: #D4AF37; 
-            --gold-light: #F4E4BC; 
-            --gold-dark: #8B7355; 
-            --cream: #FDF5E6; 
-            --turf-light: #5FA045; 
-            --turf-dark: #4A8535;  
-            --bg-dark: #0D1F15;
-            --king-gold: #FFD700;
+            --gold: #D4AF37; --gold-light: #F4E4BC; --gold-dark: #8B7355; --cream: #FDF5E6; 
+            --turf-light: #5FA045; --turf-dark: #4A8535; --bg-dark: #0D1F15; --king-gold: #FFD700;
+            --mark-bg: #FDFBF0; --mark-line: #C8B89A; --mark-fill: #1A1A1A;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { height: 100%; overflow: hidden; }
@@ -32,16 +25,12 @@
         .balance-amount { font-family: 'Oswald', sans-serif; font-size: 1rem; font-weight: 700; color: var(--gold); }
         
         .track-box { background: #2F5233; border-radius: 10px; padding: 8px; margin: 4px 0; flex-shrink: 0; box-shadow: 0 6px 15px rgba(0,0,0,0.5); border: 1px solid rgba(212,175,55,0.3); }
-        .track { 
-            background: repeating-linear-gradient(90deg, var(--turf-dark), var(--turf-dark) 20px, var(--turf-light) 20px, var(--turf-light) 40px);
-            border-radius: 6px; padding: 6px 8px; position: relative; border: 2px solid #fff; 
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.6); overflow: hidden; 
-        }
-        .start-line { position: absolute; left: 10px; top: 0; bottom: 0; width: 3px; background: rgba(255,255,255,0.8); z-index: 5; box-shadow: 0 0 5px rgba(0,0,0,0.3); }
-        .finish-line { position: absolute; right: 10px; top: 0; bottom: 0; width: 10px; background: repeating-linear-gradient(0deg, #BF360C 0px, #BF360C 5px, #fff 5px, #fff 10px); z-index: 10; border-radius: 2px; box-shadow: 0 0 5px rgba(0,0,0,0.5); border: 1px solid rgba(0,0,0,0.2); }
+        .track { background: repeating-linear-gradient(90deg, var(--turf-dark), var(--turf-dark) 20px, var(--turf-light) 20px, var(--turf-light) 40px); border-radius: 6px; padding: 6px 8px; position: relative; border: 2px solid #fff; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); overflow: hidden; }
+        .start-line { position: absolute; left: 10px; top: 0; bottom: 0; width: 3px; background: rgba(255,255,255,0.8); z-index: 5; }
+        .finish-line { position: absolute; right: 10px; top: 0; bottom: 0; width: 10px; background: repeating-linear-gradient(0deg, #BF360C 0px, #BF360C 5px, #fff 5px, #fff 10px); z-index: 10; border-radius: 2px; border: 1px solid rgba(0,0,0,0.2); }
         .lane { height: 32px; margin: 1px 0; position: relative; border-bottom: 1px dashed rgba(255,255,255,0.2); }
         .lane:last-child { border-bottom: none; }
-        .lane-num { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 0.65rem; color: #fff; z-index: 15; box-shadow: 1px 1px 3px rgba(0,0,0,0.3); }
+        .lane-num { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 0.65rem; color: #fff; z-index: 15; }
         
         .horse { position: absolute; left: 30px; top: 50%; transform: translateY(-50%) scaleX(-1); font-size: 1.6rem; transition: left 0.08s linear; filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.6)); z-index: 5; line-height: 1; }
         .horse.leading { filter: drop-shadow(0 0 8px rgba(255,215,0,0.9)); z-index: 6; }
@@ -49,7 +38,7 @@
         .horse.white.leading { filter: brightness(1.5) saturate(0.3) drop-shadow(0 0 8px rgba(255,215,0,0.9)); }
         
         .comment-box { background: rgba(0,0,0,0.6); border: 1px solid var(--gold); border-radius: 6px; padding: 8px 10px; margin-top: 6px; min-height: 42px; display: flex; align-items: center; position: relative; backdrop-filter: blur(4px); }
-        .live { position: absolute; top: -6px; right: 8px; background: #CC0000; color: white; font-size: 0.6rem; padding: 1px 6px; border-radius: 3px; font-family: 'Oswald', sans-serif; font-weight: bold; animation: pulse 1.5s infinite; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .live { position: absolute; top: -6px; right: 8px; background: #CC0000; color: white; font-size: 0.6rem; padding: 1px 6px; border-radius: 3px; font-family: 'Oswald', sans-serif; font-weight: bold; animation: pulse 1.5s infinite; letter-spacing: 0.5px; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .comment { font-size: 0.8rem; line-height: 1.4; color: #eee; text-shadow: 0 1px 2px rgba(0,0,0,0.8); width: 100%; }
         .comment .hl { color: var(--gold); font-weight: 700; text-decoration: underline; text-decoration-color: rgba(212,175,55,0.5); }
@@ -57,26 +46,72 @@
         .main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 60px; scrollbar-width: none; }
         .main::-webkit-scrollbar { display: none; }
         
-        .cur-bet { display: none; background: rgba(212,175,55,0.15); border: 1px solid var(--gold); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; justify-content: space-between; align-items: center; font-size: 0.85rem; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
-        .cur-bet.show { display: flex; animation: slideDown 0.3s ease-out; }
+        .bet-type-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 12px 0 4px; }
+        .bet-type-tab { padding: 10px 0; background: rgba(0,0,0,0.4); border: 1px solid var(--gold-dark); border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .bet-type-tab.active { background: linear-gradient(180deg, var(--gold) 0%, #B8860B 100%); border-color: #fff; box-shadow: 0 0 12px rgba(212,175,55,0.4); }
+        .bet-type-tab.active .btt-name, .bet-type-tab.active .btt-desc { color: #1a1a1a; }
+        .bet-type-tab .btt-name { font-family: 'Cinzel', serif; font-size: 0.95rem; font-weight: 700; color: var(--gold); }
+        .bet-type-tab .btt-desc { font-size: 0.6rem; color: #aaa; margin-top: 2px; }
+        .bet-type-tab:active { transform: scale(0.97); }
+
+        .bet-hint { font-size: 0.72rem; color: var(--gold-light); background: rgba(212,175,55,0.1); border-left: 3px solid var(--gold); padding: 6px 10px; border-radius: 0 6px 6px 0; margin-bottom: 8px; line-height: 1.4; }
+
+        .cur-bet { display: none; background: rgba(212,175,55,0.15); border: 1px solid var(--gold); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 0.85rem; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .cur-bet.show { display: block; animation: slideDown 0.3s ease-out; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .cur-bet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
         .cur-bet-name { color: var(--gold); font-weight: 700; font-size: 0.9rem; }
-        .cur-bet-val { font-family: 'Oswald', sans-serif; color: var(--cream); font-size: 1rem; }
+        .cur-bet-val { font-family: 'Oswald', sans-serif; color: var(--cream); font-size: 0.85rem; }
+        .cur-bet-list { font-size: 0.72rem; color: #ccc; max-height: 90px; overflow-y: auto; line-height: 1.5; border-top: 1px dashed rgba(212,175,55,0.3); padding-top: 4px; }
         
         .section-title { font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--gold); letter-spacing: 0.1em; margin: 10px 0 6px 2px; display: flex; align-items: center; }
         .section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--gold-dark), transparent); margin-left: 10px; }
         
+        /* マークシート */
+        .marksheet { background: var(--mark-bg); border-radius: 6px; padding: 12px 8px 10px; margin-bottom: 12px; box-shadow: 0 6px 16px rgba(0,0,0,0.5); border: 2px solid var(--mark-line); position: relative; }
+        .marksheet::before { content: '勝馬投票券 申込カード'; position: absolute; top: -9px; left: 12px; background: var(--mark-bg); padding: 0 6px; font-size: 0.6rem; color: #8a7a5a; letter-spacing: 0.15em; font-weight: 700; border: 1px solid var(--mark-line); border-radius: 3px; }
+        .ms-colhead { display: flex; align-items: flex-end; gap: 4px; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1.5px solid var(--mark-line); }
+        .ms-colhead-axis { width: 78px; flex-shrink: 0; font-size: 0.6rem; color: #6a5a3a; font-weight: 700; }
+        .ms-colhead-marks { flex: 1; display: flex; }
+        .ms-colhead-marks > div { flex: 1; text-align: center; font-size: 0.62rem; color: #6a5a3a; font-weight: 700; }
+        .ms-colhead-marks > div small { display:block; font-size:0.52rem; color:#a89878; font-weight:400; }
+
+        .ms-row { display: flex; align-items: center; gap: 4px; margin: 1px 0; }
+        .ms-horse-label { width: 78px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; overflow: hidden; }
+        .ms-num { width: 20px; height: 20px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 0.78rem; color: #fff; flex-shrink: 0; }
+        .ms-hname { font-size: 0.6rem; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; }
+        .ms-hodds { font-size: 0.54rem; color: #999; font-family: 'Oswald', sans-serif; }
+
+        .ms-marks { flex: 1; display: flex; }
+        .ms-cell { flex: 1; display: flex; justify-content: center; align-items: center; padding: 2px 0; }
+        .ms-bubble { width: 26px; height: 26px; border: 1.5px solid var(--mark-line); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.12s; position: relative; }
+        .ms-bubble .ms-bnum { font-size: 0.6rem; color: #b0a080; font-weight: 700; }
+        .ms-bubble.filled { background: radial-gradient(circle, var(--mark-fill) 60%, #333 100%); border-color: var(--mark-fill); box-shadow: 0 0 6px rgba(0,0,0,0.4); }
+        .ms-bubble.filled .ms-bnum { color: transparent; }
+        .ms-bubble:active { transform: scale(0.85); }
+        .ms-bubble.disabled { opacity: 0.3; pointer-events: none; }
+        .ms-bubble.locked { opacity: 0.2; pointer-events: none; }
+
+        .ms-tools { display: flex; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--mark-line); }
+        .ms-tool-btn { flex: 1; padding: 6px 0; background: #efe7d2; border: 1px solid var(--mark-line); border-radius: 5px; font-size: 0.66rem; color: #6a5a3a; font-weight: 700; cursor: pointer; }
+        .ms-tool-btn:active { background: #e0d4b8; transform: scale(0.97); }
+
+        /* 組み合わせプレビュー */
+        .combo-box { background: rgba(0,0,0,0.5); border: 1px solid var(--gold-dark); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+        .combo-summary { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--gold-light); margin-bottom: 6px; }
+        .combo-summary b { font-family: 'Oswald', sans-serif; color: var(--gold); font-size: 1rem; }
+        .combo-list { display: flex; flex-direction: column; gap: 3px; max-height: 150px; overflow-y: auto; }
+        .combo-item { display: flex; justify-content: space-between; align-items: center; background: rgba(212,175,55,0.08); border-radius: 4px; padding: 5px 8px; font-size: 0.74rem; }
+        .combo-item .ci-pair { font-family: 'Oswald', sans-serif; color: var(--cream); font-weight: 700; }
+        .combo-item .ci-odds { font-family: 'Oswald', sans-serif; color: var(--gold); font-weight: 700; }
+        .combo-item .ci-odds small { color: #888; font-size: 0.85em; }
+        .combo-empty { text-align: center; color: #888; font-size: 0.74rem; padding: 6px; }
+
         .horse-card { display: grid; grid-template-columns: 32px 1fr 60px; align-items: center; padding: 10px 8px; margin: 4px 0; background: linear-gradient(90deg, rgba(212,175,55,0.08) 0%, transparent 100%); border-radius: 8px; border: 1px solid rgba(212,175,55,0.1); cursor: pointer; transition: all 0.2s; }
         .horse-card:active { transform: scale(0.98); }
         .horse-card.selected { background: linear-gradient(90deg, rgba(212,175,55,0.3) 0%, rgba(212,175,55,0.1) 100%); border-color: var(--gold); box-shadow: 0 0 15px rgba(212,175,55,0.2); transform: translateX(4px); }
         .horse-card.disabled { opacity: 0.5; pointer-events: none; filter: grayscale(0.5); }
-        .hnum { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 0.9rem; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); box-shadow: 1px 1px 3px rgba(0,0,0,0.3); }
-        .horse-card:nth-child(1) .hnum { background: linear-gradient(135deg, #F0F0F0, #AAAAAA); color: #333; text-shadow: none; }
-        .horse-card:nth-child(2) .hnum { background: linear-gradient(135deg, #222222, #000000); }
-        .horse-card:nth-child(3) .hnum { background: linear-gradient(135deg, #FF6B6B, #CC0000); }
-        .horse-card:nth-child(4) .hnum { background: linear-gradient(135deg, #6B9FFF, #0044CC); }
-        .horse-card:nth-child(5) .hnum { background: linear-gradient(135deg, #FFD700, #DAA520); }
-        
+        .hnum { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 0.9rem; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
         .hinfo { padding: 0 10px; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
         .hname { font-size: 0.9rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--cream); }
         .hname .white-mark { background: #fff; color: #333; font-size: 0.5rem; padding: 1px 3px; border-radius: 2px; margin-left: 6px; vertical-align: middle; }
@@ -84,14 +119,21 @@
         .hodds { text-align: center; display: flex; flex-direction: column; justify-content: center; }
         .odds-val { font-family: 'Oswald', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--gold); line-height: 1; }
         .odds-lbl { font-size: 0.6rem; color: #888; margin-top: 2px; }
+
+        .c-num-1 { background: linear-gradient(135deg, #F0F0F0, #AAAAAA); color: #333 !important; text-shadow: none !important; }
+        .c-num-2 { background: linear-gradient(135deg, #222222, #000000); }
+        .c-num-3 { background: linear-gradient(135deg, #FF6B6B, #CC0000); }
+        .c-num-4 { background: linear-gradient(135deg, #6B9FFF, #0044CC); }
+        .c-num-5 { background: linear-gradient(135deg, #FFD700, #DAA520); color:#333 !important; text-shadow:none !important; }
         
         .bet-section { background: rgba(0,0,0,0.6); border-radius: 12px; padding: 12px; margin-top: 12px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
-        .bet-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .bet-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
         .bet-lbl { font-size: 0.8rem; color: #ccc; white-space: nowrap; }
         .bet-input { flex: 1; padding: 10px; font-size: 1.2rem; font-family: 'Oswald', sans-serif; text-align: right; background: rgba(0,0,0,0.5); border: 1px solid var(--gold-dark); border-radius: 6px; color: var(--gold); outline: none; min-width: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
         .bet-input:focus { border-color: var(--gold); box-shadow: 0 0 8px rgba(212,175,55,0.3); }
         .reset-btn { padding: 0 12px; height: 44px; background: rgba(204, 0, 0, 0.2); border: 1px solid #CC0000; border-radius: 6px; color: #FFaaaa; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .reset-btn:active { background: rgba(204, 0, 0, 0.4); transform: scale(0.95); }
+        .unit-note { font-size: 0.64rem; color: #999; margin-bottom: 10px; text-align: right; }
         
         .quick-bets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
         .qbtn { padding: 10px 0; background: rgba(212,175,55,0.1); border: 1px solid var(--gold-dark); border-radius: 6px; color: var(--gold-light); font-family: 'Oswald', sans-serif; font-size: 0.9rem; cursor: pointer; transition: background 0.1s; display: flex; align-items: center; justify-content: center; }
@@ -110,15 +152,7 @@
         @keyframes modalIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .modal-box.lose { border-color: #555; filter: grayscale(0.2); }
         .modal-box.gameover { background: linear-gradient(180deg, #2D0000 0%, #0D0D0D 100%); border-color: #CC0000; }
-        
-        /* KING MODE STYLES */
-        .modal-box.king { 
-            background: linear-gradient(135deg, #000000 0%, #2a2a2a 100%); 
-            border: 4px solid var(--king-gold); 
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.6), inset 0 0 30px rgba(255, 215, 0, 0.2);
-            animation: modalIn 0.6s ease-out, kingPulse 3s infinite alternate;
-            max-width: 360px;
-        }
+        .modal-box.king { background: linear-gradient(135deg, #000000 0%, #2a2a2a 100%); border: 4px solid var(--king-gold); box-shadow: 0 0 50px rgba(255, 215, 0, 0.6), inset 0 0 30px rgba(255, 215, 0, 0.2); animation: modalIn 0.6s ease-out, kingPulse 3s infinite alternate; max-width: 360px; }
         @keyframes kingPulse { 0% { border-color: var(--king-gold); } 100% { border-color: #FFF; } }
         .modal-box.king .res-title { font-size: 2.4rem; color: var(--king-gold); text-shadow: 0 0 10px rgba(255,215,0,0.8); margin-bottom: 4px; }
         .modal-box.king .res-detail { font-size: 1.1rem; color: #fff; }
@@ -142,14 +176,10 @@
         .sound-btn:active { transform: scale(0.9); }
         .sound-btn.muted { opacity: 0.6; filter: grayscale(1); }
 
-        /* Confetti Animation */
         .confetti-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; z-index: 1000; display: none; }
         .confetti-container.active { display: block; }
         .confetti { position: absolute; width: 10px; height: 10px; background-color: #f00; animation: fall linear forwards; opacity: 0; }
-        @keyframes fall {
-            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-        }
+        @keyframes fall { 0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
     </style>
 </head>
 <body>
@@ -181,27 +211,62 @@
         
         <div class="main">
             <div class="cur-bet" id="cur-bet">
-                <span class="cur-bet-name" id="cur-bet-name"></span>
-                <span class="cur-bet-val" id="cur-bet-val"></span>
+                <div class="cur-bet-head">
+                    <span class="cur-bet-name" id="cur-bet-name"></span>
+                    <span class="cur-bet-val" id="cur-bet-val"></span>
+                </div>
+                <div class="cur-bet-list" id="cur-bet-list"></div>
             </div>
-            
-            <div class="section-title">出 走 馬</div>
+
+            <div class="bet-type-tabs" id="bet-type-tabs">
+                <div class="bet-type-tab active" data-type="win" onclick="setBetType('win')">
+                    <div class="btt-name">単勝</div><div class="btt-desc">1着を当てる</div>
+                </div>
+                <div class="bet-type-tab" data-type="quinella" onclick="setBetType('quinella')">
+                    <div class="btt-name">馬連</div><div class="btt-desc">1・2着 順不同</div>
+                </div>
+                <div class="bet-type-tab" data-type="exacta" onclick="setBetType('exacta')">
+                    <div class="btt-name">馬単</div><div class="btt-desc">1→2着 着順</div>
+                </div>
+            </div>
+
+            <div class="bet-hint" id="bet-hint"></div>
+
+            <div class="section-title">マークシート</div>
+            <div class="marksheet" id="marksheet" style="display:none;">
+                <div class="ms-colhead" id="ms-colhead"></div>
+                <div id="ms-rows"></div>
+                <div class="ms-tools">
+                    <button class="ms-tool-btn" onclick="msClear()">マーク消去</button>
+                    <button class="ms-tool-btn" onclick="msBox()" id="ms-box-btn">ボックス入力</button>
+                </div>
+            </div>
+
+            <!-- 組み合わせプレビュー(馬連/馬単) -->
+            <div class="combo-box" id="combo-box" style="display:none;">
+                <div class="combo-summary">
+                    <span id="combo-count">0 点</span>
+                    <span>合計 <b id="combo-total">¥0</b></span>
+                </div>
+                <div class="combo-list" id="combo-list"></div>
+            </div>
+
             <div id="horses"></div>
             
             <div class="bet-section">
                 <div class="bet-row">
-                    <span class="bet-lbl">購入金額</span>
-                    <input type="number" class="bet-input" id="bet-input" value="1000" min="100" step="100" inputmode="numeric">
+                    <span class="bet-lbl" id="amount-lbl">購入金額</span>
+                    <input type="number" class="bet-input" id="bet-input" value="1000" min="100" step="100" inputmode="numeric" oninput="updateCombo()">
                     <span class="bet-lbl">円</span>
                     <button class="reset-btn" onclick="resetBetAmount()">クリア</button>
                 </div>
+                <div class="unit-note" id="unit-note"></div>
                 <div class="quick-bets">
                     <button class="qbtn" onclick="addBet(100)"><span>+</span>100</button>
                     <button class="qbtn" onclick="addBet(1000)"><span>+</span>1,000</button>
                     <button class="qbtn" onclick="addBet(5000)"><span>+</span>5,000</button>
                     <button class="qbtn" onclick="addBet(10000)"><span>+</span>1万</button>
                 </div>
-                
                 <button class="action-btn bet-btn" id="bet-btn" disabled onclick="placeBet()">馬券購入 → レース開始</button>
             </div>
         </div>
@@ -221,11 +286,7 @@
 
     <script>
         let audioCtx = null, soundOn = true;
-        
-        function initAudio() { 
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); 
-            if (audioCtx.state === 'suspended') audioCtx.resume(); 
-        }
+        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
 
         function playSound(t) {
             if (!soundOn || !audioCtx) return;
@@ -233,402 +294,385 @@
                 const o = audioCtx.createOscillator(), g = audioCtx.createGain();
                 o.connect(g); g.connect(audioCtx.destination);
                 const now = audioCtx.currentTime;
-
-                if (t === 'select') { 
-                    o.frequency.setValueAtTime(800, now); 
-                    o.frequency.exponentialRampToValueAtTime(1200, now + 0.1); 
-                    g.gain.setValueAtTime(0.1, now); 
-                    g.gain.exponentialRampToValueAtTime(0.01, now + 0.1); 
-                    o.start(); o.stop(now + 0.1); 
-                }
-                else if (t === 'bet') { 
-                    o.frequency.setValueAtTime(523, now); 
-                    o.frequency.setValueAtTime(659, now + 0.1); 
-                    o.frequency.setValueAtTime(784, now + 0.2); 
-                    g.gain.setValueAtTime(0.15, now); 
-                    g.gain.exponentialRampToValueAtTime(0.01, now + 0.3); 
-                    o.start(); o.stop(now + 0.3); 
-                }
-                else if (t === 'fanfare') { 
-                    [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => { 
-                        const os = audioCtx.createOscillator(), gs = audioCtx.createGain(); 
-                        os.connect(gs); gs.connect(audioCtx.destination); 
-                        os.type = 'triangle';
-                        os.frequency.setValueAtTime(f, now + i * 0.12); 
-                        gs.gain.setValueAtTime(0.12, now + i * 0.12); 
-                        gs.gain.exponentialRampToValueAtTime(0.01, now + i * 0.12 + 0.15); 
-                        os.start(now + i * 0.12); os.stop(now + i * 0.12 + 0.15); 
-                    }); 
-                }
-                else if (t === 'gallop') { 
-                    const n = audioCtx.createBufferSource();
-                    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
-                    const d = buf.getChannelData(0); 
-                    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5; 
-                    n.buffer = buf; 
-                    const ng = audioCtx.createGain(); 
-                    n.connect(ng); ng.connect(audioCtx.destination); 
-                    const f = audioCtx.createBiquadFilter();
-                    f.type = 'lowpass'; f.frequency.value = 300;
-                    n.disconnect(); n.connect(f); f.connect(ng);
-                    ng.gain.setValueAtTime(0.2, now); 
-                    ng.gain.exponentialRampToValueAtTime(0.01, now + 0.05); 
-                    n.start(); 
-                }
-                else if (t === 'finish') { 
-                    o.type = 'square'; 
-                    o.frequency.setValueAtTime(880, now); 
-                    g.gain.setValueAtTime(0.1, now); 
-                    g.gain.exponentialRampToValueAtTime(0.01, now + 0.4); 
-                    o.start(); o.stop(now + 0.4); 
-                }
-                else if (t === 'win') { 
-                    [523, 659, 784, 1047, 784, 1047, 1319, 1568].forEach((f, i) => { 
-                        const os = audioCtx.createOscillator(), gs = audioCtx.createGain(); 
-                        os.connect(gs); gs.connect(audioCtx.destination); 
-                        os.type = 'triangle'; 
-                        os.frequency.setValueAtTime(f, now + i * 0.08); 
-                        gs.gain.setValueAtTime(0.15, now + i * 0.08); 
-                        gs.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.12); 
-                        os.start(now + i * 0.08); os.stop(now + i * 0.08 + 0.12); 
-                    }); 
-                }
-                else if (t === 'lose') { 
-                    o.type = 'sawtooth'; 
-                    o.frequency.setValueAtTime(200, now); 
-                    o.frequency.exponentialRampToValueAtTime(100, now + 0.4); 
-                    g.gain.setValueAtTime(0.1, now); 
-                    g.gain.exponentialRampToValueAtTime(0.01, now + 0.4); 
-                    o.start(); o.stop(now + 0.4); 
-                }
-                else if (t === 'dramatic') { 
-                    [392, 440, 392, 523].forEach((f, i) => { 
-                        const os = audioCtx.createOscillator(), gs = audioCtx.createGain(); 
-                        os.connect(gs); gs.connect(audioCtx.destination); 
-                        os.type = 'sawtooth'; 
-                        os.frequency.setValueAtTime(f, now + i * 0.15); 
-                        gs.gain.setValueAtTime(0.05, now + i * 0.15); 
-                        gs.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.12); 
-                        os.start(now + i * 0.15); os.stop(now + i * 0.15 + 0.12); 
-                    }); 
-                }
-                else if (t === 'king') {
-                    // ゴージャスなファンファーレ
-                    [392, 523, 659, 784, 1047, 1318, 1568, 2093].forEach((f, i) => { 
-                        const os = audioCtx.createOscillator(), gs = audioCtx.createGain(); 
-                        os.connect(gs); gs.connect(audioCtx.destination); 
-                        os.type = 'square';
-                        os.frequency.setValueAtTime(f, now + i * 0.1); 
-                        gs.gain.setValueAtTime(0.15, now + i * 0.1); 
-                        gs.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.8); 
-                        os.start(now + i * 0.1); os.stop(now + i * 0.1 + 0.8); 
-                    });
-                }
+                if (t === 'select') { o.frequency.setValueAtTime(800, now); o.frequency.exponentialRampToValueAtTime(1200, now + 0.1); g.gain.setValueAtTime(0.1, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.1); o.start(); o.stop(now + 0.1); }
+                else if (t === 'bet') { o.frequency.setValueAtTime(523, now); o.frequency.setValueAtTime(659, now + 0.1); o.frequency.setValueAtTime(784, now + 0.2); g.gain.setValueAtTime(0.15, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.3); o.start(); o.stop(now + 0.3); }
+                else if (t === 'fanfare') { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => { const os = audioCtx.createOscillator(), gs = audioCtx.createGain(); os.connect(gs); gs.connect(audioCtx.destination); os.type = 'triangle'; os.frequency.setValueAtTime(f, now + i * 0.12); gs.gain.setValueAtTime(0.12, now + i * 0.12); gs.gain.exponentialRampToValueAtTime(0.01, now + i * 0.12 + 0.15); os.start(now + i * 0.12); os.stop(now + i * 0.12 + 0.15); }); }
+                else if (t === 'gallop') { const n = audioCtx.createBufferSource(); const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate); const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5; n.buffer = buf; const ng = audioCtx.createGain(); const f = audioCtx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 300; n.connect(f); f.connect(ng); ng.connect(audioCtx.destination); ng.gain.setValueAtTime(0.2, now); ng.gain.exponentialRampToValueAtTime(0.01, now + 0.05); n.start(); }
+                else if (t === 'finish') { o.type = 'square'; o.frequency.setValueAtTime(880, now); g.gain.setValueAtTime(0.1, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.4); o.start(); o.stop(now + 0.4); }
+                else if (t === 'win') { [523, 659, 784, 1047, 784, 1047, 1319, 1568].forEach((f, i) => { const os = audioCtx.createOscillator(), gs = audioCtx.createGain(); os.connect(gs); gs.connect(audioCtx.destination); os.type = 'triangle'; os.frequency.setValueAtTime(f, now + i * 0.08); gs.gain.setValueAtTime(0.15, now + i * 0.08); gs.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.12); os.start(now + i * 0.08); os.stop(now + i * 0.08 + 0.12); }); }
+                else if (t === 'lose') { o.type = 'sawtooth'; o.frequency.setValueAtTime(200, now); o.frequency.exponentialRampToValueAtTime(100, now + 0.4); g.gain.setValueAtTime(0.1, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.4); o.start(); o.stop(now + 0.4); }
+                else if (t === 'dramatic') { [392, 440, 392, 523].forEach((f, i) => { const os = audioCtx.createOscillator(), gs = audioCtx.createGain(); os.connect(gs); gs.connect(audioCtx.destination); os.type = 'sawtooth'; os.frequency.setValueAtTime(f, now + i * 0.15); gs.gain.setValueAtTime(0.05, now + i * 0.15); gs.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.12); os.start(now + i * 0.15); os.stop(now + i * 0.15 + 0.12); }); }
+                else if (t === 'king') { [392, 523, 659, 784, 1047, 1318, 1568, 2093].forEach((f, i) => { const os = audioCtx.createOscillator(), gs = audioCtx.createGain(); os.connect(gs); gs.connect(audioCtx.destination); os.type = 'square'; os.frequency.setValueAtTime(f, now + i * 0.1); gs.gain.setValueAtTime(0.15, now + i * 0.1); gs.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.8); os.start(now + i * 0.1); os.stop(now + i * 0.1 + 0.8); }); }
             } catch(e) { console.error(e); }
         }
 
-        function toggleSound() { 
-            soundOn = !soundOn; 
-            const b = document.getElementById('sound-btn'); 
-            b.textContent = soundOn ? '🔊' : '🔇'; 
-            b.classList.toggle('muted', !soundOn); 
-            if (soundOn) { initAudio(); playSound('select'); } 
-        }
+        function toggleSound() { soundOn = !soundOn; const b = document.getElementById('sound-btn'); b.textContent = soundOn ? '🔊' : '🔇'; b.classList.toggle('muted', !soundOn); if (soundOn) { initAudio(); playSound('select'); } }
 
-        let balance = 100000, curBet = null, selHorse = null, raceNum = 1, horses = [], racing = false;
-        const names = ["サイレントスター", "ミラクルウィンド", "ゴールデンドリーム", "シャドウランナー", "サンダーボルト", "ブレイブハート", "フライングエース", "ロイヤルクラウン", "ダイヤモンドキング", "スピードスター", "ウィンドチェイサー", "ナイトウォリアー", "クリムゾンタイド", "シルバーアロー", "ブラックサンダー", "ゴールドラッシュ", "スカイランナー", "ファイヤーダンス", "オーシャンブルー", "サンライズヒーロー", "ハクバノキセキ", "シロイイナズマ", "ユキノビジン", "ホワイトミラクル"];
+        let balance = 100000, raceNum = 1, horses = [], racing = false;
+        let betType = 'win';
+        let selWin = null;
+        // フォーメーション用: 1列目(馬連=1着候補/馬単=1着), 2列目(馬連=2着候補/馬単=2着)
+        let col1 = [], col2 = [];
+        let curBet = null;   // { type, unit, combos:[{a,b,odds}], total }
+
+        const names = ["サイレントスター", "ミラクルウィンド", "ゴールデンドリーム", "シャドウランナー", "サンダーボルト", "ブレイブハート", "フライングエース", "ロイヤルクラウン", "ダイヤモンドキング", "スピードスター", "ウィンドチェイサー", "ナイトウォリアー", "クリムゾンタイド", "シルバーアロー", "ブラックサンダー", "ゴールドラッシュ", "スカイランナー", "ファイヤーダンス", "オーシャンブルー", "サンライズヒーロー"];
+        const whiteNames = ["ハクバノキセキ", "シロイイナズマ", "ユキノビジン", "ホワイトミラクル", "ソダシ", "シラユキヒメ"];
         const jockeys = ["武豊", "ルメール", "川田", "横山武", "デムーロ", "福永", "松山", "戸崎"];
 
         function init() { 
             document.body.addEventListener('touchstart', () => initAudio(), { once: true }); 
             document.body.addEventListener('click', () => initAudio(), { once: true }); 
-            genHorses(); 
-            render(); 
-            updateUI(); 
+            genHorses(); render(); updateUI(); updateHint();
         }
         
         function genHorses() {
             horses = []; const used = [], str = [];
-            for (let i = 0; i < 5; i++) str.push(Math.random() * 100);
+            for (let i = 0; i < 5; i++) str.push(20 + Math.random() * 80);
+            const whiteHorseIndex = Math.random() < 0.18 ? Math.floor(Math.random() * 5) : -1;
+            if (whiteHorseIndex >= 0) str[whiteHorseIndex] *= 1.12;
             const total = str.reduce((a, b) => a + b, 0);
-            
-            const whiteHorseIndex = Math.random() < 0.15 ? Math.floor(Math.random() * 5) : -1;
-            
             for (let i = 0; i < 5; i++) {
                 let n; 
-                if (i === whiteHorseIndex) {
-                    const whiteNames = ["ハクバノキセキ", "シロイイナズマ", "ユキノビジン", "ホワイトミラクル", "ソダシ", "シラユキヒメ"];
-                    n = whiteNames[Math.floor(Math.random() * whiteNames.length)];
-                } else {
-                    do { n = names[Math.floor(Math.random() * names.length)]; } while (used.includes(n));
-                }
+                if (i === whiteHorseIndex) { n = whiteNames[Math.floor(Math.random() * whiteNames.length)]; }
+                else { do { n = names[Math.floor(Math.random() * names.length)]; } while (used.includes(n)); }
                 used.push(n);
-                
                 const p = str[i] / total;
                 let odds;
-                if (p > 0.35) odds = 1.2 + Math.random() * 0.8;
+                if (p > 0.35) odds = 1.3 + Math.random() * 0.9;
                 else if (p > 0.25) odds = 2.5 + Math.random() * 2;
                 else if (p > 0.15) odds = 5 + Math.random() * 5;
-                else if (p > 0.08) odds = 10 + Math.random() * 20;
-                else odds = 30 + Math.random() * 120;
-                
+                else if (p > 0.08) odds = 10 + Math.random() * 18;
+                else odds = 25 + Math.random() * 90;
                 const styles = ['逃げ', '先行', '差し', '追込'];
-                const style = styles[Math.floor(Math.random() * styles.length)];
-                
-                horses.push({ 
-                    id: i + 1,
-                    name: n, 
-                    jockey: jockeys[Math.floor(Math.random() * jockeys.length)], 
-                    odds: Math.round(odds * 10) / 10, 
-                    strength: str[i], 
-                    pos: 30,
-                    style: style,
-                    stamina: 0.5 + Math.random() * 0.5,
-                    explosive: 0.3 + Math.random() * 0.7,
-                    isWhite: i === whiteHorseIndex
-                });
+                horses.push({ id: i + 1, name: n, jockey: jockeys[Math.floor(Math.random() * jockeys.length)], odds: Math.round(odds * 10) / 10, strength: str[i], pos: 30, style: styles[Math.floor(Math.random() * styles.length)], stamina: 0.5 + Math.random() * 0.5, explosive: 0.3 + Math.random() * 0.7, isWhite: i === whiteHorseIndex });
             }
             horses.sort((a, b) => a.odds - b.odds);
             horses.forEach((h, i) => h.id = i + 1);
         }
-        
+
+        // ===== オッズ計算 =====
+        function winProb(h) { return 0.8 / h.odds; }
+        function hById(id) { return horses.find(h => h.id === id); }
+        function pairTopTwoProb(a, b) {
+            const pa = winProb(a), pb = winProb(b);
+            const dA = 1 - pa, dB = 1 - pb;
+            const ab = pa * (pb / (dA > 0.01 ? dA : 0.01));
+            const ba = pb * (pa / (dB > 0.01 ? dB : 0.01));
+            return Math.min(0.95, ab + ba);
+        }
+        function exactaProb(a, b) {
+            const pa = winProb(a), pb = winProb(b);
+            const dA = 1 - pa;
+            return Math.min(0.9, pa * (pb / (dA > 0.01 ? dA : 0.01)));
+        }
+        function quinellaOdds(a, b) { return Math.max(1.5, Math.round((0.8 / pairTopTwoProb(a, b)) * 10) / 10); }
+        function exactaOdds(a, b) { return Math.max(2.0, Math.round((0.8 / exactaProb(a, b)) * 10) / 10); }
+
+        function setBetType(t) {
+            if (racing || curBet) return;
+            initAudio(); playSound('select');
+            betType = t;
+            selWin = null; col1 = []; col2 = [];
+            document.querySelectorAll('.bet-type-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.type === t));
+            document.getElementById('bet-btn').disabled = true;
+            updateHint(); render(); updateCombo();
+        }
+
+        function updateHint() {
+            const el = document.getElementById('bet-hint');
+            if (betType === 'win') el.textContent = '🎯 1着になる馬を1頭選んでください。';
+            else if (betType === 'quinella') el.textContent = '🎯 フォーメーション馬連：「軸」列と「相手」列をそれぞれ選択。両列の全組み合わせを購入します（順不同）。';
+            else el.textContent = '🎯 フォーメーション馬単：「1着」列と「2着」列をそれぞれ複数選択可能。着順通りで的中です。';
+        }
+
+        // ===== 組み合わせ生成 =====
+        function buildCombos() {
+            // 返り値: [{a, b, odds}] (a=1着側 or 軸, b=2着側 or 相手)
+            const combos = [];
+            if (betType === 'quinella') {
+                const seen = new Set();
+                col1.forEach(a => col2.forEach(b => {
+                    if (a === b) return;
+                    const key = Math.min(a, b) + '-' + Math.max(a, b);
+                    if (seen.has(key)) return;
+                    seen.add(key);
+                    combos.push({ a: Math.min(a, b), b: Math.max(a, b), odds: quinellaOdds(hById(a), hById(b)) });
+                }));
+            } else if (betType === 'exacta') {
+                col1.forEach(a => col2.forEach(b => {
+                    if (a === b) return;
+                    combos.push({ a: a, b: b, odds: exactaOdds(hById(a), hById(b)) });
+                }));
+            }
+            return combos;
+        }
+
         function render() {
+            const cardWrap = document.getElementById('horses');
+            const sheet = document.getElementById('marksheet');
+            const combo = document.getElementById('combo-box');
+            if (betType === 'win') {
+                cardWrap.style.display = ''; sheet.style.display = 'none'; combo.style.display = 'none';
+                document.getElementById('amount-lbl').textContent = '購入金額';
+                document.getElementById('unit-note').textContent = '';
+                renderCards();
+            } else {
+                cardWrap.style.display = 'none'; sheet.style.display = ''; combo.style.display = '';
+                document.getElementById('amount-lbl').textContent = '1点あたり';
+                document.getElementById('unit-note').textContent = '※ 上記金額 × 点数 = 合計購入額';
+                renderMarksheet();
+            }
+            horses.forEach(h => { const el = document.getElementById('horse-' + h.id); el.classList.toggle('white', h.isWhite); });
+        }
+
+        function renderCards() {
             const c = document.getElementById('horses'); c.innerHTML = '';
             horses.forEach(h => {
                 const d = document.createElement('div'); d.className = 'horse-card'; d.id = 'card-' + h.id;
-                d.onclick = () => selectHorse(h.id);
+                if (selWin === h.id) d.classList.add('selected');
+                d.onclick = () => selectWin(h.id);
                 const whiteMark = h.isWhite ? '<span class="white-mark">白毛</span>' : '';
-                d.innerHTML = '<div class="hnum">' + h.id + '</div><div class="hinfo"><div class="hname">' + h.name + whiteMark + '</div><div class="hjockey"><span>🏇 ' + h.jockey + '</span><span>⚡ ' + h.style + '</span></div></div><div class="hodds"><div class="odds-val">' + h.odds.toFixed(1) + '</div><div class="odds-lbl">倍</div></div>';
+                d.innerHTML = '<div class="hnum c-num-' + h.id + '">' + h.id + '</div><div class="hinfo"><div class="hname">' + h.name + whiteMark + '</div><div class="hjockey"><span>🏇 ' + h.jockey + '</span><span>⚡ ' + h.style + '</span></div></div><div class="hodds"><div class="odds-val">' + h.odds.toFixed(1) + '</div><div class="odds-lbl">倍</div></div>';
                 c.appendChild(d);
             });
-            
+        }
+
+        function renderMarksheet() {
+            const head = document.getElementById('ms-colhead');
+            const rows = document.getElementById('ms-rows');
+            if (betType === 'quinella') {
+                head.innerHTML = '<div class="ms-colhead-axis">馬名 / 単勝</div><div class="ms-colhead-marks"><div>軸<small>1頭目</small></div><div>相手<small>2頭目</small></div></div>';
+            } else {
+                head.innerHTML = '<div class="ms-colhead-axis">馬名 / 単勝</div><div class="ms-colhead-marks"><div>1 着<small>勝つ馬</small></div><div>2 着<small>続く馬</small></div></div>';
+            }
+            rows.innerHTML = '';
             horses.forEach(h => {
-                const el = document.getElementById('horse-' + h.id);
-                if (h.isWhite) el.classList.add('white');
-                else el.classList.remove('white');
+                const row = document.createElement('div'); row.className = 'ms-row';
+                const whiteMark = h.isWhite ? '<span class="ms-hodds" style="color:#c0a;">白</span>' : '';
+                const on1 = col1.includes(h.id), on2 = col2.includes(h.id);
+                const marks = '<div class="ms-marks">' +
+                    '<div class="ms-cell"><div class="ms-bubble ' + (on1?'filled':'') + '" onclick="toggleCol(1,' + h.id + ')"><span class="ms-bnum">1</span></div></div>' +
+                    '<div class="ms-cell"><div class="ms-bubble ' + (on2?'filled':'') + '" onclick="toggleCol(2,' + h.id + ')"><span class="ms-bnum">2</span></div></div>' +
+                    '</div>';
+                row.innerHTML = '<div class="ms-horse-label"><div class="ms-num c-num-' + h.id + '">' + h.id + '</div><div style="overflow:hidden;"><div class="ms-hname">' + h.name + ' ' + whiteMark + '</div><div class="ms-hodds">単' + h.odds.toFixed(1) + '</div></div></div>' + marks;
+                rows.appendChild(row);
             });
         }
-        
-        function selectHorse(id) {
+
+        // ===== 選択 =====
+        function selectWin(id) {
             if (racing || curBet) return;
             initAudio(); playSound('select');
-            selHorse = horses.find(h => h.id === id);
+            selWin = id;
             document.querySelectorAll('.horse-card').forEach(c => c.classList.remove('selected'));
             document.getElementById('card-' + id).classList.add('selected');
             document.getElementById('bet-btn').disabled = false;
         }
-        
-        function addBet(v) { 
-            if(racing || curBet) return;
-            initAudio(); playSound('select'); 
-            const input = document.getElementById('bet-input');
-            const current = parseInt(input.value) || 0;
-            input.value = current + v; 
+
+        function toggleCol(col, id) {
+            if (racing || curBet) return;
+            initAudio(); playSound('select');
+            const arr = col === 1 ? col1 : col2;
+            const idx = arr.indexOf(id);
+            if (idx >= 0) arr.splice(idx, 1); else arr.push(id);
+            renderMarksheet(); updateCombo();
         }
 
-        function resetBetAmount() {
-            if(racing || curBet) return;
+        function msClear() {
+            if (racing || curBet) return;
             initAudio(); playSound('select');
-            document.getElementById('bet-input').value = 0;
+            col1 = []; col2 = [];
+            renderMarksheet(); updateCombo();
+        }
+
+        // ボックス: 選んだ馬同士の総当たり(1列目に入っている馬を両列にコピー)
+        function msBox() {
+            if (racing || curBet) return;
+            initAudio(); playSound('select');
+            const union = Array.from(new Set([...col1, ...col2])).sort((a,b)=>a-b);
+            if (union.length < 2) { alert('ボックスは2頭以上選んでください'); return; }
+            col1 = [...union]; col2 = [...union];
+            renderMarksheet(); updateCombo();
+        }
+
+        function updateCombo() {
+            if (betType === 'win') { return; }
+            const combos = buildCombos();
+            const unit = Math.round((parseInt(document.getElementById('bet-input').value) || 0) / 100) * 100;
+            const list = document.getElementById('combo-list');
+            const cnt = document.getElementById('combo-count');
+            const tot = document.getElementById('combo-total');
+            cnt.textContent = combos.length + ' 点';
+            tot.textContent = '¥' + (combos.length * unit).toLocaleString();
+            if (combos.length === 0) {
+                list.innerHTML = '<div class="combo-empty">両方の列から馬を選ぶと組み合わせが表示されます</div>';
+                document.getElementById('bet-btn').disabled = true;
+                return;
+            }
+            const sep = betType === 'quinella' ? ' - ' : ' → ';
+            list.innerHTML = combos.map(c => {
+                const payout = Math.floor(unit * c.odds);
+                return '<div class="combo-item"><span class="ci-pair">' + c.a + sep + c.b + '</span><span class="ci-odds">' + c.odds.toFixed(1) + '<small>倍</small> <small style="color:#ccc;">→¥' + payout.toLocaleString() + '</small></span></div>';
+            }).join('');
+            document.getElementById('bet-btn').disabled = !(unit >= 100 && combos.length * unit <= balance);
         }
         
+        function addBet(v) { if(racing || curBet) return; initAudio(); playSound('select'); const input = document.getElementById('bet-input'); input.value = (parseInt(input.value) || 0) + v; updateCombo(); }
+        function resetBetAmount() { if(racing || curBet) return; initAudio(); playSound('select'); document.getElementById('bet-input').value = 0; updateCombo(); }
+        
         function placeBet() {
-            if (!selHorse || racing || curBet) return;
-            let a = Math.round((parseInt(document.getElementById('bet-input').value) || 0) / 100) * 100;
-            if (a < 100) { alert('100円以上で購入してください'); return; }
-            if (a > balance) { alert('残高不足です'); return; }
-            initAudio();
-            playSound('bet');
-            balance -= a; updateUI();
-            curBet = { horse: selHorse, amount: a };
+            if (racing || curBet) return;
+            let unit = Math.round((parseInt(document.getElementById('bet-input').value) || 0) / 100) * 100;
+            if (unit < 100) { alert('100円以上で購入してください'); return; }
+
+            let bet, name, total;
+            if (betType === 'win') {
+                const h = hById(selWin);
+                total = unit;
+                if (total > balance) { alert('残高不足です'); return; }
+                bet = { type: 'win', unit, combos: [{ a: h.id, b: null, odds: h.odds }], total };
+                name = '単勝 ' + h.id + ' ' + h.name;
+            } else {
+                const combos = buildCombos();
+                if (combos.length === 0) { alert('組み合わせを選んでください'); return; }
+                total = combos.length * unit;
+                if (total > balance) { alert('残高不足です（合計 ¥' + total.toLocaleString() + '）'); return; }
+                bet = { type: betType, unit, combos, total };
+                name = (betType === 'quinella' ? '馬連' : '馬単') + ' フォーメーション ' + combos.length + '点';
+            }
+
+            initAudio(); playSound('bet');
+            balance -= total; updateUI();
+            curBet = bet;
+
             document.getElementById('cur-bet').classList.add('show');
-            document.getElementById('cur-bet-name').textContent = curBet.horse.id + '番 ' + curBet.horse.name;
-            document.getElementById('cur-bet-val').textContent = '¥' + a.toLocaleString() + ' → ¥' + Math.floor(a * curBet.horse.odds).toLocaleString();
+            document.getElementById('cur-bet-name').textContent = name;
+            document.getElementById('cur-bet-val').textContent = '計 ¥' + total.toLocaleString() + ' (1点 ¥' + unit.toLocaleString() + ')';
+            const sep = betType === 'quinella' ? '-' : (betType === 'exacta' ? '→' : '');
+            document.getElementById('cur-bet-list').innerHTML = bet.combos.map(c => 
+                '【' + (c.b === null ? c.a + '番' : c.a + sep + c.b) + '】 ' + c.odds.toFixed(1) + '倍 → 的中時 ¥' + Math.floor(unit * c.odds).toLocaleString()
+            ).join('<br>');
+
             document.getElementById('bet-btn').disabled = true;
             document.querySelectorAll('.horse-card').forEach(c => c.classList.add('disabled'));
-            document.getElementById('comment').innerHTML = '<span class="hl">' + curBet.horse.name + '</span>に' + a.toLocaleString() + '円！発走します！';
+            document.querySelectorAll('.ms-bubble').forEach(b => b.classList.add('disabled'));
+            document.querySelectorAll('.ms-tool-btn').forEach(b => b.style.pointerEvents = 'none');
+            document.querySelectorAll('.bet-type-tab').forEach(t => t.style.pointerEvents = 'none');
+            document.getElementById('comment').innerHTML = '<span class="hl">' + name + '</span>を購入！発走します！';
             
             setTimeout(() => { playSound('fanfare'); setTimeout(runRace, 2000); }, 800);
         }
         
         function runRace() {
             racing = true;
-            const trackEl = document.getElementById('track');
-            const tw = trackEl.offsetWidth;
+            const tw = document.getElementById('track').offsetWidth;
             const finish = tw - 55;
             let time = 0; 
             const total = 8000 + Math.random() * 2000;
             
             const rand = Math.random();
             let raceStyle;
-            if (rand < 0.12) raceStyle = 'upset';
-            else if (rand < 0.22) raceStyle = 'bigEscape';
-            else if (rand < 0.35) raceStyle = 'dramaticFinish';
-            else if (rand < 0.50) raceStyle = 'comeFromBehind';
-            else if (rand < 0.62) raceStyle = 'photoFinish';
+            if (rand < 0.20) raceStyle = 'upset';
+            else if (rand < 0.30) raceStyle = 'bigEscape';
+            else if (rand < 0.42) raceStyle = 'dramaticFinish';
+            else if (rand < 0.57) raceStyle = 'comeFromBehind';
+            else if (rand < 0.69) raceStyle = 'photoFinish';
             else raceStyle = 'normal';
             
             let upsetHorse = null;
             if (raceStyle === 'upset') {
-                const longshots = horses.filter(h => h.odds >= 15);
-                if (longshots.length > 0) upsetHorse = longshots[Math.floor(Math.random() * longshots.length)];
+                const longshots = horses.filter(h => h.odds >= 8);
+                if (longshots.length > 0) upsetHorse = weightedPick(longshots, longshots.map(h => h.odds));
             }
-            
             let escapeHorse = null;
-            if (raceStyle === 'bigEscape') {
-                const escapers = horses.filter(h => h.style === '逃げ');
-                escapeHorse = escapers.length > 0 ? escapers[0] : horses[Math.floor(Math.random() * horses.length)];
-            }
-            
+            if (raceStyle === 'bigEscape') { const e = horses.filter(h => h.style === '逃げ'); escapeHorse = e.length ? e[0] : horses[Math.floor(Math.random()*horses.length)]; }
             let closerHorse = null;
-            if (raceStyle === 'comeFromBehind') {
-                const closers = horses.filter(h => h.style === '追込' || h.style === '差し');
-                closerHorse = closers.length > 0 ? closers[Math.floor(Math.random() * closers.length)] : horses[Math.floor(Math.random() * horses.length)];
-            }
+            if (raceStyle === 'comeFromBehind') { const c = horses.filter(h => h.style === '追込' || h.style === '差し'); closerHorse = c.length ? c[Math.floor(Math.random()*c.length)] : horses[Math.floor(Math.random()*horses.length)]; }
             
-            horses.forEach(h => { h.pos = 30; h.speed = (h.strength / 100) * 0.7 + 0.4; h.currentStamina = h.stamina; h.tired = false; });
+            horses.forEach(h => { h.pos = 30; h.speed = (h.strength / 100) * 0.5 + 0.55; h.luck = 0.85 + Math.random() * 0.35; h.currentStamina = h.stamina; h.tired = false; });
             
             let lastPhase = -1, gallopCnt = 0, lastDramatic = -1;
-            
             const intervalTime = 50;
             const iv = setInterval(() => {
                 time += intervalTime;
                 const prog = time / total;
-                gallopCnt++; 
-                if (gallopCnt % 4 === 0) playSound('gallop');
-                
+                gallopCnt++; if (gallopCnt % 4 === 0) playSound('gallop');
                 horses.forEach(h => {
-                    let speedMod = 1;
-                    let r = 0.8 + Math.random() * 0.4;
-                    
-                    if (h.style === '逃げ') {
-                        if (prog < 0.4) speedMod = 1.3;
-                        else if (prog > 0.7) speedMod = 0.7 + h.stamina * 0.4;
-                    } else if (h.style === '先行') {
-                        if (prog < 0.3) speedMod = 1.15;
-                        else if (prog > 0.6) speedMod = 0.9 + h.explosive * 0.3;
-                    } else if (h.style === '差し') {
-                        if (prog < 0.5) speedMod = 0.85;
-                        else if (prog > 0.65) speedMod = 1.1 + h.explosive * 0.4;
-                    } else if (h.style === '追込') {
-                        if (prog < 0.6) speedMod = 0.75;
-                        else if (prog > 0.75) speedMod = 1.3 + h.explosive * 0.5;
-                    }
-                    
-                    if (raceStyle === 'upset' && h === upsetHorse) {
-                        if (prog > 0.5) speedMod *= 1.4;
-                        if (prog > 0.8) speedMod *= 1.3;
-                    }
-                    
-                    if (raceStyle === 'bigEscape' && h === escapeHorse) {
-                        if (prog < 0.7) speedMod *= 1.5;
-                        else {
-                            if (h.stamina < 0.6 && prog > 0.8) { h.tired = true; speedMod *= 0.5; }
-                            else speedMod *= 1.1;
-                        }
-                    }
-                    
-                    if (raceStyle === 'comeFromBehind' && h === closerHorse) {
-                        if (prog < 0.6) speedMod *= 0.7;
-                        else speedMod *= 1.6;
-                    }
-                    
-                    if (raceStyle === 'dramaticFinish' && prog > 0.85) r = 0.5 + Math.random() * 1.0;
-                    
-                    if (raceStyle === 'photoFinish' && prog > 0.7) {
-                        const sorted = [...horses].sort((a, b) => b.pos - a.pos);
-                        if (sorted.indexOf(h) < 3) {
-                            const leader = sorted[0];
-                            if (h !== leader && leader.pos - h.pos > 5) speedMod *= 1.15;
-                        }
-                    }
-                    
-                    const move = h.speed * r * speedMod * (tw / 250); 
-                    h.pos += move;
-                    h.pos = Math.min(h.pos, finish);
+                    let speedMod = 1, r = 0.7 + Math.random() * 0.6;
+                    if (h.style === '逃げ') { if (prog < 0.4) speedMod = 1.3; else if (prog > 0.7) speedMod = 0.7 + h.stamina * 0.4; }
+                    else if (h.style === '先行') { if (prog < 0.3) speedMod = 1.15; else if (prog > 0.6) speedMod = 0.9 + h.explosive * 0.3; }
+                    else if (h.style === '差し') { if (prog < 0.5) speedMod = 0.85; else if (prog > 0.65) speedMod = 1.1 + h.explosive * 0.4; }
+                    else if (h.style === '追込') { if (prog < 0.6) speedMod = 0.75; else if (prog > 0.75) speedMod = 1.3 + h.explosive * 0.5; }
+                    if (h.isWhite && prog > 0.6) speedMod *= 1.06;
+                    if (raceStyle === 'upset' && h === upsetHorse) { if (prog > 0.45) speedMod *= 1.45; if (prog > 0.8) speedMod *= 1.35; }
+                    if (raceStyle === 'bigEscape' && h === escapeHorse) { if (prog < 0.7) speedMod *= 1.5; else { if (h.stamina < 0.6 && prog > 0.8) { h.tired = true; speedMod *= 0.5; } else speedMod *= 1.1; } }
+                    if (raceStyle === 'comeFromBehind' && h === closerHorse) { if (prog < 0.6) speedMod *= 0.7; else speedMod *= 1.6; }
+                    if (raceStyle === 'dramaticFinish' && prog > 0.85) r = 0.5 + Math.random() * 1.1;
+                    if (raceStyle === 'photoFinish' && prog > 0.7) { const s = [...horses].sort((a,b)=>b.pos-a.pos); if (s.indexOf(h) < 3) { const l = s[0]; if (h !== l && l.pos - h.pos > 5) speedMod *= 1.15; } }
+                    h.pos = Math.min(h.pos + h.speed * h.luck * r * speedMod * (tw / 250), finish);
                     document.getElementById('horse-' + h.id).style.left = h.pos + 'px';
                 });
-                
                 const sorted = [...horses].sort((a, b) => b.pos - a.pos);
                 horses.forEach(h => document.getElementById('horse-' + h.id).classList.toggle('leading', h.id === sorted[0].id));
-                
                 const phase = Math.floor(prog * 8);
                 if (phase !== lastPhase) { lastPhase = phase; updateComment(prog, sorted, raceStyle, escapeHorse, upsetHorse, closerHorse); }
-                
-                if (prog > 0.75 && prog < 0.9 && Math.floor(prog * 20) !== lastDramatic) {
-                    lastDramatic = Math.floor(prog * 20);
-                    const gap = sorted[0].pos - sorted[1].pos;
-                    if (gap < 10) playSound('dramatic');
-                }
-                
+                if (prog > 0.75 && prog < 0.9 && Math.floor(prog * 20) !== lastDramatic) { lastDramatic = Math.floor(prog * 20); if (sorted[0].pos - sorted[1].pos < 10) playSound('dramatic'); }
                 if (sorted[0].pos >= finish) { clearInterval(iv); playSound('finish'); finishRace(sorted, raceStyle, escapeHorse, upsetHorse); }
             }, intervalTime);
         }
+
+        function weightedPick(arr, weights) { const sum = weights.reduce((a,b)=>a+b,0); let r = Math.random()*sum; for (let i=0;i<arr.length;i++){ r-=weights[i]; if(r<=0)return arr[i]; } return arr[arr.length-1]; }
         
         function updateComment(p, s, style, escapeH, upsetH, closerH) {
             const lead = s[0], second = s[1];
-            const bet = s.find(h => h.id === curBet.horse.id), bp = s.indexOf(bet) + 1;
+            const myIds = []; curBet.combos.forEach(c => { myIds.push(c.a); if (c.b !== null) myIds.push(c.b); });
+            const myHorses = s.filter(h => myIds.includes(h.id));
+            const myTop = myHorses[0];
+            const mtp = myTop ? s.indexOf(myTop) + 1 : 99;
             const gap12 = lead.pos - second.pos;
-            let t = '';
-            
             const whiteHorse = s.find(h => h.isWhite);
             const whitePos = whiteHorse ? s.indexOf(whiteHorse) + 1 : -1;
-            
+            const myName = myTop ? myTop.name : lead.name;
+            let t = '';
             if (p < 0.12) t = 'スタート！各馬一斉に飛び出した！';
-            else if (p < 0.25) {
-                if (style === 'bigEscape' && lead === escapeH) t = '<span class="hl">' + lead.name + '</span>が大逃げ！後続を大きく引き離す！';
-                else if (whiteHorse && whitePos === 1) t = '白い馬体が先頭！<span class="hl">' + whiteHorse.name + '</span>が飛ばす！';
-                else t = '<span class="hl">' + lead.name + '</span>が先頭、' + second.name + 'が2番手';
-            } else if (p < 0.4) {
-                if (style === 'bigEscape' && gap12 > 30) t = '<span class="hl">' + lead.name + '</span>独走態勢！すごいリード！';
-                else if (bp <= 2) t = '<span class="hl">' + bet.name + '</span>は好位置！手応え十分！';
-                else if (whiteHorse && whitePos <= 2) t = '白毛の<span class="hl">' + whiteHorse.name + '</span>が好位置につける！';
-                else t = '先頭<span class="hl">' + lead.name + '</span>、' + bet.name + 'は' + bp + '番手で待機';
-            } else if (p < 0.55) {
-                if (bet.style === '追込' && bp >= 4) t = '<span class="hl">' + bet.name + '</span>は後方待機...脚を溜めているか！？';
-                else t = '3コーナー！<span class="hl">' + lead.name + '</span>が先頭！';
-            } else if (p < 0.7) {
-                if (style === 'comeFromBehind' && closerH) { const cp = s.indexOf(closerH) + 1; t = '4コーナー！<span class="hl">' + closerH.name + '</span>が' + cp + '番手から動く！'; }
-                else if (style === 'bigEscape' && lead === escapeH && gap12 > 25) t = 'まだ<span class="hl">' + lead.name + '</span>の脚色は衰えない！逃げ切れるか！？';
-                else t = '最終コーナー！各馬が仕掛け始める！';
-            } else if (p < 0.82) {
-                if (style === 'bigEscape' && escapeH && escapeH.tired) t = '<span class="hl">' + escapeH.name + '</span>の脚が上がった！後続が殺到！';
-                else if (style === 'upset' && upsetH) { const up = s.indexOf(upsetH) + 1; if (up <= 3) t = 'なんと！大穴<span class="hl">' + upsetH.name + '</span>が' + up + '番手に浮上！'; else t = '直線！<span class="hl">' + lead.name + '</span>が粘る！'; }
-                else if (style === 'comeFromBehind' && closerH) { const cp = s.indexOf(closerH) + 1; if (cp <= 2) t = '<span class="hl">' + closerH.name + '</span>が怒涛の追込み！すごい脚！'; else t = '直線！<span class="hl">' + closerH.name + '</span>が外から伸びる！'; }
-                else if (whiteHorse && whitePos <= 2) t = '直線！白い馬体<span class="hl">' + whiteHorse.name + '</span>が伸びる！';
-                else t = '直線！<span class="hl">' + lead.name + '</span>先頭！' + second.name + 'が追う！';
-            } else if (p < 0.92) {
-                if (gap12 < 8) t = '大接戦！<span class="hl">' + lead.name + '</span>と<span class="hl">' + second.name + '</span>が並んだ！';
-                else if (style === 'upset' && upsetH && s.indexOf(upsetH) === 0) t = '信じられない！<span class="hl">' + upsetH.name + '</span>が先頭だ！大波乱！';
-                else if (bp === 1) t = '<span class="hl">' + bet.name + '</span>が先頭！押し切れるか！？';
-                else if (bp === 2 && gap12 < 15) t = '<span class="hl">' + bet.name + '</span>が迫る！届くか！？';
-                else t = '残り100m！<span class="hl">' + lead.name + '</span>がリード！';
-            } else {
-                if (gap12 < 5) t = 'ゴール前！<span class="hl">' + lead.name + '</span>と<span class="hl">' + second.name + '</span>！どっちだ！？';
-                else if (bp === 1) t = '<span class="hl">' + bet.name + '</span>先頭でゴールへ！！';
-                else if (whiteHorse && whitePos === 1) t = '白い稲妻！<span class="hl">' + whiteHorse.name + '</span>がゴールへ！';
-                else t = '<span class="hl">' + lead.name + '</span>がゴールに飛び込む！';
-            }
+            else if (p < 0.25) { if (style === 'bigEscape' && lead === escapeH) t = '<span class="hl">' + lead.name + '</span>が大逃げ！後続を大きく引き離す！'; else if (whiteHorse && whitePos === 1) t = '白い馬体が先頭！<span class="hl">' + whiteHorse.name + '</span>が飛ばす！'; else t = '<span class="hl">' + lead.name + '</span>が先頭、' + second.name + 'が2番手'; }
+            else if (p < 0.4) { if (style === 'bigEscape' && gap12 > 30) t = '<span class="hl">' + lead.name + '</span>独走態勢！すごいリード！'; else if (mtp <= 2) t = '<span class="hl">' + myName + '</span>は好位置！手応え十分！'; else if (whiteHorse && whitePos <= 2) t = '白毛の<span class="hl">' + whiteHorse.name + '</span>が好位置につける！'; else t = '先頭<span class="hl">' + lead.name + '</span>、' + myName + 'は' + mtp + '番手で待機'; }
+            else if (p < 0.55) { if (myTop && myTop.style === '追込' && mtp >= 4) t = '<span class="hl">' + myName + '</span>は後方待機...脚を溜めているか！？'; else t = '3コーナー！<span class="hl">' + lead.name + '</span>が先頭！'; }
+            else if (p < 0.7) { if (style === 'comeFromBehind' && closerH) { const cp = s.indexOf(closerH)+1; t = '4コーナー！<span class="hl">' + closerH.name + '</span>が' + cp + '番手から動く！'; } else if (style === 'bigEscape' && lead === escapeH && gap12 > 25) t = 'まだ<span class="hl">' + lead.name + '</span>の脚色は衰えない！逃げ切れるか！？'; else t = '最終コーナー！各馬が仕掛け始める！'; }
+            else if (p < 0.82) { if (style === 'bigEscape' && escapeH && escapeH.tired) t = '<span class="hl">' + escapeH.name + '</span>の脚が上がった！後続が殺到！'; else if (style === 'upset' && upsetH) { const up = s.indexOf(upsetH)+1; t = up <= 3 ? 'なんと！人気薄<span class="hl">' + upsetH.name + '</span>が' + up + '番手に浮上！' : '直線！<span class="hl">' + lead.name + '</span>が粘る！'; } else if (style === 'comeFromBehind' && closerH) { const cp = s.indexOf(closerH)+1; t = cp <= 2 ? '<span class="hl">' + closerH.name + '</span>が怒涛の追込み！すごい脚！' : '直線！<span class="hl">' + closerH.name + '</span>が外から伸びる！'; } else if (whiteHorse && whitePos <= 2) t = '直線！白い馬体<span class="hl">' + whiteHorse.name + '</span>が伸びる！'; else t = '直線！<span class="hl">' + lead.name + '</span>先頭！' + second.name + 'が追う！'; }
+            else if (p < 0.92) { if (gap12 < 8) t = '大接戦！<span class="hl">' + lead.name + '</span>と<span class="hl">' + second.name + '</span>が並んだ！'; else if (style === 'upset' && upsetH && s.indexOf(upsetH) === 0) t = '信じられない！<span class="hl">' + upsetH.name + '</span>が先頭だ！大波乱！'; else if (mtp === 1) t = '<span class="hl">' + myName + '</span>が先頭！押し切れるか！？'; else if (mtp === 2 && gap12 < 15) t = '<span class="hl">' + myName + '</span>が迫る！届くか！？'; else t = '残り100m！<span class="hl">' + lead.name + '</span>がリード！'; }
+            else { if (gap12 < 5) t = 'ゴール前！<span class="hl">' + lead.name + '</span>と<span class="hl">' + second.name + '</span>！どっちだ！？'; else if (mtp === 1) t = '<span class="hl">' + myName + '</span>先頭でゴールへ！！'; else if (whiteHorse && whitePos === 1) t = '白い稲妻！<span class="hl">' + whiteHorse.name + '</span>がゴールへ！'; else t = '<span class="hl">' + lead.name + '</span>がゴールに飛び込む！'; }
             document.getElementById('comment').innerHTML = t;
         }
         
         function finishRace(sorted, style, escapeH, upsetH) {
-            const winner = sorted[0], isWin = winner.id === curBet.horse.id, bp = sorted.findIndex(h => h.id === curBet.horse.id) + 1;
-            let win = 0, extraMsg = '';
-            if (isWin) { win = Math.floor(curBet.amount * curBet.horse.odds); balance += win; updateUI(); }
-            if (winner.isWhite) extraMsg = '白毛馬の勝利！';
-            else if (style === 'upset' && winner === upsetH) extraMsg = '大波乱！';
-            else if (style === 'bigEscape' && winner === escapeH) extraMsg = '見事な逃げ切り！';
-            else if (style === 'bigEscape' && escapeH && escapeH.tired && winner !== escapeH) extraMsg = '逃げ馬バテて逆転！';
-            else if (winner.style === '追込') extraMsg = '鮮やかな追込み！';
-            document.getElementById('comment').innerHTML = extraMsg + '<span class="hl">' + winner.name + '</span>が1着！' + (isWin ? '的中おめでとう！' : curBet.horse.name + 'は' + bp + '着...');
-            setTimeout(() => { isWin ? playSound('win') : playSound('lose'); showResult(isWin, winner, win, bp); }, 1200);
+            const first = sorted[0], second = sorted[1];
+            let win = 0, hitCombos = [];
+            curBet.combos.forEach(c => {
+                let hit = false;
+                if (curBet.type === 'win') hit = first.id === c.a;
+                else if (curBet.type === 'quinella') { const t2 = [first.id, second.id]; hit = t2.includes(c.a) && t2.includes(c.b); }
+                else hit = first.id === c.a && second.id === c.b;
+                if (hit) { const pay = Math.floor(curBet.unit * c.odds); win += pay; hitCombos.push({ c, pay }); }
+            });
+            const isWin = win > 0;
+            if (isWin) { balance += win; updateUI(); }
+            let extraMsg = '';
+            if (first.isWhite) extraMsg = '白毛馬の勝利！';
+            else if (style === 'upset' && first === upsetH) extraMsg = '大波乱！';
+            else if (style === 'bigEscape' && first === escapeH) extraMsg = '見事な逃げ切り！';
+            else if (style === 'bigEscape' && escapeH && escapeH.tired && first !== escapeH) extraMsg = '逃げ馬バテて逆転！';
+            else if (first.style === '追込') extraMsg = '鮮やかな追込み！';
+            document.getElementById('comment').innerHTML = extraMsg + '1着<span class="hl">' + first.id + ' ' + first.name + '</span> / 2着 ' + second.id + ' ' + second.name + '！' + (isWin ? ' 的中！' : '');
+            setTimeout(() => { isWin ? playSound('win') : playSound('lose'); showResult(isWin, first, second, win, hitCombos); }, 1200);
         }
         
-        function showResult(isWin, winner, win, bp) {
+        function showResult(isWin, first, second, win, hitCombos) {
             const m = document.getElementById('modal'), b = document.getElementById('modal-box');
-            
-            // 所持金が100万円以上でクリア
+            const order = first.id + (curBet.type === 'exacta' ? '→' : '-') + second.id;
+            const typeLabel = curBet.type === 'win' ? '単勝' : curBet.type === 'quinella' ? '馬連' : '馬単';
+            const profit = win - curBet.total;
+
             if (balance >= 1000000) {
                 b.className = 'modal-box king';
                 document.getElementById('res-icon').textContent = '👑';
@@ -638,10 +682,8 @@
                 document.getElementById('res-amount').className = 'res-amount win';
                 document.getElementById('modal-btn').textContent = '伝説をリセットする';
                 document.getElementById('modal-btn').onclick = resetGame;
-                playSound('king');
-                startConfetti();
+                playSound('king'); startConfetti();
             }
-            // 所持金が100円未満でゲームオーバー
             else if (balance < 100 && !isWin) { 
                 b.className = 'modal-box gameover'; 
                 document.getElementById('res-icon').textContent = '💔'; 
@@ -654,9 +696,10 @@
             }
             else if (isWin) { 
                 b.className = 'modal-box'; 
-                document.getElementById('res-icon').textContent = winner.isWhite ? '🤍' : '🏆'; 
+                document.getElementById('res-icon').textContent = first.isWhite ? '🤍' : '🏆'; 
                 document.getElementById('res-title').textContent = '的中！'; 
-                document.getElementById('res-detail').innerHTML = '<span class="hl">' + winner.name + '</span>が1着！<br>オッズ ' + curBet.horse.odds.toFixed(1) + '倍'; 
+                const hitTxt = hitCombos.map(h => (h.c.b === null ? h.c.a + '番' : h.c.a + (curBet.type==='exacta'?'→':'-') + h.c.b) + ' (' + h.c.odds.toFixed(1) + '倍)').join('<br>');
+                document.getElementById('res-detail').innerHTML = typeLabel + ' 的中 ' + hitCombos.length + '点<br>' + hitTxt + '<br>結果: ' + order + '<br>払戻 ¥' + win.toLocaleString() + ' / 収支 ' + (profit>=0?'+':'') + '¥' + profit.toLocaleString(); 
                 document.getElementById('res-amount').textContent = '+¥' + win.toLocaleString(); 
                 document.getElementById('res-amount').className = 'res-amount win'; 
                 document.getElementById('modal-btn').textContent = '次のレースへ'; 
@@ -666,8 +709,8 @@
                 b.className = 'modal-box lose'; 
                 document.getElementById('res-icon').textContent = '😢'; 
                 document.getElementById('res-title').textContent = 'ハズレ'; 
-                document.getElementById('res-detail').innerHTML = '1着: <span class="hl">' + winner.name + '</span><br>' + curBet.horse.name + 'は' + bp + '着'; 
-                document.getElementById('res-amount').textContent = '-¥' + curBet.amount.toLocaleString(); 
+                document.getElementById('res-detail').innerHTML = typeLabel + ' ' + curBet.combos.length + '点購入<br>結果 1着:<span class="hl">' + first.id + ' ' + first.name + '</span> / 2着:' + second.id + ' ' + second.name; 
+                document.getElementById('res-amount').textContent = '-¥' + curBet.total.toLocaleString(); 
                 document.getElementById('res-amount').className = 'res-amount lose'; 
                 document.getElementById('modal-btn').textContent = '次のレースへ'; 
                 document.getElementById('modal-btn').onclick = nextRace; 
@@ -675,38 +718,23 @@
             m.classList.add('show');
         }
         
-        // Confetti Logic
         function startConfetti() {
             const container = document.getElementById('confetti-container');
-            container.classList.add('active');
-            container.innerHTML = '';
+            container.classList.add('active'); container.innerHTML = '';
             const colors = ['#FFD700', '#C0C0C0', '#FF0000', '#00FF00', '#0000FF', '#FF00FF'];
-            
-            for (let i = 0; i < 100; i++) {
-                const conf = document.createElement('div');
-                conf.className = 'confetti';
-                conf.style.left = Math.random() * 100 + '%';
-                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                conf.style.animationDuration = (Math.random() * 2 + 2) + 's';
-                conf.style.animationDelay = (Math.random() * 2) + 's';
-                container.appendChild(conf);
-            }
+            for (let i = 0; i < 100; i++) { const conf = document.createElement('div'); conf.className = 'confetti'; conf.style.left = Math.random()*100 + '%'; conf.style.backgroundColor = colors[Math.floor(Math.random()*colors.length)]; conf.style.animationDuration = (Math.random()*2+2) + 's'; conf.style.animationDelay = (Math.random()*2) + 's'; container.appendChild(conf); }
         }
         
         function nextRace() {
             document.getElementById('modal').classList.remove('show');
-            raceNum++; curBet = null; selHorse = null; racing = false;
-            horses.forEach(h => { 
-                const el = document.getElementById('horse-' + h.id);
-                el.style.left = '30px'; 
-                el.classList.remove('leading'); 
-                el.classList.remove('white');
-            });
+            raceNum++; curBet = null; selWin = null; col1 = []; col2 = []; racing = false;
+            horses.forEach(h => { const el = document.getElementById('horse-' + h.id); el.style.left = '30px'; el.classList.remove('leading', 'white'); });
             document.getElementById('cur-bet').classList.remove('show');
-            document.querySelectorAll('.horse-card').forEach(c => c.classList.remove('selected', 'disabled'));
+            document.querySelectorAll('.bet-type-tab').forEach(t => t.style.pointerEvents = '');
+            document.querySelectorAll('.ms-tool-btn').forEach(b => b.style.pointerEvents = '');
             document.getElementById('bet-btn').disabled = true;
             document.getElementById('bet-input').value = 1000;
-            genHorses(); render(); updateUI();
+            genHorses(); render(); updateUI(); updateCombo();
             document.getElementById('comment').innerHTML = '出走馬がゲートイン。馬券をお求めください。';
         }
         
@@ -714,21 +742,16 @@
             const balEl = document.getElementById('balance');
             balEl.textContent = '¥' + balance.toLocaleString(); 
             document.getElementById('race-badge').textContent = '第' + raceNum + 'R'; 
-            
-            // 金持ち演出
-            if (balance >= 500000) balEl.parentElement.classList.add('rich');
-            else balEl.parentElement.classList.remove('rich');
+            if (balance >= 500000) balEl.parentElement.classList.add('rich'); else balEl.parentElement.classList.remove('rich');
         }
         
         function resetGame() { 
-            balance = 100000; raceNum = 1; curBet = null; selHorse = null; racing = false; 
+            balance = 100000; raceNum = 1; curBet = null; selWin = null; col1 = []; col2 = []; racing = false; betType = 'win';
             document.getElementById('modal').classList.remove('show'); 
             document.getElementById('confetti-container').classList.remove('active');
-            horses.forEach(h => { 
-                const el = document.getElementById('horse-' + h.id); 
-                el.style.left = '30px'; 
-                el.classList.remove('leading', 'white'); 
-            }); 
+            document.querySelectorAll('.bet-type-tab').forEach(t => { t.style.pointerEvents = ''; t.classList.toggle('active', t.dataset.type === 'win'); });
+            document.querySelectorAll('.ms-tool-btn').forEach(b => b.style.pointerEvents = '');
+            horses.forEach(h => { const el = document.getElementById('horse-' + h.id); el.style.left = '30px'; el.classList.remove('leading', 'white'); }); 
             document.getElementById('cur-bet').classList.remove('show'); 
             document.getElementById('bet-btn').disabled = true; 
             document.getElementById('bet-input').value = 1000;
@@ -740,6 +763,3 @@
     </script>
 </body>
 </html>
-
-
-```
