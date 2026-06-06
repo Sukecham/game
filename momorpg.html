@@ -1,0 +1,843 @@
+```react
+import { useState, useEffect, useCallback, useRef } from "react";
+
+const PHASES = { TITLE: "title", STORY: "story", MAP: "map", BATTLE: "battle", VICTORY: "victory" };
+
+// ========== ENHANCED PIXEL ART SPRITES ==========
+const S = {
+  momotaro: (sz = 48, frame = 0) => (
+    <svg width={sz} height={sz} viewBox="0 0 16 16" style={{ imageRendering: "pixelated" }}>
+      {/* Hachimaki headband */}
+      <rect x="5" y="1" width="6" height="1" fill="#fff" />
+      <rect x="11" y="0" width="2" height="2" fill="#fff" />
+      {/* Hair */}
+      <rect x="5" y="0" width="6" height="2" fill="#1a1a1a" />
+      <rect x="4" y="1" width="1" height="2" fill="#1a1a1a" />
+      <rect x="11" y="1" width="1" height="2" fill="#1a1a1a" />
+      {/* Face */}
+      <rect x="5" y="2" width="6" height="4" fill="#FFD5A8" />
+      <rect x="6" y="3" width="1" height="1" fill="#2D1B00" />
+      <rect x="9" y="3" width="1" height="1" fill="#2D1B00" />
+      <rect x="7" y="5" width="2" height="1" fill="#E88" />
+      {/* Peach kimono */}
+      <rect x="4" y="6" width="8" height="5" fill="#FF7BA8" />
+      <rect x="6" y="6" width="4" height="1" fill="#FFD700" />
+      <rect x="7" y="7" width="2" height="2" fill="#FFD700" />
+      {/* Arms */}
+      <rect x="3" y="7" width="1" height="3" fill="#FFD5A8" />
+      <rect x="12" y="7" width="1" height="3" fill="#FFD5A8" />
+      {/* Katana on back */}
+      <rect x="12" y="4" width="1" height="5" fill="#A0A0A0" />
+      <rect x="12" y="9" width="1" height="1" fill="#8B4513" />
+      {/* Legs with walk frame */}
+      <rect x="5" y="11" width="2" height="3" fill="#3A6B35" />
+      <rect x="9" y="11" width="2" height="3" fill="#3A6B35" />
+      {frame === 1 && <rect x="4" y="12" width="2" height="2" fill="#3A6B35" />}
+      {frame === 1 && <rect x="10" y="12" width="2" height="2" fill="#3A6B35" />}
+      {/* Waraji sandals */}
+      <rect x="5" y="14" width="2" height="1" fill="#C49A6C" />
+      <rect x="9" y="14" width="2" height="1" fill="#C49A6C" />
+    </svg>
+  ),
+  dog: (sz = 48, frame = 0) => (
+    <svg width={sz} height={sz} viewBox="0 0 16 16" style={{ imageRendering: "pixelated" }}>
+      {/* Ears */}
+      <rect x="3" y="2" width="2" height="3" fill="#B8860B" />
+      <rect x="11" y="2" width="2" height="3" fill="#B8860B" />
+      {/* Head */}
+      <rect x="4" y="3" width="8" height="5" fill="#F5DEB3" />
+      <rect x="5" y="3" width="6" height="2" fill="#DEB887" />
+      {/* Eyes */}
+      <rect x="5" y="5" width="2" height="1" fill="#2D1B00" />
+      <rect x="9" y="5" width="2" height="1" fill="#2D1B00" />
+      {/* Nose & mouth */}
+      <rect x="7" y="6" width="2" height="1" fill="#333" />
+      <rect x="7" y="7" width="2" height="1" fill="#F5B0B0" />
+      {/* Body */}
+      <rect x="4" y="8" width="8" height="4" fill="#F5DEB3" />
+      {/* Belly bandana */}
+      <rect x="5" y="8" width="6" height="1" fill="#E63946" />
+      {/* Legs */}
+      <rect x="4" y="12" width="2" height="2" fill="#F5DEB3" />
+      <rect x="10" y="12" width="2" height="2" fill="#F5DEB3" />
+      {frame === 1 && <><rect x="3" y="12" width="2" height="2" fill="#F5DEB3" /><rect x="11" y="12" width="2" height="2" fill="#F5DEB3" /></>}
+      {/* Tail */}
+      <rect x="12" y="7" width="1" height="1" fill="#DEB887" />
+      <rect x="13" y="6" width="1" height="2" fill="#DEB887" />
+    </svg>
+  ),
+  monkey: (sz = 48, frame = 0) => (
+    <svg width={sz} height={sz} viewBox="0 0 16 16" style={{ imageRendering: "pixelated" }}>
+      {/* Ears */}
+      <rect x="2" y="3" width="2" height="3" fill="#FFD5A8" />
+      <rect x="12" y="3" width="2" height="3" fill="#FFD5A8" />
+      {/* Head */}
+      <rect x="4" y="1" width="8" height="3" fill="#C1884B" />
+      <rect x="4" y="3" width="8" height="5" fill="#FFD5A8" />
+      {/* Eyes */}
+      <rect x="5" y="4" width="2" height="1" fill="#2D1B00" />
+      <rect x="9" y="4" width="2" height="1" fill="#2D1B00" />
+      {/* Mouth */}
+      <rect x="6" y="6" width="4" height="1" fill="#E67" />
+      {/* Body with vest */}
+      <rect x="5" y="8" width="6" height="4" fill="#C1884B" />
+      <rect x="6" y="8" width="4" height="3" fill="#1E90FF" />
+      {/* Arms */}
+      <rect x="3" y="8" width="2" height="3" fill="#C1884B" />
+      <rect x="11" y="8" width="2" height="3" fill="#C1884B" />
+      {/* Legs */}
+      <rect x="5" y="12" width="2" height="2" fill="#C1884B" />
+      <rect x="9" y="12" width="2" height="2" fill="#C1884B" />
+      {frame === 1 && <><rect x="4" y="12" width="2" height="2" fill="#C1884B" /><rect x="10" y="12" width="2" height="2" fill="#C1884B" /></>}
+      {/* Tail */}
+      <rect x="11" y="10" width="1" height="2" fill="#C1884B" />
+      <rect x="12" y="11" width="2" height="1" fill="#C1884B" />
+      <rect x="13" y="12" width="1" height="1" fill="#C1884B" />
+    </svg>
+  ),
+  pheasant: (sz = 48, frame = 0) => (
+    <svg width={sz} height={sz} viewBox="0 0 16 16" style={{ imageRendering: "pixelated" }}>
+      {/* Crest */}
+      <rect x="7" y="0" width="2" height="2" fill="#E63946" />
+      <rect x="6" y="1" width="1" height="1" fill="#E63946" />
+      {/* Head */}
+      <rect x="5" y="2" width="6" height="4" fill="#1B8C5A" />
+      {/* Eyes */}
+      <rect x="6" y="3" width="1" height="1" fill="#FFF" />
+      <rect x="9" y="3" width="1" height="1" fill="#FFF" />
+      <rect x="6" y="3" width="1" height="1" fill="#2D1B00" opacity="0.7" />
+      <rect x="9" y="3" width="1" height="1" fill="#2D1B00" opacity="0.7" />
+      {/* Beak */}
+      <rect x="10" y="4" width="2" height="1" fill="#FFB300" />
+      <rect x="11" y="5" width="1" height="1" fill="#FFB300" />
+      {/* Body */}
+      <rect x="5" y="6" width="6" height="4" fill="#2E7D32" />
+      <rect x="6" y="6" width="4" height="2" fill="#FFD700" />
+      {/* Wings */}
+      <rect x="3" y="6" width="2" height="4" fill="#1B5E20" />
+      <rect x="11" y="6" width="2" height="4" fill="#1B5E20" />
+      {frame === 1 && <><rect x="2" y="5" width="2" height="3" fill="#1B5E20" /><rect x="12" y="5" width="2" height="3" fill="#1B5E20" /></>}
+      {/* Tail feathers */}
+      <rect x="4" y="10" width="2" height="3" fill="#8BC34A" />
+      <rect x="6" y="11" width="2" height="3" fill="#FFD700" />
+      <rect x="8" y="10" width="2" height="3" fill="#2E7D32" />
+      {/* Legs */}
+      <rect x="6" y="13" width="1" height="2" fill="#FF8C00" />
+      <rect x="9" y="13" width="1" height="2" fill="#FF8C00" />
+      <rect x="5" y="15" width="2" height="1" fill="#FF8C00" />
+      <rect x="9" y="15" width="2" height="1" fill="#FF8C00" />
+    </svg>
+  ),
+  redOni: (sz = 64) => (
+    <svg width={sz} height={sz} viewBox="0 0 16 16" style={{ imageRendering: "pixelated" }}>
+      <rect x="5" y="0" width="2" height="2" fill="#FFD700" />
+      <rect x="9" y="0" width="2" height="2" fill="#FFD700" />
+      <rect x="6" y="0" width="1" height="1" fill="#FFF8E1" />
+      <rect x="10" y="0" width="1" height="1" fill="#FFF8E1" />
+      <rect x="3" y="2" width="10" height="6" fill="#E63946" />
+      <rect x="3" y="1" width="2" height="2" fill="#8B0000" />
+      <rect x="11" y="1" width="2" height="2" fill="#8B0000" />
+      <rect x="4" y="4" width="2" height="2" fill="#FFF" />
+      <rect x="10" y="4" width="2" height="2" fill="#FFF" />
+      <rect x="5" y="5" width="1" height="1" fill="#000" />
+      <rect x="11" y="5" width="1" height="1" fill="#000" />
+      <rect x="5" y="7" width="6" height="1" fill="#8B0000" />
+      <rect x="6" y="6" width="1" height="2" fill="#FFF" />
+      <rect x="9" y="6" width="1" height="2" fill="#FFF" />
+      <rect x="3" y="8" width="10" height="4" fill="#E63946" />
+      <rect x="5" y="9" width="6" height="3" fill="#FFD700" />
+      <rect x="6" y="9" width="1" height="1" fill="#333" />
+      <rect x="8" y="10" width="1" height="1" fill="#333" />
+      <rect x="10" y="9" width="1" height="1" fill="#333" />
+      <rect x="1" y="8" width="2" height="4" fill="#E63946" />
+      <rect x="13" y="8" width="2" height="4" fill="#E63946" />
+      <rect x="14" y="5" width="2" height="6" fill="#666" />
+      <rect x="14" y="5" width="2" height="1" fill="#888" />
+      <rect x="4" y="12" width="3" height="3" fill="#E63946" />
+      <rect x="9" y="12" width="3" height="3" fill="#E63946" />
+      <rect x="4" y="15" width="3" height="1" fill="#8B0000" />
+      <rect x="9" y="15" width="3" height="1" fill="#8B0000" />
+    </svg>
+  ),
+  blueOni: (sz = 64) => (
+    <svg width={sz} height={sz} viewBox="0 0 16 16" style={{ imageRendering: "pixelated" }}>
+      <rect x="6" y="0" width="2" height="3" fill="#FFD700" />
+      <rect x="7" y="0" width="1" height="1" fill="#FFF8E1" />
+      <rect x="3" y="2" width="10" height="6" fill="#4169E1" />
+      <rect x="3" y="1" width="2" height="2" fill="#1a3a8a" />
+      <rect x="11" y="1" width="2" height="2" fill="#1a3a8a" />
+      <rect x="4" y="4" width="2" height="2" fill="#FFF" />
+      <rect x="10" y="4" width="2" height="2" fill="#FFF" />
+      <rect x="5" y="4" width="1" height="1" fill="#F00" />
+      <rect x="10" y="4" width="1" height="1" fill="#F00" />
+      <rect x="5" y="7" width="6" height="1" fill="#1a3a8a" />
+      <rect x="5" y="6" width="1" height="2" fill="#FFF" />
+      <rect x="10" y="6" width="1" height="2" fill="#FFF" />
+      <rect x="3" y="8" width="10" height="4" fill="#4169E1" />
+      <rect x="5" y="9" width="6" height="3" fill="#FFD700" />
+      <rect x="7" y="9" width="1" height="1" fill="#333" />
+      <rect x="9" y="10" width="1" height="1" fill="#333" />
+      <rect x="1" y="8" width="2" height="4" fill="#4169E1" />
+      <rect x="13" y="8" width="2" height="4" fill="#4169E1" />
+      <rect x="0" y="6" width="2" height="5" fill="#555" />
+      <rect x="4" y="12" width="3" height="3" fill="#4169E1" />
+      <rect x="9" y="12" width="3" height="3" fill="#4169E1" />
+      <rect x="4" y="15" width="3" height="1" fill="#1a3a8a" />
+      <rect x="9" y="15" width="3" height="1" fill="#1a3a8a" />
+    </svg>
+  ),
+  blackOni: (sz = 72) => (
+    <svg width={sz} height={sz} viewBox="0 0 16 16" style={{ imageRendering: "pixelated" }}>
+      <rect x="4" y="0" width="3" height="3" fill="#FFD700" />
+      <rect x="9" y="0" width="3" height="3" fill="#FFD700" />
+      <rect x="5" y="0" width="1" height="1" fill="#FFF" />
+      <rect x="10" y="0" width="1" height="1" fill="#FFF" />
+      <rect x="2" y="2" width="12" height="6" fill="#2D2D2D" />
+      <rect x="4" y="4" width="2" height="2" fill="#FF0" />
+      <rect x="10" y="4" width="2" height="2" fill="#FF0" />
+      <rect x="5" y="5" width="1" height="1" fill="#F00" />
+      <rect x="11" y="5" width="1" height="1" fill="#F00" />
+      <rect x="4" y="7" width="8" height="1" fill="#600" />
+      <rect x="5" y="6" width="1" height="2" fill="#FFF" />
+      <rect x="7" y="6" width="1" height="2" fill="#FFF" />
+      <rect x="9" y="6" width="1" height="2" fill="#FFF" />
+      <rect x="11" y="6" width="1" height="2" fill="#FFF" />
+      <rect x="2" y="8" width="12" height="5" fill="#2D2D2D" />
+      <rect x="4" y="9" width="8" height="3" fill="#8B0000" />
+      <rect x="6" y="9" width="1" height="1" fill="#FFD700" />
+      <rect x="9" y="10" width="1" height="1" fill="#FFD700" />
+      <rect x="0" y="8" width="2" height="5" fill="#2D2D2D" />
+      <rect x="14" y="8" width="2" height="5" fill="#2D2D2D" />
+      <rect x="14" y="3" width="2" height="9" fill="#444" />
+      <rect x="15" y="3" width="1" height="1" fill="#FFD700" />
+      <rect x="15" y="6" width="1" height="1" fill="#FFD700" />
+      <rect x="15" y="9" width="1" height="1" fill="#FFD700" />
+      <rect x="3" y="13" width="4" height="3" fill="#2D2D2D" />
+      <rect x="9" y="13" width="4" height="3" fill="#2D2D2D" />
+    </svg>
+  ),
+  kibidango: (sz = 32) => (
+    <svg width={sz} height={sz} viewBox="0 0 16 16">
+      <circle cx="8" cy="5" r="4" fill="#FFDEAD" />
+      <circle cx="8" cy="5" r="3.2" fill="#FFE4B5" />
+      <circle cx="7" cy="4" r="0.8" fill="#DEB88766" />
+      <rect x="7" y="9" width="2" height="5" fill="#8B7355" />
+      <rect x="6" y="8" width="4" height="1" fill="#8B7355" />
+    </svg>
+  ),
+  treasure: (sz = 48) => (
+    <svg width={sz} height={sz} viewBox="0 0 16 16">
+      <rect x="2" y="5" width="12" height="9" fill="#DAA520" rx="1" />
+      <rect x="2" y="5" width="12" height="3" fill="#B8860B" rx="1" />
+      <rect x="6" y="4" width="4" height="3" fill="#FFD700" />
+      <rect x="7" y="5" width="2" height="2" fill="#FF4444" />
+      <rect x="3" y="9" width="2" height="2" fill="#FFD700" />
+      <rect x="7" y="10" width="2" height="2" fill="#FFD700" />
+      <rect x="11" y="9" width="2" height="2" fill="#FFD700" />
+      <rect x="5" y="11" width="1" height="1" fill="#E0E0E0" />
+      <rect x="9" y="9" width="1" height="1" fill="#E0E0E0" />
+    </svg>
+  ),
+  peach: (sz = 80) => (
+    <svg width={sz} height={sz} viewBox="0 0 16 16">
+      <ellipse cx="8" cy="9" rx="6" ry="5.5" fill="#FFB7C5" />
+      <ellipse cx="6" cy="8.5" rx="4" ry="4.5" fill="#FF8FAB" />
+      <ellipse cx="10" cy="8.5" rx="4" ry="4.5" fill="#FF8FAB" />
+      <ellipse cx="8" cy="9" rx="3.5" ry="3" fill="#FFC1CC" opacity="0.5" />
+      <path d="M8 3 Q6 1 5 3" stroke="#4CAF50" strokeWidth="0.8" fill="none" />
+      <path d="M8 3 Q10 1 11 3" stroke="#4CAF50" strokeWidth="0.8" fill="none" />
+      <ellipse cx="7" cy="3.5" rx="1.8" ry="1" fill="#4CAF50" />
+      <ellipse cx="9" cy="3.5" rx="1.8" ry="1" fill="#388E3C" />
+      <line x1="8" y1="4" x2="8" y2="14.5" stroke="#FF6B8A" strokeWidth="0.3" opacity="0.5" />
+    </svg>
+  ),
+  grandma: (sz = 56) => (
+    <svg width={sz} height={sz} viewBox="0 0 16 16" style={{ imageRendering: "pixelated" }}>
+      <rect x="5" y="0" width="6" height="3" fill="#CCC" />
+      <rect x="5" y="2" width="6" height="4" fill="#FFD5A8" />
+      <rect x="6" y="3" width="1" height="1" fill="#2D1B00" />
+      <rect x="9" y="3" width="1" height="1" fill="#2D1B00" />
+      <rect x="7" y="5" width="2" height="1" fill="#E88" />
+      <rect x="4" y="6" width="8" height="6" fill="#8E6BB0" />
+      <rect x="6" y="6" width="4" height="1" fill="#FFE082" />
+      <rect x="3" y="7" width="1" height="3" fill="#FFD5A8" />
+      <rect x="12" y="7" width="1" height="3" fill="#FFD5A8" />
+      <rect x="5" y="12" width="2" height="3" fill="#8E6BB0" />
+      <rect x="9" y="12" width="2" height="3" fill="#8E6BB0" />
+    </svg>
+  ),
+};
+
+// ========== STORY SCENES ==========
+const storyScenes = [
+  { id: "intro", bg: "village", text: "むかしむかし あるところに\nおじいさんと おばあさんが\nすんでいました。", speaker: null, next: "river" },
+  { id: "river", bg: "river", text: "おばあさんが かわで\nせんたくを していると…\n\nおおきな ももが\nどんぶらこ どんぶらこ♪\nと ながれてきました！", speaker: null, next: "peach_open" },
+  { id: "peach_open", bg: "village", text: "ももを パカッと きると…\n\nなかから げんきな\nおとこのこが うまれました！\n\n「ももたろう」と なづけました。", speaker: "peach", next: "grow_up" },
+  { id: "grow_up", bg: "village", text: "ももたろうは すくすくそだち\nにほんいち つよくて\nやさしい こに なりました。\n\n「おにがしまの わるい おにを\nたいじしに いきます！」", speaker: "momotaro", next: "start_journey" },
+  { id: "start_journey", bg: "village", text: "おばあさんは\nきびだんごを つくって\nもたせて くれました。\n\n「いってらっしゃい！\n きを つけてね！」\n\nさあ ぼうけんの はじまり！", speaker: "grandma", next: null, startMap: "village" },
+];
+
+const companionScenes = {
+  dog: [
+    { text: "🐕 いぬ\n「ももたろうさん！\n おにがしまに いくなら\n おともしますワン！\n きびだんごを ひとつ\n くださいワン！」" },
+    { text: "きびだんごを あげた！\n\n🐕 いぬが なかまに なった！\n\nいぬは かみつきが とくい！\nこうげきりょくが あがるぞ！" },
+  ],
+  monkey: [
+    { text: "🐒 さる\n「ももたろうさん！\n きびだんごを ひとつ\n くだされ！\n わたしも おにたいじに\n おともしますキキッ！」" },
+    { text: "きびだんごを あげた！\n\n🐒 さるが なかまに なった！\n\nさるは ひっかきが とくい！\nすばやさが あがるぞ！" },
+  ],
+  pheasant: [
+    { text: "🐦 きじ\n「ももたろうさん！\n わたしも おにたいじの\n おともを させてください！\n きびだんごを ひとつ\n くださいケーン！」" },
+    { text: "きびだんごを あげた！\n\n🐦 きじが なかまに なった！\n\nきじは そらから こうげき！\nとくべつわざが つかえるぞ！" },
+  ],
+};
+
+// ========== MAP DATA ==========
+const maps = {
+  village: { name: "ももたろうの むら", tiles: "village", npcs: [], exits: { right: "forest" } },
+  forest: { name: "もりの みち", tiles: "forest", npcs: [{ type: "dog", x: 65, y: 50 }], exits: { left: "village", right: "mountain" } },
+  mountain: { name: "やまの みち", tiles: "mountain", npcs: [{ type: "monkey", x: 60, y: 42 }], exits: { left: "forest", right: "beach" } },
+  beach: { name: "うみべの みち", tiles: "beach", npcs: [{ type: "pheasant", x: 55, y: 50 }], exits: { left: "mountain", right: "onigashima" } },
+  onigashima: {
+    name: "おにがしま", tiles: "onigashima", npcs: [], exits: { left: "beach" },
+    oniPositions: [
+      { type: "redOni", x: 25, y: 28, label: "あかおに" },
+      { type: "blueOni", x: 72, y: 22, label: "あおおに" },
+      { type: "blackOni", x: 48, y: 12, label: "くろおに（ボス）" },
+    ],
+  },
+};
+
+const enemies = {
+  redOni: { name: "あかおに", hp: 30, atk: 4, sprite: "redOni", exp: 10, gold: 50 },
+  blueOni: { name: "あおおに", hp: 40, atk: 5, sprite: "blueOni", exp: 15, gold: 80 },
+  blackOni: { name: "くろおに（ボス）", hp: 60, atk: 7, sprite: "blackOni", exp: 30, gold: 200 },
+};
+
+// ========== BACKGROUNDS ==========
+function MapBG({ type, children }) {
+  const bgs = {
+    village: <>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#87CEEB 0%,#B3E5FC 35%,#7CB342 35%,#558B2F 100%)" }} />
+      <div style={{ position: "absolute", top: 15, right: 30, width: 45, height: 45, borderRadius: "50%", background: "radial-gradient(#FFF9C4,#FFD700)", boxShadow: "0 0 25px #FFD70088" }} />
+      {[[15, 8, 50], [55, 12, 40], [80, 6, 35]].map(([l, t, w], i) =>
+        <div key={i} style={{ position: "absolute", left: `${l}%`, top: `${t}%`, width: w, height: w * 0.4, borderRadius: w, background: "rgba(255,255,255,0.85)" }} />
+      )}
+      {[12, 75].map((l, i) => <div key={`t${i}`} style={{ position: "absolute", bottom: "42%", left: `${l}%` }}>
+        <div style={{ width: 8, height: 28, background: "#5D4037", margin: "0 auto" }} />
+        <div style={{ width: 40, height: 35, background: "#FFB7C5", borderRadius: "50%", marginTop: -12, boxShadow: "0 0 10px #FFB7C544" }} />
+        <div style={{ width: 30, height: 25, background: "#FF8FAB", borderRadius: "50%", marginTop: -28, marginLeft: 5 }} />
+      </div>)}
+      <div style={{ position: "absolute", bottom: "36%", left: "35%" }}>
+        <div style={{ width: 70, height: 8, background: "#5D4037", borderRadius: "2px 2px 0 0", transform: "scaleX(1.3)" }} />
+        <div style={{ width: 70, height: 35, background: "#EFEBE9" }}>
+          <div style={{ position: "absolute", bottom: 0, left: 25, width: 20, height: 22, background: "#4E342E" }} />
+        </div>
+      </div>
+      {[20, 40, 60, 80].map((l, i) => <div key={`f${i}`} style={{ position: "absolute", bottom: `${32 + i % 3 * 2}%`, left: `${l}%`, width: 6, height: 6, borderRadius: "50%", background: ["#FFB7C5", "#FF8FAB", "#FFF176", "#E1BEE7"][i] }} />)}
+    </>,
+    river: <>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#87CEEB 0%,#B3E5FC 30%,#7CB342 30%,#558B2F 48%,#29B6F6 48%,#0288D1 68%,#558B2F 68%,#7CB342 100%)" }} />
+      {[42, 46, 50, 54].map((t, i) => <div key={i} style={{ position: "absolute", top: `${t + i * 3}%`, left: `${10 + i * 15}%`, width: 40 + i * 10, height: 4, borderRadius: 4, background: "rgba(255,255,255,0.25)" }} />)}
+      <div style={{ position: "absolute", top: "52%", left: "42%", animation: "floatPeach 3s ease-in-out infinite" }}>{S.peach(55)}</div>
+      {[8, 85].map((l, i) => <div key={i} style={{ position: "absolute", bottom: "55%", left: `${l}%` }}>
+        <div style={{ width: 6, height: 20, background: "#5D4037", margin: "0 auto" }} />
+        <div style={{ width: 28, height: 22, background: "#66BB6A", borderRadius: "50%", marginTop: -8 }} />
+      </div>)}
+    </>,
+    forest: <>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#2E7D32 0%,#1B5E20 25%,#33691E 50%,#4E342E 80%,#795548 100%)" }} />
+      {[5, 18, 32, 50, 65, 78, 90].map((l, i) => <div key={i} style={{ position: "absolute", bottom: `${25 + Math.sin(i) * 8}%`, left: `${l}%`, zIndex: i % 2 }}>
+        <div style={{ width: 8, height: 35 + i * 3, background: "#4E342E", margin: "0 auto" }} />
+        <div style={{ width: 35 + i * 2, height: 30 + i * 2, background: `hsl(${120 + i * 8},55%,${22 + i * 2}%)`, borderRadius: "50%", marginTop: -12 }} />
+        <div style={{ width: 25 + i, height: 20 + i, background: `hsl(${125 + i * 6},50%,${28 + i * 2}%)`, borderRadius: "50%", marginTop: -22, marginLeft: 3 }} />
+      </div>)}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "22%", background: "linear-gradient(180deg,#6D4C41,#795548)" }} />
+      <div style={{ position: "absolute", bottom: 0, left: "20%", width: "60%", height: "20%", background: "#8D6E63", borderRadius: "50% 50% 0 0" }} />
+      <div style={{ position: "absolute", top: 0, left: "30%", width: 60, height: "60%", background: "linear-gradient(180deg,rgba(255,255,200,0.15),transparent)", transform: "rotate(-5deg)" }} />
+    </>,
+    mountain: <>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#90CAF9 0%,#BBDEFB 20%,#8D6E63 45%,#6D4C41 70%,#795548 100%)" }} />
+      <div style={{ position: "absolute", bottom: "35%", left: "-5%", width: 0, height: 0, borderLeft: "130px solid transparent", borderRight: "130px solid transparent", borderBottom: "170px solid #795548" }} />
+      <div style={{ position: "absolute", bottom: "35%", right: "-15%", width: 0, height: 0, borderLeft: "160px solid transparent", borderRight: "160px solid transparent", borderBottom: "200px solid #6D4C41" }} />
+      <div style={{ position: "absolute", bottom: "72%", left: "8%", width: 0, height: 0, borderLeft: "25px solid transparent", borderRight: "25px solid transparent", borderBottom: "15px solid #FAFAFA" }} />
+      <div style={{ position: "absolute", bottom: "78%", right: "5%", width: 0, height: 0, borderLeft: "30px solid transparent", borderRight: "30px solid transparent", borderBottom: "18px solid #FAFAFA" }} />
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "30%", background: "#795548" }} />
+      <div style={{ position: "absolute", bottom: 0, left: "15%", width: "70%", height: "28%", background: "#8D6E63", borderRadius: "40% 40% 0 0" }} />
+      {[[20, 15, 45], [70, 10, 35]].map(([l, t, w], i) =>
+        <div key={i} style={{ position: "absolute", left: `${l}%`, top: `${t}%`, width: w, height: w * 0.35, borderRadius: w, background: "rgba(255,255,255,0.7)" }} />
+      )}
+    </>,
+    beach: <>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#81D4FA 0%,#4FC3F7 25%,#0288D1 45%,#01579B 55%,#FFD54F 55%,#FBC02D 100%)" }} />
+      {[43, 46, 49, 52].map((t, i) => <div key={i} style={{ position: "absolute", top: `${t}%`, left: 0, right: 0, height: 6, background: "rgba(255,255,255,0.2)", borderRadius: 8, animation: `wave ${2 + i * 0.3}s ease-in-out infinite`, animationDelay: `${i * 0.2}s` }} />)}
+      <div style={{ position: "absolute", top: "28%", right: "8%" }}>
+        <div style={{ width: 75, height: 35, background: "#4E342E", borderRadius: "40% 40% 5% 5%" }} />
+        <div style={{ position: "absolute", top: -8, left: 30, fontSize: 14 }}>🏴</div>
+        <div style={{ position: "absolute", top: 5, left: 10, width: 8, height: 8, background: "#FF6F00", borderRadius: "50%", boxShadow: "0 0 6px #FF6F00", animation: "flicker 1s infinite" }} />
+        <div style={{ position: "absolute", top: 8, right: 15, width: 6, height: 6, background: "#FF6F00", borderRadius: "50%", boxShadow: "0 0 4px #FF6F00", animation: "flicker 1.3s infinite" }} />
+      </div>
+      <div style={{ position: "absolute", top: "42%", left: "40%", animation: "boatRock 3s ease-in-out infinite" }}>
+        <div style={{ width: 40, height: 4, background: "#6D4C41", borderRadius: "0 0 8px 8px" }} />
+        <div style={{ position: "absolute", top: -18, left: 18, width: 3, height: 18, background: "#5D4037" }} />
+        <div style={{ position: "absolute", top: -16, left: 20, width: 15, height: 12, background: "#FFF", clipPath: "polygon(0 0,100% 50%,0 100%)" }} />
+      </div>
+      {[15, 35, 55, 75, 88].map((l, i) => <div key={i} style={{ position: "absolute", bottom: `${35 - i % 3 * 3}%`, left: `${l}%`, width: 4 + i % 3 * 2, height: 3, borderRadius: 2, background: "rgba(255,255,255,0.4)" }} />)}
+    </>,
+    onigashima: <>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#1a0a0a 0%,#37474F 15%,#263238 30%,#4E342E 55%,#3E2723 100%)" }} />
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "20%", background: "linear-gradient(180deg,#B71C1C22,transparent)" }} />
+      <div style={{ position: "absolute", top: 0, left: "35%", width: 2, height: 50, background: "#FFD54F", opacity: 0.15, transform: "rotate(8deg)" }} />
+      <div style={{ position: "absolute", top: 0, right: "25%", width: 2, height: 40, background: "#FFD54F", opacity: 0.1, transform: "rotate(-5deg)" }} />
+      {[[10, 5, 60], [50, 8, 50], [75, 3, 45]].map(([l, t, w], i) =>
+        <div key={i} style={{ position: "absolute", left: `${l}%`, top: `${t}%`, width: w, height: w * 0.35, borderRadius: w, background: "rgba(80,80,80,0.5)" }} />
+      )}
+      <div style={{ position: "absolute", bottom: "42%", left: "50%", transform: "translateX(-50%)", zIndex: 2 }}>
+        <div style={{ width: 90, height: 8, background: "#C62828", borderRadius: 3 }} />
+        <div style={{ width: 80, height: 5, background: "#B71C1C", margin: "2px 5px", borderRadius: 2 }} />
+        <div style={{ display: "flex", justifyContent: "space-between", width: 80, margin: "0 5px" }}>
+          <div style={{ width: 8, height: 40, background: "#C62828", borderRadius: 2 }} />
+          <div style={{ width: 8, height: 40, background: "#C62828", borderRadius: 2 }} />
+        </div>
+      </div>
+      {[15, 85].map((l, i) => <div key={i} style={{ position: "absolute", bottom: "35%", left: `${l}%` }}>
+        <div style={{ width: 6, height: 30, background: "#5D4037" }} />
+        <div style={{ position: "absolute", top: -8, left: -3, width: 12, height: 12, background: "radial-gradient(#FF6F00,#F44336,transparent)", borderRadius: "50%", animation: "flicker 0.5s infinite" }} />
+      </div>)}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "30%", background: "linear-gradient(180deg,#4E342E,#3E2723)" }} />
+      <div style={{ position: "absolute", bottom: "28%", left: "10%", fontSize: 14, opacity: 0.3 }}>💀</div>
+      <div style={{ position: "absolute", bottom: "32%", right: "12%", fontSize: 12, opacity: 0.25 }}>💀</div>
+    </>,
+  };
+  return <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>{bgs[type] || bgs.village}{children}</div>;
+}
+
+// ========== MAIN GAME ==========
+export default function App() {
+  const [phase, setPhase] = useState(PHASES.TITLE);
+  const [storyIdx, setStoryIdx] = useState(0);
+  const [curMap, setCurMap] = useState("village");
+  const [pos, setPos] = useState({ x: 50, y: 75 });
+  const [dir, setDir] = useState("right");
+  const [companions, setCompanions] = useState([]);
+  const [kibidango, setKibidango] = useState(3);
+  const [hp, setHp] = useState(50);
+  const [maxHp, setMaxHp] = useState(50);
+  const [atk, setAtk] = useState(8);
+  const [level, setLevel] = useState(1);
+  const [exp, setExp] = useState(0);
+  const [gold, setGold] = useState(0);
+  const [enemy, setEnemy] = useState(null);
+  const [enemyHp, setEnemyHp] = useState(0);
+  const [bLog, setBLog] = useState([]);
+  const [bPhase, setBPhase] = useState("menu");
+  const [compScene, setCompScene] = useState(null);
+  const [compIdx, setCompIdx] = useState(0);
+  const [defeated, setDefeated] = useState([]);
+  const [txt, setTxt] = useState("");
+  const [txtDone, setTxtDone] = useState(false);
+  const [fullTxt, setFullTxt] = useState("");
+  const [titleAnim, setTitleAnim] = useState(false);
+  const [shake, setShake] = useState(false);
+  const [flash, setFlash] = useState(false);
+  const [frame, setFrame] = useState(0);
+  const [trail, setTrail] = useState([]);
+  const trailRef = useRef([]);
+  const txtTimer = useRef(null);
+
+  useEffect(() => { setTimeout(() => setTitleAnim(true), 300); }, []);
+  useEffect(() => { const t = setInterval(() => setFrame(f => (f + 1) % 2), 280); return () => clearInterval(t); }, []);
+
+  const showText = useCallback((t) => {
+    if (txtTimer.current) clearInterval(txtTimer.current);
+    setTxt(""); setTxtDone(false); setFullTxt(t);
+    let i = 0;
+    txtTimer.current = setInterval(() => {
+      i++; if (i >= t.length) { setTxt(t); setTxtDone(true); clearInterval(txtTimer.current); }
+      else setTxt(t.slice(0, i));
+    }, 45);
+  }, []);
+  const skip = useCallback(() => { if (txtTimer.current) clearInterval(txtTimer.current); setTxt(fullTxt); setTxtDone(true); }, [fullTxt]);
+  useEffect(() => { if (phase === PHASES.STORY && storyScenes[storyIdx]) showText(storyScenes[storyIdx].text); }, [phase, storyIdx, showText]);
+  useEffect(() => { if (compScene && companionScenes[compScene]) showText(companionScenes[compScene][compIdx].text); }, [compScene, compIdx, showText]);
+
+  const recordTrail = useCallback((np) => {
+    const nt = [{ x: np.x, y: np.y }, ...trailRef.current].slice(0, 20);
+    trailRef.current = nt; setTrail(nt);
+  }, []);
+  const initTrail = useCallback((p, d) => {
+    const t = []; const dx = d === "right" ? -1 : 1;
+    for (let i = 0; i < 20; i++) t.push({ x: p.x + dx * 7 * (i + 1), y: p.y });
+    trailRef.current = t; setTrail(t);
+  }, []);
+
+  const startGame = () => { setPhase(PHASES.STORY); setStoryIdx(0); };
+  const advStory = () => {
+    if (!txtDone) { skip(); return; }
+    const sc = storyScenes[storyIdx];
+    if (sc.startMap) { setCurMap(sc.startMap); setPhase(PHASES.MAP); const sp = { x: 50, y: 75 }; initTrail(sp, "right"); return; }
+    if (sc.next) { const ni = storyScenes.findIndex(s => s.id === sc.next); if (ni >= 0) setStoryIdx(ni); }
+  };
+
+  const movePlayer = (d) => {
+    const map = maps[curMap];
+    if (d === "left" || d === "right") setDir(d);
+    setPos(prev => {
+      let nx = prev.x, ny = prev.y; const step = 7;
+      if (d === "up") ny = Math.max(8, ny - step);
+      if (d === "down") ny = Math.min(88, ny + step);
+      if (d === "left") nx = Math.max(5, nx - step);
+      if (d === "right") nx = Math.min(95, nx + step);
+      if (nx >= 93 && map.exits.right) { setCurMap(map.exits.right); const sp = { x: 10, y: 75 }; initTrail(sp, "right"); return sp; }
+      if (nx <= 7 && map.exits.left) { setCurMap(map.exits.left); const sp = { x: 85, y: 75 }; initTrail(sp, "left"); return sp; }
+      map.npcs.forEach(npc => {
+        if (!companions.includes(npc.type) && Math.abs(nx - npc.x) < 12 && Math.abs(ny - npc.y) < 15) {
+          setCompScene(npc.type); setCompIdx(0);
+        }
+      });
+      if (map.oniPositions) {
+        map.oniPositions.forEach(oni => {
+          if (!defeated.includes(oni.type) && Math.abs(nx - oni.x) < 12 && Math.abs(ny - oni.y) < 12) {
+            const seq = ["redOni", "blueOni", "blackOni"];
+            const idx = seq.indexOf(oni.type);
+            if (idx === 0 || defeated.includes(seq[idx - 1])) startBattle(oni.type);
+          }
+        });
+      }
+      const np = { x: nx, y: ny }; recordTrail(np); return np;
+    });
+  };
+
+  const advCompScene = () => {
+    if (!txtDone) { skip(); return; }
+    if (compIdx < companionScenes[compScene].length - 1) {
+      if (compIdx === 0) { setCompanions(p => [...p, compScene]); setKibidango(p => p - 1); initTrail(pos, dir); }
+      setCompIdx(p => p + 1);
+    } else { setCompScene(null); setCompIdx(0); }
+  };
+
+  const startBattle = (et) => {
+    const e = enemies[et]; setEnemy({ ...e, type: et }); setEnemyHp(e.hp);
+    setBLog([`${e.name}が あらわれた！`]); setBPhase("menu"); setPhase(PHASES.BATTLE);
+  };
+
+  const doAttack = () => {
+    const tot = atk + companions.length * 3; const dmg = tot + Math.floor(Math.random() * 5);
+    const nh = Math.max(0, enemyHp - dmg); setEnemyHp(nh);
+    setShake(true); setTimeout(() => setShake(false), 300);
+    let log = `ももたろうの こうげき！\n${dmg}の ダメージ！`;
+    companions.forEach(c => {
+      const cd = 3 + Math.floor(Math.random() * 4);
+      log += `\n${c === "dog" ? "いぬ" : c === "monkey" ? "さる" : "きじ"}も こうげき！ ${cd}ダメージ！`;
+    });
+    if (nh <= 0) {
+      setFlash(true); setTimeout(() => setFlash(false), 500);
+      setBLog([log, `${enemy.name}を たおした！\n${enemy.exp}けいけんち と\n${enemy.gold}ゴールド てにいれた！`]);
+      setBPhase("won"); setExp(p => p + enemy.exp); setGold(p => p + enemy.gold); setDefeated(p => [...p, enemy.type]);
+      if (enemy.type === "blackOni") setTimeout(() => setPhase(PHASES.VICTORY), 2000); return;
+    }
+    const ed = Math.max(1, enemy.atk - Math.floor(Math.random() * 3)); setHp(p => Math.max(0, p - ed));
+    setBLog([log, `${enemy.name}の こうげき！\n${ed}の ダメージをうけた！`]); setBPhase("menu");
+  };
+
+  const doHeal = () => {
+    if (kibidango <= 0) { setBLog(["きびだんごが もうない！"]); return; }
+    setKibidango(p => p - 1); setHp(p => Math.min(maxHp, p + 25));
+    const ed = Math.max(1, enemy.atk - Math.floor(Math.random() * 3)); setHp(p => Math.max(0, p - ed));
+    setBLog([`きびだんごを たべた！\nHPが 25 かいふくした！`, `${enemy.name}の こうげき！\n${ed}の ダメージ！`]); setBPhase("menu");
+  };
+
+  const doSpecial = () => {
+    const td = (atk + companions.length * 5) * 2; const nh = Math.max(0, enemyHp - td); setEnemyHp(nh);
+    setShake(true); setFlash(true); setTimeout(() => { setShake(false); setFlash(false); }, 500);
+    const log = `みんなの ちからを あわせた！\nひっさつ「ももたろうアタック」！\n${td}の おおダメージ！！`;
+    if (nh <= 0) {
+      setBLog([log, `${enemy.name}を たおした！`]); setBPhase("won");
+      setExp(p => p + enemy.exp); setGold(p => p + enemy.gold); setDefeated(p => [...p, enemy.type]);
+      if (enemy.type === "blackOni") setTimeout(() => setPhase(PHASES.VICTORY), 2000); return;
+    }
+    const ed = Math.max(1, enemy.atk - Math.floor(Math.random() * 2)); setHp(p => Math.max(0, p - ed));
+    setBLog([log, `${enemy.name}の こうげき！\n${ed}の ダメージ！`]); setBPhase("menu");
+  };
+
+  const endBattle = () => {
+    if (exp >= level * 15) { setLevel(p => p + 1); setMaxHp(p => p + 10); setHp(p => p + 10); setAtk(p => p + 3); }
+    setHp(p => Math.min(maxHp + 10, Math.max(p, Math.floor(maxHp * 0.7)))); setPhase(PHASES.MAP);
+  };
+
+  const resetGame = () => {
+    setPhase(PHASES.TITLE); setStoryIdx(0); setCompanions([]); setKibidango(3);
+    setHp(50); setMaxHp(50); setAtk(8); setLevel(1); setExp(0); setGold(0);
+    setDefeated([]); setCurMap("village"); setPos({ x: 50, y: 75 }); initTrail({ x: 50, y: 75 }, "right");
+  };
+
+  const getCompPos = (idx) => {
+    const off = (idx + 1) * 1;
+    if (trail.length > off) return trail[off];
+    const dx = dir === "right" ? -1 : 1;
+    return { x: pos.x + dx * 7 * (idx + 1), y: pos.y };
+  };
+
+  const ctn = {
+    width: "100%", maxWidth: 420, height: "100vh", maxHeight: 750, margin: "0 auto",
+    position: "relative", overflow: "hidden", fontFamily: "'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif",
+    background: "#000", borderRadius: 12, boxShadow: "0 0 40px rgba(0,0,0,0.5)", userSelect: "none",
+    transform: shake ? "translateX(4px)" : "none", transition: "transform 0.05s"
+  };
+  const btn = (c = "#E63946", s = "n") => ({
+    background: `linear-gradient(180deg,${c} 0%,${c}cc 100%)`, color: "#fff",
+    border: `3px solid ${c}55`, borderRadius: s === "l" ? 16 : 12,
+    padding: s === "l" ? "16px 32px" : s === "s" ? "8px 12px" : "12px 18px",
+    fontSize: s === "l" ? 22 : s === "s" ? 14 : 17, fontWeight: "bold", cursor: "pointer",
+    boxShadow: `0 4px 0 ${c}44,0 6px 12px rgba(0,0,0,0.3)`, fontFamily: "inherit",
+    letterSpacing: 2, textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+    WebkitTapHighlightColor: "transparent", touchAction: "manipulation"
+  });
+  const dlg = {
+    position: "absolute", bottom: 12, left: 10, right: 10,
+    background: "linear-gradient(180deg,#1a1a2e,#16213e)", border: "3px solid #ddd",
+    borderRadius: 12, padding: "14px 16px", color: "#fff", fontSize: 15.5, lineHeight: 1.8,
+    whiteSpace: "pre-line", boxShadow: "0 -4px 20px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.1)",
+    minHeight: 90, zIndex: 30
+  };
+
+  // ===== TITLE =====
+  if (phase === PHASES.TITLE) return (
+    <div style={ctn}>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#1a0533 0%,#4a1942 25%,#c2185b 55%,#FF8A80 85%,#FFE082 100%)" }}>
+        {Array.from({ length: 25 }).map((_, i) => <div key={i} style={{ position: "absolute", top: `${Math.random() * 35}%`, left: `${Math.random() * 100}%`, width: Math.random() * 3 + 1, height: Math.random() * 3 + 1, background: "#fff", borderRadius: "50%", animation: `twinkle ${1 + Math.random() * 2}s ease-in-out infinite`, animationDelay: `${Math.random() * 2}s` }} />)}
+        {Array.from({ length: 12 }).map((_, i) => <div key={`p${i}`} style={{ position: "absolute", top: `${Math.random() * 70}%`, left: `${Math.random() * 100}%`, width: 6 + Math.random() * 4, height: 6 + Math.random() * 4, background: ["#FFB7C5", "#FF8FAB", "#FFC1CC", "#FFE0E8"][i % 4], borderRadius: "50% 0 50% 0", transform: `rotate(${Math.random() * 360}deg)`, animation: `petalFall ${4 + Math.random() * 4}s linear infinite`, animationDelay: `${Math.random() * 3}s`, opacity: 0.7 }} />)}
+        <div style={{ position: "absolute", top: "8%", left: "50%", transform: `translateX(-50%) scale(${titleAnim ? 1 : 0})`, transition: "transform 0.8s cubic-bezier(0.34,1.56,0.64,1)" }}>{S.peach(110)}</div>
+        <div style={{ position: "absolute", top: "28%", width: "100%", textAlign: "center", opacity: titleAnim ? 1 : 0, transform: `translateY(${titleAnim ? 0 : 30}px)`, transition: "all 0.8s ease 0.3s" }}>
+          <div style={{ fontSize: 44, fontWeight: 900, color: "#FFD700", textShadow: "0 0 15px #FFD700,0 3px 0 #B8860B,0 6px 15px rgba(0,0,0,0.5)", letterSpacing: 10 }}>ももたろう</div>
+          <div style={{ fontSize: 16, color: "#FFE082", marginTop: 6, letterSpacing: 8, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>〜おにたいじ RPG〜</div>
+        </div>
+        <div style={{ position: "absolute", top: "48%", width: "100%", display: "flex", justifyContent: "center", gap: 6, opacity: titleAnim ? 1 : 0, transition: "opacity 1s ease 0.6s" }}>
+          {S.momotaro(56, frame)}{S.dog(48, frame)}{S.monkey(48, frame)}{S.pheasant(48, frame)}
+        </div>
+        <div style={{ position: "absolute", top: "60%", width: "100%", display: "flex", justifyContent: "center", gap: 16, opacity: titleAnim ? 0.25 : 0, transition: "opacity 1s ease 0.8s" }}>
+          {S.redOni(40)}{S.blueOni(40)}{S.blackOni(48)}
+        </div>
+        <div style={{ position: "absolute", bottom: "12%", width: "100%", textAlign: "center", opacity: titleAnim ? 1 : 0, transition: "opacity 1s ease 1s" }}>
+          <button onClick={startGame} style={btn("#E63946", "l")}>ぼうけんに でる</button>
+        </div>
+        <div style={{ position: "absolute", bottom: "4%", width: "100%", textAlign: "center", color: "#FFE08266", fontSize: 10, letterSpacing: 2 }}>© ももたろうクエスト</div>
+      </div>
+      <style>{`@keyframes twinkle{0%,100%{opacity:.3}50%{opacity:1}}@keyframes petalFall{0%{transform:translateY(-20px) rotate(0deg);opacity:.7}100%{transform:translateY(800px) rotate(720deg);opacity:0}}`}</style>
+    </div>
+  );
+
+  // ===== STORY =====
+  if (phase === PHASES.STORY) {
+    const sc = storyScenes[storyIdx];
+    return (
+      <div style={ctn} onClick={advStory}>
+        <MapBG type={sc.bg} />
+        {sc.speaker && <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", animation: "bounce 1.2s ease infinite", zIndex: 5 }}>
+          {sc.speaker === "momotaro" && S.momotaro(88)}
+          {sc.speaker === "peach" && S.peach(110)}
+          {sc.speaker === "grandma" && <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>{S.grandma(64)}<div style={{ display: "flex", gap: 4 }}>{S.kibidango(28)}{S.kibidango(28)}{S.kibidango(28)}</div></div>}
+        </div>}
+        <div style={dlg}>
+          <div>{txt}</div>
+          {txtDone && <div style={{ textAlign: "right", fontSize: 11, color: "#FFD700", animation: "pulse 1s infinite", marginTop: 4 }}>▼ タップしてね</div>}
+        </div>
+        <style>{`@keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-10px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}@keyframes floatPeach{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-12px) rotate(3deg)}}`}</style>
+      </div>
+    );
+  }
+
+  // ===== MAP =====
+  if (phase === PHASES.MAP) {
+    const map = maps[curMap];
+    return (
+      <div style={ctn}>
+        <MapBG type={map.tiles}>
+          <div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", background: "rgba(0,0,0,0.75)", color: "#FFD700", padding: "3px 14px", borderRadius: 16, fontSize: 13, fontWeight: "bold", letterSpacing: 3, border: "2px solid #FFD70044", zIndex: 20 }}>{map.name}</div>
+          <div style={{ position: "absolute", top: 36, left: 8, right: 8, background: "rgba(0,0,0,0.8)", borderRadius: 10, padding: "5px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#fff", border: "1px solid #fff2", zIndex: 20 }}>
+            <div><span style={{ color: "#FF6B6B" }}>❤️{hp}/{maxHp}</span><span style={{ marginLeft: 6, color: "#FFD700" }}>Lv.{level}</span></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}><span>🍡×{kibidango}</span><span style={{ marginLeft: 4, color: "#FFD700" }}>💰{gold}</span></div>
+          </div>
+          <div style={{ position: "absolute", top: 60, left: 8, display: "flex", gap: 2, zIndex: 20 }}>
+            <div style={{ background: "rgba(0,0,0,0.6)", borderRadius: 6, padding: 1, border: "1px solid #FFD70044" }}>{S.momotaro(22)}</div>
+            {companions.map(c => <div key={c} style={{ background: "rgba(0,0,0,0.6)", borderRadius: 6, padding: 1, border: "1px solid #FFD70044" }}>
+              {c === "dog" && S.dog(22)}{c === "monkey" && S.monkey(22)}{c === "pheasant" && S.pheasant(22)}
+            </div>)}
+          </div>
+
+          {/* NPCs not yet recruited */}
+          {map.npcs.filter(n => !companions.includes(n.type)).map((npc, i) => (
+            <div key={i} style={{ position: "absolute", left: `${npc.x}%`, top: `${npc.y}%`, transform: "translate(-50%,-50%)", zIndex: 6, animation: "npcBounce 1.5s ease infinite" }}>
+              <div style={{ textAlign: "center", fontSize: 9, color: "#FFD700", background: "rgba(0,0,0,0.7)", borderRadius: 6, padding: "1px 6px", marginBottom: 2, border: "1px solid #FFD70044" }}>はなす</div>
+              {npc.type === "dog" && S.dog(48, frame)}{npc.type === "monkey" && S.monkey(48, frame)}{npc.type === "pheasant" && S.pheasant(48, frame)}
+            </div>
+          ))}
+
+          {/* ONI on Onigashima */}
+          {map.oniPositions && map.oniPositions.map((oni, i) => {
+            if (defeated.includes(oni.type)) return null;
+            const seq = ["redOni", "blueOni", "blackOni"];
+            const idx = seq.indexOf(oni.type);
+            const canFight = idx === 0 || defeated.includes(seq[idx - 1]);
+            return (
+              <div key={i} style={{ position: "absolute", left: `${oni.x}%`, top: `${oni.y}%`, transform: "translate(-50%,-50%)", zIndex: 6, opacity: canFight ? 1 : 0.35, filter: canFight ? "none" : "grayscale(0.6)" }}>
+                <div style={{ textAlign: "center", fontSize: oni.type === "blackOni" ? 10 : 9, color: canFight ? "#FF6B6B" : "#888", background: "rgba(0,0,0,0.85)", borderRadius: 6, padding: "2px 8px", marginBottom: 3, border: `1px solid ${canFight ? "#FF6B6B66" : "#44444466"}`, fontWeight: "bold" }}>{oni.label}</div>
+                <div style={{ animation: canFight ? "oniGuard 1.2s ease infinite" : "none" }}>
+                  {S[oni.type](oni.type === "blackOni" ? 72 : 58)}
+                </div>
+                {canFight && <div style={{ textAlign: "center", fontSize: 12, marginTop: 2, animation: "pulse 1s infinite" }}>⚔️</div>}
+              </div>
+            );
+          })}
+
+          {map.exits.right && <div style={{ position: "absolute", right: 3, top: "50%", fontSize: 24, color: "#FFD700", animation: "pulse 1s infinite", textShadow: "0 0 8px #FFD700", zIndex: 5 }}>▶</div>}
+          {map.exits.left && <div style={{ position: "absolute", left: 3, top: "50%", fontSize: 24, color: "#FFD700", animation: "pulse 1s infinite", textShadow: "0 0 8px #FFD700", zIndex: 5 }}>◀</div>}
+
+          {/* PARTY FORMATION: Companions following player */}
+          {[...companions].reverse().map((c, ri) => {
+            const idx = companions.length - 1 - ri;
+            const cp = getCompPos(idx);
+            const prevP = idx === 0 ? pos : getCompPos(idx - 1);
+            const cDir = prevP.x >= cp.x ? "right" : "left";
+            return (
+              <div key={c} style={{
+                position: "absolute", left: `${cp.x}%`, top: `${cp.y}%`,
+                transform: `translate(-50%,-100%) scaleX(${cDir === "left" ? -1 : 1})`,
+                transition: "left 0.12s ease, top 0.12s ease",
+                filter: "drop-shadow(0 3px 3px rgba(0,0,0,0.4))", zIndex: 7 + idx
+              }}>
+                {c === "dog" && S.dog(42, frame)}{c === "monkey" && S.monkey(42, frame)}{c === "pheasant" && S.pheasant(42, frame)}
+              </div>
+            );
+          })}
+
+          {/* Player (always on top) */}
+          <div style={{
+            position: "absolute", left: `${pos.x}%`, top: `${pos.y}%`,
+            transform: `translate(-50%,-100%) scaleX(${dir === "left" ? -1 : 1})`,
+            transition: "left 0.15s ease, top 0.15s ease",
+            filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.5))", zIndex: 10
+          }}>
+            {S.momotaro(52, frame)}
+          </div>
+        </MapBG>
+
+        {compScene && (
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 25 }} onClick={advCompScene}>
+            <div style={{ position: "absolute", top: "25%", left: "50%", transform: "translateX(-50%)", animation: "bounce 1s ease infinite" }}>
+              {compScene === "dog" && S.dog(80)}{compScene === "monkey" && S.monkey(80)}{compScene === "pheasant" && S.pheasant(80)}
+            </div>
+            <div style={dlg}>
+              <div>{txt}</div>
+              {txtDone && <div style={{ textAlign: "right", fontSize: 11, color: "#FFD700", animation: "pulse 1s infinite", marginTop: 4 }}>▼</div>}
+            </div>
+          </div>
+        )}
+
+        {!compScene && (
+          <div style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)", zIndex: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "56px 56px 56px", gridTemplateRows: "56px 56px 56px", gap: 3 }}>
+              <div /><button onClick={() => movePlayer("up")} style={{ ...btn("#2E7D32", "s"), borderRadius: 12, width: 56, height: 56, fontSize: 22, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>▲</button><div />
+              <button onClick={() => movePlayer("left")} style={{ ...btn("#2E7D32", "s"), borderRadius: 12, width: 56, height: 56, fontSize: 22, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>◀</button>
+              <div style={{ width: 56, height: 56, background: "rgba(0,0,0,0.3)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 16, height: 16, background: "#fff2", borderRadius: "50%" }} /></div>
+              <button onClick={() => movePlayer("right")} style={{ ...btn("#2E7D32", "s"), borderRadius: 12, width: 56, height: 56, fontSize: 22, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>▶</button>
+              <div /><button onClick={() => movePlayer("down")} style={{ ...btn("#2E7D32", "s"), borderRadius: 12, width: 56, height: 56, fontSize: 22, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>▼</button><div />
+            </div>
+          </div>
+        )}
+
+        <style>{`
+          @keyframes npcBounce{0%,100%{transform:translate(-50%,-50%) translateY(0)}50%{transform:translate(-50%,-50%) translateY(-6px)}}
+          @keyframes oniGuard{0%,100%{transform:translateY(0) scale(1)}25%{transform:translateY(-3px) scale(1.02)}75%{transform:translateY(2px) scale(0.98)}}
+          @keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-8px)}}
+          @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+          @keyframes wave{0%,100%{transform:translateX(0)}50%{transform:translateX(10px)}}
+          @keyframes flicker{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.8)}}
+          @keyframes boatRock{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+        `}</style>
+      </div>
+    );
+  }
+
+  // ===== BATTLE =====
+  if (phase === PHASES.BATTLE && enemy) {
+    const isBoss = enemy.type === "blackOni";
+    return (
+      <div style={{ ...ctn, background: isBoss ? "linear-gradient(180deg,#0a0000,#1a0505 30%,#2d0a0a 60%,#0a0000)" : "linear-gradient(180deg,#1a1a2e,#16213e 30%,#0f3460 60%,#1a1a2e)" }}>
+        {flash && <div style={{ position: "absolute", inset: 0, background: "#fff", zIndex: 100, opacity: 0.8 }} />}
+        {isBoss && <>
+          <div style={{ position: "absolute", top: 0, left: "30%", width: 2, height: "100%", background: "#F002", transform: "rotate(5deg)" }} />
+          <div style={{ position: "absolute", top: 0, right: "25%", width: 2, height: "100%", background: "#F001", transform: "rotate(-3deg)" }} />
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "20%", background: "linear-gradient(transparent,#F001)" }} />
+        </>}
+        <div style={{ position: "absolute", top: "6%", left: "50%", transform: "translateX(-50%)", textAlign: "center" }}>
+          <div style={{ fontSize: 15, color: isBoss ? "#FF4444" : "#FF6B6B", fontWeight: "bold", marginBottom: 6, letterSpacing: 2, textShadow: `0 0 10px ${isBoss ? "#F00" : "#FF6B6B"}` }}>{enemy.name}</div>
+          <div style={{ animation: enemyHp > 0 ? "enemyIdle 1.5s ease infinite" : "none", opacity: enemyHp > 0 ? 1 : 0.2 }}>
+            {S[enemy.sprite](isBoss ? 110 : 88)}
+          </div>
+          <div style={{ marginTop: 6, width: 150, height: 12, background: "#333", borderRadius: 6, overflow: "hidden", border: "2px solid #666", margin: "6px auto" }}>
+            <div style={{ width: `${(enemyHp / enemy.hp) * 100}%`, height: "100%", background: enemyHp > enemy.hp * 0.3 ? "linear-gradient(90deg,#E63946,#FF6B6B)" : "#F00", transition: "width 0.3s", borderRadius: 6 }} />
+          </div>
+          <div style={{ fontSize: 10, color: "#aaa" }}>HP: {enemyHp}/{enemy.hp}</div>
+        </div>
+        <div style={{ position: "absolute", bottom: "40%", left: "10%", right: "10%", display: "flex", justifyContent: "center", gap: 8 }}>
+          <div style={{ animation: "partyIdle 1s ease infinite" }}>{S.momotaro(48, frame)}</div>
+          {companions.map((c, i) => <div key={c} style={{ animation: `partyIdle 1s ease infinite ${0.15 * (i + 1)}s` }}>
+            {c === "dog" && S.dog(40, frame)}{c === "monkey" && S.monkey(40, frame)}{c === "pheasant" && S.pheasant(40, frame)}
+          </div>)}
+        </div>
+        <div style={{ position: "absolute", bottom: "33%", left: 10, right: 10, background: "rgba(0,0,0,0.85)", borderRadius: 10, padding: "6px 10px", border: "2px solid #fff2" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#fff" }}>
+            <span>ももたろう Lv.{level}</span><span style={{ color: "#FF6B6B" }}>HP: {hp}/{maxHp}</span>
+          </div>
+          <div style={{ width: "100%", height: 10, background: "#333", borderRadius: 5, overflow: "hidden", marginTop: 3 }}>
+            <div style={{ width: `${(hp / maxHp) * 100}%`, height: "100%", background: hp > maxHp * 0.3 ? "linear-gradient(90deg,#4CAF50,#8BC34A)" : "#F44", transition: "width 0.3s", borderRadius: 5 }} />
+          </div>
+        </div>
+        <div style={{ position: "absolute", bottom: "16%", left: 10, right: 10, background: "rgba(0,0,0,0.9)", borderRadius: 10, padding: "8px 12px", color: "#fff", fontSize: 13, lineHeight: 1.6, border: "2px solid #fff2", minHeight: 50, whiteSpace: "pre-line", maxHeight: 70, overflow: "auto" }}>
+          {bLog[bLog.length - 1]}
+        </div>
+        <div style={{ position: "absolute", bottom: 10, left: 10, right: 10, zIndex: 10 }}>
+          {bPhase === "menu" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            <button onClick={doAttack} style={btn("#E63946")}>⚔️ こうげき</button>
+            <button onClick={doHeal} style={{ ...btn("#4CAF50"), opacity: kibidango > 0 ? 1 : .5 }}>🍡 きびだんご({kibidango})</button>
+            {companions.length >= 2 && <button onClick={doSpecial} style={{ ...btn("#9C27B0"), gridColumn: "1/3" }}>⭐ ももたろうアタック！</button>}
+          </div>}
+          {bPhase === "won" && <button onClick={endBattle} style={{ ...btn("#FFD700"), width: "100%" }}>🎉 つぎへ すすむ</button>}
+        </div>
+        <style>{`@keyframes enemyIdle{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-8px)}}@keyframes partyIdle{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}`}</style>
+      </div>
+    );
+  }
+
+  // ===== VICTORY =====
+  if (phase === PHASES.VICTORY) return (
+    <div style={ctn}>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#FF8F00 0%,#FF6F00 20%,#E65100 50%,#FFD54F 80%,#FFF8E1 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 20 }}>
+        {Array.from({ length: 25 }).map((_, i) => <div key={i} style={{ position: "absolute", top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`, width: 6 + Math.random() * 8, height: 6 + Math.random() * 8, background: ["#FF6B6B", "#4CAF50", "#4FC3F7", "#FFD700", "#FF8FAB", "#9C27B0", "#FF8A80", "#B2FF59"][i % 8], borderRadius: Math.random() > .5 ? "50%" : "2px", animation: `confetti ${2 + Math.random() * 3}s linear infinite`, animationDelay: `${Math.random() * 2}s` }} />)}
+        {Array.from({ length: 10 }).map((_, i) => <div key={`p${i}`} style={{ position: "absolute", top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`, width: 8, height: 8, background: "#FFB7C5", borderRadius: "50% 0 50% 0", animation: `confetti ${5 + Math.random() * 3}s linear infinite`, animationDelay: `${Math.random() * 3}s`, opacity: 0.6 }} />)}
+        <div style={{ fontSize: 52, marginBottom: 8 }}>🎉</div>
+        <div style={{ fontSize: 38, fontWeight: 900, color: "#fff", textShadow: "0 3px 0 #E65100,0 0 20px rgba(255,255,255,0.5)", letterSpacing: 8 }}>だいしょうり！</div>
+        <div style={{ fontSize: 15, color: "#FFF8E1", marginTop: 14, lineHeight: 2.2, textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>
+          ももたろうは<br />なかまたちと ちからを あわせ<br />おにがしまの おにを<br />みごとに やっつけました！
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 20, marginBottom: 12 }}>
+          <div style={{ animation: "celBounce 0.6s ease infinite" }}>{S.momotaro(56)}</div>
+          <div style={{ animation: "celBounce 0.6s ease infinite 0.1s" }}>{S.dog(48)}</div>
+          <div style={{ animation: "celBounce 0.6s ease infinite 0.2s" }}>{S.monkey(48)}</div>
+          <div style={{ animation: "celBounce 0.6s ease infinite 0.3s" }}>{S.pheasant(48)}</div>
+        </div>
+        <div style={{ marginTop: 4 }}>{S.treasure(56)}</div>
+        <div style={{ fontSize: 14, color: "#FFF8E1", marginTop: 14, lineHeight: 2 }}>
+          たからものを もって<br />むらに かえりました<br /><br />🌸 めでたし めでたし 🌸
+        </div>
+        <button onClick={resetGame} style={{ ...btn("#E63946", "l"), marginTop: 18 }}>もういちど あそぶ</button>
+      </div>
+      <style>{`@keyframes confetti{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(800px) rotate(720deg);opacity:0}}@keyframes celBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}`}</style>
+    </div>
+  );
+
+  return <div style={ctn} />;
+}
+
+```
