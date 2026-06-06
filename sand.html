@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>すなあそび 3D — Sandbox</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Caveat:wght@700&display=swap');
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0e0b09;
+    font-family:'Zen Maru Gothic',sans-serif;color:#fff4e0;user-select:none;}
+  #app{position:fixed;inset:0;}
+  canvas{display:block;touch-action:none;}
+
+  /* warm sky behind canvas (canvas clears to its own bg, this is fallback) */
+  #app{background:radial-gradient(120% 90% at 65% 0%,#fde9bf,#f1bf72 38%,#bd8345 72%,#7c5530 100%);}
+
+  #grain{position:fixed;inset:0;pointer-events:none;opacity:.05;mix-blend-mode:overlay;z-index:6;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");}
+
+  #title{position:fixed;top:14px;left:18px;z-index:8;line-height:1;pointer-events:none;
+    text-shadow:0 2px 0 rgba(120,70,20,.4),0 6px 14px rgba(80,40,0,.3);}
+  #title b{font-size:30px;font-weight:900;display:block;color:#fff8ea;}
+  #title span{font-family:'Caveat',cursive;font-size:20px;color:#6e4a22;margin-left:2px;}
+
+  /* tool dock */
+  #dock{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:10;
+    display:flex;gap:8px;padding:10px;border-radius:20px;
+    background:linear-gradient(180deg,rgba(58,44,32,.92),rgba(33,24,17,.96));
+    box-shadow:0 18px 40px -16px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.12) inset;backdrop-filter:blur(8px);}
+  .tool{width:62px;height:64px;border:none;border-radius:14px;cursor:pointer;
+    background:linear-gradient(180deg,#4a3829,#33261b);color:#fff4e0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+    font-family:inherit;font-weight:700;font-size:11px;transition:transform .12s,box-shadow .12s,background .12s;
+    box-shadow:0 2px 0 rgba(0,0,0,.3),0 1px 0 rgba(255,255,255,.08) inset;}
+  .tool:hover{transform:translateY(-3px);}
+  .tool.active{background:linear-gradient(180deg,#ffd27a,#e9a743);color:#3a2410;
+    box-shadow:0 0 0 2px rgba(255,225,160,.6),0 6px 16px -4px rgba(255,180,80,.6);}
+  .tool .ic{width:26px;height:26px;stroke:#ffe6b0;}
+  .tool.active .ic{stroke:#3a2410;}
+
+  /* right side */
+  #side{position:fixed;right:16px;top:50%;transform:translateY(-50%);z-index:10;
+    display:flex;flex-direction:column;gap:10px;align-items:center;padding:14px 10px;border-radius:18px;
+    background:linear-gradient(180deg,rgba(58,44,32,.9),rgba(33,24,17,.94));
+    box-shadow:0 18px 40px -16px rgba(0,0,0,.6);backdrop-filter:blur(6px);}
+  #side hr{width:70%;border:none;border-top:1px solid rgba(255,255,255,.15);margin:3px 0;}
+  .szb{width:36px;height:32px;border:none;border-radius:9px;background:#4a3829;color:#fff4e0;
+    font-family:inherit;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .szb.active{background:#ffcf6b;color:#3a2410;}
+  .szb .dot{border-radius:50%;background:currentColor;}
+  .iconbtn{width:40px;height:40px;border:none;border-radius:12px;cursor:pointer;background:#4a3829;color:#fff4e0;
+    display:flex;align-items:center;justify-content:center;transition:background .12s,transform .12s;}
+  .iconbtn:hover{background:#5a4533;transform:translateY(-2px);}
+  .iconbtn.on{background:#7fb0e6;color:#10202e;}
+  .iconbtn svg{width:22px;height:22px;}
+
+  #hint{position:fixed;left:50%;top:72px;transform:translateX(-50%);z-index:9;
+    font-family:'Caveat',cursive;font-size:22px;color:#5b3c1d;background:rgba(255,244,220,.85);
+    padding:6px 18px;border-radius:999px;box-shadow:0 6px 18px -8px rgba(120,70,20,.6);transition:opacity .5s;}
+
+  #loading{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+    background:#1a130d;color:#ffcf6b;font-weight:700;font-size:18px;flex-direction:column;gap:14px;}
+  .spin{width:38px;height:38px;border:4px solid rgba(255,207,107,.25);border-top-color:#ffcf6b;border-radius:50%;animation:sp 1s linear infinite;}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  @media (max-width:560px){
+    #title b{font-size:22px;}#title span{font-size:15px;}
+    .tool{width:52px;height:56px;font-size:10px;}
+    #side{right:8px;padding:10px 7px;gap:8px;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="grain"></div>
+<div id="title"><b>すなあそび</b><span>3D sandbox</span></div>
+<div id="hint">ドラッグで砂をもる・ほる ／ 右ドラッグや二本指で視点</div>
+
+<div id="dock">
+  <button class="tool active" data-tool="raise">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V7"/><path d="M6 12l6-6 6 6"/><path d="M5 21h14"/></svg>
+    もる</button>
+  <button class="tool" data-tool="dig">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v12"/><path d="M6 12l6 6 6-6"/><path d="M5 21h14"/></svg>
+    ほる</button>
+  <button class="tool" data-tool="smooth">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c4-4 6 4 9 0s5-4 9 0"/><path d="M4 19h16"/></svg>
+    ならす</button>
+  <button class="tool" data-tool="castle">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l2 2 2-3 2 3 2-3 2 3 2-2v12z"/><path d="M4 9V6h2v2"/><path d="M18 9V6h2v3"/><path d="M10 21v-4h4v4"/></svg>
+    おしろ</button>
+  <button class="tool" data-tool="water">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></svg>
+    みず</button>
+</div>
+
+<div id="side">
+  <div class="szb" data-size="0"><i class="dot" style="width:7px;height:7px"></i></div>
+  <div class="szb active" data-size="1"><i class="dot" style="width:12px;height:12px"></i></div>
+  <div class="szb" data-size="2"><i class="dot" style="width:17px;height:17px"></i></div>
+  <hr>
+  <button class="iconbtn" id="orbitBtn" title="視点モード（指1本で回す）">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#ffe6b0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 3a9 9 0 0 1 9 9"/><path d="M3 12h18" opacity=".5"/><ellipse cx="12" cy="12" rx="9" ry="4"/></svg>
+  </button>
+  <button class="iconbtn" id="reset" title="まっさらにする">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#ffe6b0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg>
+  </button>
+</div>
+
+<div id="loading"><div class="spin"></div>砂場をよういちゅう…</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =====================================================================
+   すなあそび 3D — deformable heightfield sandbox.
+   The play surface is a grid of heights rendered as a lit, shadowed mesh.
+   Tools sculpt the heights so you can pile mounds, dig holes/trenches,
+   smooth/pat sand, and stamp molded castle towers (bucket shape).
+   No images / no emoji: sand color + grain are generated procedurally.
+   ===================================================================== */
+if (typeof THREE === 'undefined'){
+  document.getElementById('loading').innerHTML =
+    'three.js を読み込めませんでした。<br>ネット接続をご確認ください。';
+} else { main(); }
+
+function main(){
+const app = document.getElementById('app');
+
+// ---------- terrain config ----------
+const GRID = 96;             // vertices per side
+const S = 220;               // world size of the sandbox
+const N = GRID*GRID;
+const heights = new Float32Array(N);   // sculpted height per cell
+const wet     = new Float32Array(N);   // 0..1 moisture per cell
+const baseX   = new Float32Array(N);   // world X of each cell
+const baseZ   = new Float32Array(N);   // world Z of each cell
+const MINH=-34, MAXH=58;
+
+// ---------- renderer / scene / camera ----------
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xe9b86a);
+scene.fog = new THREE.Fog(0xe9b86a, 360, 760);
+
+const camera = new THREE.PerspectiveCamera(46, innerWidth/innerHeight, 1, 2000);
+// spherical camera control state
+const cam = { r:340, theta:Math.PI*0.5, phi:0.92, tx:0, ty:-4, tz:0 };
+function updateCam(){
+  const sp = Math.sin(cam.phi), cp = Math.cos(cam.phi);
+  camera.position.set(
+    cam.tx + cam.r*sp*Math.cos(cam.theta),
+    cam.ty + cam.r*cp,
+    cam.tz + cam.r*sp*Math.sin(cam.theta)
+  );
+  camera.lookAt(cam.tx, cam.ty, cam.tz);
+}
+
+// ---------- lights ----------
+const sun = new THREE.DirectionalLight(0xfff2d4, 1.25);
+sun.position.set(140, 220, 90);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.near = 40; sun.shadow.camera.far = 640;
+const sc = 170;
+sun.shadow.camera.left=-sc; sun.shadow.camera.right=sc;
+sun.shadow.camera.top=sc; sun.shadow.camera.bottom=-sc;
+sun.shadow.bias = -0.0006;
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xfff0d0, 0x6b4a2a, 0.55));
+scene.add(new THREE.AmbientLight(0xffffff, 0.12));
+
+// ---------- procedural sand textures ----------
+function makeColorTexture(){
+  const s=512, c=document.createElement('canvas'); c.width=c.height=s;
+  const g=c.getContext('2d');
+  g.fillStyle='#d8b886'; g.fillRect(0,0,s,s);
+  // dense speckle of varied grains
+  const tones=['#e7cd9e','#cba874','#bf9a63','#e9d8b4','#b98a55','#d6bd92','#ad7f4d'];
+  for(let i=0;i<70000;i++){
+    g.fillStyle=tones[(Math.random()*tones.length)|0];
+    g.globalAlpha=0.25+Math.random()*0.45;
+    g.fillRect(Math.random()*s|0, Math.random()*s|0, 1, 1);
+  }
+  // a few brighter glints
+  g.globalAlpha=0.9;
+  for(let i=0;i<400;i++){ g.fillStyle='#fff6e0'; g.fillRect(Math.random()*s|0,Math.random()*s|0,1,1); }
+  g.globalAlpha=1;
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(7,7);
+  t.encoding=THREE.sRGBEncoding; t.anisotropy=4;
+  return t;
+}
+function makeNormalTexture(){
+  const s=256;
+  // value-noise height for grain
+  const h=new Float32Array(s*s);
+  for(let i=0;i<h.length;i++) h[i]=Math.random();
+  // smooth a couple passes so grains have size
+  for(let p=0;p<2;p++){
+    const o=h.slice();
+    for(let y=0;y<s;y++)for(let x=0;x<s;x++){
+      const xm=(x-1+s)%s, xp=(x+1)%s, ym=(y-1+s)%s, yp=(y+1)%s;
+      h[y*s+x]=(o[y*s+x]*2+o[y*s+xm]+o[y*s+xp]+o[ym*s+x]+o[yp*s+x])/6;
+    }
+  }
+  const c=document.createElement('canvas'); c.width=c.height=s;
+  const g=c.getContext('2d'); const img=g.createImageData(s,s); const d=img.data;
+  const str=2.4;
+  for(let y=0;y<s;y++)for(let x=0;x<s;x++){
+    const xm=(x-1+s)%s, xp=(x+1)%s, ym=(y-1+s)%s, yp=(y+1)%s;
+    const dx=(h[y*s+xp]-h[y*s+xm])*str;
+    const dy=(h[yp*s+x]-h[ym*s+x])*str;
+    let nx=-dx, ny=-dy, nz=1; const l=Math.hypot(nx,ny,nz);
+    nx/=l; ny/=l; nz/=l;
+    const i=(y*s+x)*4;
+    d[i]=(nx*0.5+0.5)*255; d[i+1]=(ny*0.5+0.5)*255; d[i+2]=(nz*0.5+0.5)*255; d[i+3]=255;
+  }
+  g.putImageData(img,0,0);
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(7,7);
+  return t;
+}
+
+const sandMat = new THREE.MeshStandardMaterial({
+  map: makeColorTexture(),
+  normalMap: makeNormalTexture(),
+  roughness: 0.97, metalness: 0.0,
+  vertexColors: true
+});
+sandMat.normalScale = new THREE.Vector2(0.55,0.55);
+
+// ---------- terrain mesh ----------
+const geo = new THREE.PlaneGeometry(S, S, GRID-1, GRID-1);
+geo.rotateX(-Math.PI/2);                 // lay flat: height becomes +Y
+const pos = geo.attributes.position;
+for(let i=0;i<N;i++){ baseX[i]=pos.getX(i); baseZ[i]=pos.getZ(i); }
+const colAttr = new THREE.BufferAttribute(new Float32Array(N*3), 3);
+geo.setAttribute('color', colAttr);
+const terrain = new THREE.Mesh(geo, sandMat);
+terrain.castShadow = true; terrain.receiveShadow = true;
+scene.add(terrain);
+
+// ---------- wooden sandbox frame ----------
+const woodMat = new THREE.MeshStandardMaterial({color:0x6b4a2c, roughness:0.85, metalness:0.0});
+const woodTop = new THREE.MeshStandardMaterial({color:0x82603c, roughness:0.8});
+const beamH=20, beamT=14, half=S/2+beamT/2-2;
+[[0,half,S+beamT*2,beamT],[0,-half,S+beamT*2,beamT],[half,0,beamT,S+beamT*2],[-half,0,beamT,S+beamT*2]]
+.forEach(([x,z,w,d],k)=>{
+  const b=new THREE.Mesh(new THREE.BoxGeometry(k<2?w:beamT, beamH, k<2?beamT:w),
+                         [woodMat,woodMat,woodTop,woodMat,woodMat,woodMat]);
+  b.position.set(x, beamH/2-6, z); b.castShadow=true; b.receiveShadow=true; scene.add(b);
+});
+
+// ---------- height -> mesh update (throttled to one rebuild per frame) ----------
+let dirty = true;
+function rebuild(){
+  for(let i=0;i<N;i++) pos.setY(i, heights[i]);
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  // vertex colours: fake AO by height (pits darker) + wet darkening
+  const arr = colAttr.array; const span = MAXH-MINH;
+  for(let i=0;i<N;i++){
+    const nrm = (heights[i]-MINH)/span;            // 0 low .. 1 high
+    const ao = 0.60 + 0.40*Math.min(1,Math.max(0,nrm));
+    const w = wet[i];
+    let r=ao, g=ao, b=ao;
+    if(w>0){ r*=1-0.52*w; g*=1-0.45*w; b*=1-0.30*w; }  // wet = darker & cooler
+    arr[i*3]=r; arr[i*3+1]=g; arr[i*3+2]=b;
+  }
+  colAttr.needsUpdate = true;
+  dirty = false;
+}
+
+// ---------- brushes ----------
+const SIZES=[16,26,40];
+let brush = SIZES[1];
+let tool = 'raise';
+
+function smoothstep(t){ t=Math.min(1,Math.max(0,t)); return t*t*(3-2*t); }
+
+function applyBrush(wx, wz){
+  const R=brush, R2=R*R;
+  if(tool==='castle'){ stampCastle(wx,wz); dirty=true; return; }
+  for(let i=0;i<N;i++){
+    const dx=baseX[i]-wx, dz=baseZ[i]-wz;
+    const d2=dx*dx+dz*dz; if(d2>R2) continue;
+    const f=smoothstep(1 - Math.sqrt(d2)/R);
+    if(tool==='raise'){
+      heights[i]=Math.min(MAXH, heights[i]+1.5*f);
+    } else if(tool==='dig'){
+      heights[i]=Math.max(MINH, heights[i]-1.8*f);
+      wet[i]=Math.min(1, wet[i]+0.012*f);          // dug sand feels a touch damp
+    } else if(tool==='smooth'){
+      // pull toward local average -> pat / smooth the surface
+      const r=(i/GRID)|0, c=i%GRID;
+      let sum=0,n=0;
+      if(c>0){sum+=heights[i-1];n++;} if(c<GRID-1){sum+=heights[i+1];n++;}
+      if(r>0){sum+=heights[i-GRID];n++;} if(r<GRID-1){sum+=heights[i+GRID];n++;}
+      const avg=sum/n;
+      heights[i]+= (avg-heights[i])*0.5*f;
+    } else if(tool==='water'){
+      wet[i]=Math.min(1, wet[i]+0.5*f);
+    }
+  }
+  dirty=true;
+}
+
+// molded "bucket" castle tower: flat top + tapered skirt + crenellated rim
+function stampCastle(wx,wz){
+  const Ro=brush*1.25, Ri=Ro*0.62, top=Math.min(MAXH, 30+brush*0.4);
+  for(let i=0;i<N;i++){
+    const dx=baseX[i]-wx, dz=baseZ[i]-wz;
+    const d=Math.hypot(dx,dz); if(d>Ro) continue;
+    let target;
+    if(d<Ri){
+      target=top;
+      // battlements: raised merlons around the rim band
+      if(d>Ri-6){
+        const ang=Math.atan2(dz,dx);
+        target = top + (Math.sin(ang*8)>0 ? 7 : 0);
+      }
+    } else {
+      const t=(d-Ri)/(Ro-Ri);
+      target = top*(1-smoothstep(t));            // skirt down to base
+    }
+    heights[i]=Math.max(heights[i], target);
+    wet[i]=Math.min(1, wet[i]+0.5);              // molded sand reads as packed/damp
+  }
+}
+
+// ---------- pointer / camera input ----------
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+function hitPoint(clientX, clientY){
+  const rct = renderer.domElement.getBoundingClientRect();
+  ndc.x = ((clientX-rct.left)/rct.width)*2-1;
+  ndc.y = -((clientY-rct.top)/rct.height)*2+1;
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObject(terrain, false);
+  return hit.length ? hit[0].point : null;
+}
+
+let orbitMode=false;                    // toggled by the orbit button (1-finger orbit)
+const pointers=new Map();
+let sculpting=false, orbiting=false, lastMid=null, lastDist=0;
+
+function isOrbitGesture(e){
+  return orbitMode || e.button===2 || pointers.size>=2;
+}
+
+renderer.domElement.addEventListener('pointerdown', e=>{
+  renderer.domElement.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  hideHint();
+  if(isOrbitGesture(e)){
+    orbiting=true; sculpting=false;
+    if(pointers.size>=2){ const m=midDist(); lastMid=m.mid; lastDist=m.dist; }
+    else lastMid={x:e.clientX,y:e.clientY};
+  } else {
+    sculpting=true;
+    const p=hitPoint(e.clientX,e.clientY); if(p) applyBrush(p.x,p.z);
+  }
+});
+renderer.domElement.addEventListener('pointermove', e=>{
+  if(pointers.has(e.pointerId)) pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(orbiting){
+    if(pointers.size>=2){
+      const m=midDist();
+      // rotate by midpoint movement
+      cam.theta -= (m.mid.x-lastMid.x)*0.006;
+      cam.phi   -= (m.mid.y-lastMid.y)*0.006;
+      // pinch zoom
+      cam.r *= 1 - (m.dist-lastDist)*0.0025;
+      lastMid=m.mid; lastDist=m.dist;
+    } else if(lastMid){
+      cam.theta -= (e.clientX-lastMid.x)*0.007;
+      cam.phi   -= (e.clientY-lastMid.y)*0.007;
+      lastMid={x:e.clientX,y:e.clientY};
+    }
+    clampCam(); updateCam();
+  } else if(sculpting){
+    const p=hitPoint(e.clientX,e.clientY); if(p) applyBrush(p.x,p.z);
+  }
+});
+function endPointer(e){
+  pointers.delete(e.pointerId);
+  if(pointers.size===0){ sculpting=false; orbiting=false; lastMid=null; }
+  else if(pointers.size===1){ orbiting=isOrbitGesture(e)||orbitMode; sculpting=false;
+    const only=[...pointers.values()][0]; lastMid={x:only.x,y:only.y}; }
+}
+renderer.domElement.addEventListener('pointerup', endPointer);
+renderer.domElement.addEventListener('pointercancel', endPointer);
+renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
+renderer.domElement.addEventListener('wheel', e=>{
+  e.preventDefault(); cam.r*=1+Math.sign(e.deltaY)*0.08; clampCam(); updateCam();
+},{passive:false});
+
+function midDist(){
+  const p=[...pointers.values()];
+  return { mid:{x:(p[0].x+p[1].x)/2, y:(p[0].y+p[1].y)/2},
+           dist:Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y) };
+}
+function clampCam(){
+  cam.phi=Math.min(1.45, Math.max(0.18, cam.phi));   // keep above the sand
+  cam.r=Math.min(620, Math.max(170, cam.r));
+}
+
+// ---------- HUD ----------
+const hints={raise:'ドラッグして砂をもりあげる', dig:'ドラッグして穴・みぞをほる',
+  smooth:'なでて砂をならす・ぺたぺた', castle:'タップでお城のとうを作る（かさねてOK）',
+  water:'砂に水をかける（しめって形がくずれにくい）'};
+document.querySelectorAll('.tool').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tool').forEach(t=>t.classList.remove('active'));
+  b.classList.add('active'); tool=b.dataset.tool; showHint(hints[tool]);
+});
+document.querySelectorAll('.szb').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.szb').forEach(t=>t.classList.remove('active'));
+  b.classList.add('active'); brush=SIZES[+b.dataset.size];
+});
+document.getElementById('orbitBtn').onclick=function(){
+  orbitMode=!orbitMode; this.classList.toggle('on',orbitMode);
+  showHint(orbitMode?'視点モード：指1本で砂場を回せます':'すなあそびモードにもどりました');
+};
+document.getElementById('reset').onclick=()=>{ heights.fill(0); wet.fill(0); seed(); dirty=true; };
+
+let hintTimer;
+function showHint(t){const h=document.getElementById('hint');h.textContent=t;h.style.opacity=1;
+  clearTimeout(hintTimer);hintTimer=setTimeout(()=>h.style.opacity=0,2600);}
+function hideHint(){const h=document.getElementById('hint');clearTimeout(hintTimer);
+  hintTimer=setTimeout(()=>h.style.opacity=0,1000);}
+
+// ---------- initial gentle bed ----------
+function seed(){
+  for(let i=0;i<N;i++){
+    const x=baseX[i], z=baseZ[i];
+    heights[i]= Math.sin(x*0.03)*3 + Math.cos(z*0.025)*3 + (Math.random()-0.5)*1.5;
+    wet[i]=0;
+  }
+}
+seed();
+
+// ---------- resize + loop ----------
+function resize(){
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+resize(); updateCam();
+
+document.getElementById('loading').style.display='none';
+
+function loop(){
+  if(dirty) rebuild();
+  renderer.render(scene,camera);
+  requestAnimationFrame(loop);
+}
+loop();
+}
+</script>
+</body>
+</html>
