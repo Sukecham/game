@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>オキロス</title>
+<style>
+  :root{
+    --ink:#2b3a4a; --ink-soft:#3d4f63; --fill:#2f4156;
+    --paper:#fbf7ef; --paper-line:#e7ddc9; --panel:#ffffff;
+    --hint-done:#9aa7b5; --accent:#e8615a; --accent-dk:#d44d46; --ok:#34b36b;
+    --shadow:0 10px 30px rgba(43,58,74,.12); --grid-border:#2b3a4a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+    background:radial-gradient(120% 80% at 50% -10%, #fffdf8 0%, #f5efe3 55%, #efe7d6 100%);
+    color:var(--ink); min-height:100dvh; display:flex; flex-direction:column; align-items:center;
+    padding:12px 14px 40px; -webkit-text-size-adjust:100%;
+  }
+  .wrap{width:100%;max-width:560px}
+  header{text-align:center;margin-bottom:6px}
+  .title{font-size:30px;font-weight:800;letter-spacing:.5px;margin:0;color:var(--ink)}
+  .title .dot{color:var(--accent)}
+  .subtitle{margin:4px 0 0;font-size:14px;color:var(--ink-soft);font-weight:600}
+  .meter{margin:18px auto 8px;max-width:480px;position:relative}
+  .meter-bar{height:6px;border-radius:6px;background:linear-gradient(90deg,#f4622f 0%,#f5a623 33%,#c9d432 66%,#7ec850 100%)}
+  .meter-ticks{display:flex;justify-content:space-between;margin-top:8px}
+  .tick{font-weight:800;font-size:15px;color:var(--ink);flex:1;text-align:center;cursor:pointer;padding:6px 0;border-radius:10px;transition:.15s;opacity:.55}
+  .tick:first-child{text-align:left}.tick:last-child{text-align:right}
+  .tick.active{opacity:1}
+  .tick.active::after{content:"";display:block;height:3px;width:60%;margin:5px auto 0;border-radius:3px;background:var(--ink)}
+  .tick:first-child.active::after{margin-left:2px}
+  .tick:last-child.active::after{margin-right:2px}
+  .picker{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:6px 0 16px}
+  /* ===== タイトル画面 ===== */
+  #titleScreen{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(130% 90% at 50% 15%, #2a4a6e 0%, #1d3552 55%, #14253c 100%);cursor:pointer;padding:24px}
+  .title-inner{text-align:center;animation:fadeUp .6s ease}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .title-art{width:min(72vw,300px);aspect-ratio:36/25;margin:0 auto 24px;display:grid;
+    border-radius:14px;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,.4);
+    background:linear-gradient(180deg,#f6c45a 0%,#f0a23e 42%,#e87f2c 70%,#c95f1d 100%)}
+  .game-title{font-size:min(15vw,58px);font-weight:900;letter-spacing:2px;margin:0;color:#fff;
+    text-shadow:0 3px 14px rgba(0,0,0,.4)}
+  .game-sub{font-size:min(4.4vw,18px);font-weight:700;color:#f5c873;margin:6px 0 0;letter-spacing:1px}
+  .game-desc{font-size:13px;line-height:1.7;color:#cdddf0;margin:18px 0 26px;font-weight:500}
+  .start-btn{background:#f5a623;color:#1d3552;border:none;font-weight:900;font-size:17px;
+    padding:15px 40px;border-radius:999px;cursor:pointer;box-shadow:0 8px 22px rgba(245,166,35,.45);
+    animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+  /* ===== トップバー ===== */
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .home-btn{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--paper-line);background:var(--panel);
+    color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+  .home-btn svg{width:19px;height:19px}
+  .topbar-title{font-size:19px;font-weight:900;letter-spacing:1px;color:var(--ink)}
+  /* ===== 難易度タブ ===== */
+  .levels{display:flex;gap:8px;justify-content:center;margin:0 0 12px;background:#efe8da;
+    padding:5px;border-radius:13px}
+  .lvbtn{flex:1;border:none;background:transparent;color:var(--ink-soft);font-weight:800;font-size:15px;
+    padding:9px 0;border-radius:9px;cursor:pointer;transition:.15s}
+  .lvbtn.active{background:var(--ink);color:#fff;box-shadow:0 3px 10px rgba(43,58,74,.2)}
+
+  .chip{border:1.5px solid var(--paper-line);background:var(--panel);color:var(--ink-soft);cursor:pointer;
+    box-shadow:0 2px 6px rgba(43,58,74,.05);transition:.15s;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:1px;width:60px;padding:8px 4px;border-radius:13px;position:relative}
+  .chip:hover{transform:translateY(-1px)}
+  .chip.active{background:var(--ink);border-color:var(--ink)}
+  .chip.active .stg,.chip.active .sz{color:#fff}
+  .chip .stg{font-weight:900;font-size:18px;color:var(--ink);line-height:1.1}
+  .chip .sz{opacity:.6;font-weight:700;font-size:10px;color:var(--ink-soft)}
+  .chip.cleared{border-color:#bfe3cb;background:#f3fbf5}
+  .chip.cleared::before{content:"✓";position:absolute;top:3px;right:5px;color:var(--ok);font-weight:900;font-size:11px}
+  .chip.active.cleared{background:var(--ink);border-color:var(--ink)}
+  .chip.active.cleared::before{color:#7ee0a3}
+  .chip.active.cleared .stg,.chip.active.cleared .sz{color:#fff}
+  #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(10px);background:var(--ink);color:#fff;font-weight:700;font-size:13px;padding:11px 18px;border-radius:999px;box-shadow:0 8px 24px rgba(43,58,74,.3);opacity:0;pointer-events:none;transition:.25s;z-index:80;max-width:90vw;text-align:center}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .status{display:flex;align-items:center;justify-content:space-between;max-width:480px;margin:0 auto 10px;font-weight:700;font-size:14px;color:var(--ink-soft)}
+  .status .name{color:var(--ink);font-size:16px;font-weight:800}
+  .status .right{display:flex;gap:14px;align-items:center}
+  .timer{font-variant-numeric:tabular-nums;letter-spacing:.5px}
+  .mistakes{color:var(--accent)}
+  .board-shell{display:block;max-width:100%;overflow-x:auto;overflow-y:hidden;padding:2px 0 6px;-webkit-overflow-scrolling:touch}
+  .board-shell::-webkit-scrollbar{height:6px}
+  .board-shell::-webkit-scrollbar-thumb{background:#d8cfb8;border-radius:6px}
+  .board{display:grid;width:max-content;margin:0 auto;background:var(--panel);padding:0;border-radius:6px;box-shadow:var(--shadow);user-select:none;touch-action:none;overflow:hidden}
+  .cell{position:relative;background:var(--paper);display:flex;align-items:center;justify-content:center}
+  .corner{background:transparent}
+  .hint{background:#f1ece1;color:var(--ink);font-weight:800;line-height:1;position:relative;overflow:hidden}
+  .hint span{display:inline-block;line-height:1;max-height:100%;max-width:100%;overflow:hidden}
+  .hint.row{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:.4em;padding:0 .35em 0 .2em;border-right:2px solid var(--grid-border)}
+  .hint.col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:.26em;padding:.2em 0 .3em;border-bottom:2px solid var(--grid-border)}
+  .hint.done{color:var(--hint-done)}
+  .hint .h-check{position:absolute;color:var(--ok);font-weight:900;opacity:0;transition:opacity .2s}
+  .hint.col .h-check{top:2px;left:50%;transform:translateX(-50%)}
+  .hint.row .h-check{left:3px;top:50%;transform:translateY(-50%)}
+  .hint.done .h-check{opacity:1}
+  .hint.done span{opacity:.85}
+  .play{cursor:pointer;border-right:1px solid var(--paper-line);border-bottom:1px solid var(--paper-line)}
+  .play.b-right{border-right:1.5px solid #b9ad93}
+  .play.b-bottom{border-bottom:1.5px solid #b9ad93}
+  .play.gtop{border-top:2px solid var(--grid-border)}
+  .play.gleft{border-left:2px solid var(--grid-border)}
+  .play.filled{background:var(--fill)}
+  .play.reveal{transition:background-color .5s ease, border-color .5s ease}
+  .play.revealed{border-color:transparent!important}
+  .board.revealing .play{border-color:transparent!important}
+  .board.revealing{box-shadow:0 14px 44px rgba(43,58,74,.25)}
+  .play .mark{width:62%;height:62%;color:var(--ink-soft);pointer-events:none}
+  .play.cross .mark{display:block}
+  .play:not(.cross) .mark{display:none}
+  .play.filled.cross .mark{display:none}
+  .play.flash{animation:flash .4s ease}
+  @keyframes flash{0%{background:#f7c6c3}100%{}}
+  .play.pop{animation:pop .18s ease}
+  @keyframes pop{0%{transform:scale(.7)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+  .tools{display:flex;align-items:center;justify-content:center;gap:14px;margin:20px 0 6px}
+  .modebtn{position:relative;width:118px;height:50px;border-radius:999px;border:none;cursor:pointer;background:#ece6da;display:flex;align-items:center;justify-content:space-between;padding:5px;box-shadow:inset 0 1px 3px rgba(0,0,0,.08)}
+  .modebtn .opt{flex:1;display:flex;align-items:center;justify-content:center;height:100%;z-index:2;color:var(--ink-soft);transition:.18s}
+  .modebtn .opt svg{width:24px;height:24px}
+  .modebtn .knob{position:absolute;top:5px;left:5px;width:54px;height:40px;border-radius:999px;background:#fff;box-shadow:0 3px 8px rgba(43,58,74,.18);transition:transform .2s cubic-bezier(.4,1.3,.5,1);z-index:1}
+  .modebtn.fill .knob{transform:translateX(54px)}
+  .modebtn.fill .opt.fillopt{color:var(--fill)}
+  .modebtn.cross .opt.crossopt{color:var(--ink)}
+  .iconbtn{width:50px;height:50px;border-radius:14px;border:1.5px solid var(--paper-line);background:var(--panel);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(43,58,74,.06);transition:.15s}
+  .iconbtn:hover{transform:translateY(-1px)}
+  .iconbtn:active{transform:translateY(0)}
+  .iconbtn svg{width:22px;height:22px;color:var(--ink-soft)}
+  .iconbtn.warn:hover{border-color:var(--accent)}
+  .tool-label{font-size:11px;font-weight:700;color:var(--ink-soft);text-align:center;margin-top:-2px}
+  .help{text-align:center;font-size:12.5px;color:#9b9281;margin-top:14px;line-height:1.7}
+  .help b{color:var(--ink-soft)}
+  .overlay{position:fixed;inset:0;background:rgba(43,58,74,.45);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:50;padding:24px}
+  .overlay.show{display:flex;animation:fade .3s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .modal{background:var(--panel);border-radius:22px;padding:30px 26px;max-width:340px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.3);animation:rise .35s cubic-bezier(.2,1,.3,1)}
+  @keyframes rise{from{transform:translateY(24px) scale(.95);opacity:0}to{transform:none;opacity:1}}
+  .modal .big{font-size:54px;margin:0 0 6px}
+  .modal h2{margin:.2em 0;font-size:24px;color:var(--ink)}
+  .modal p{margin:.3em 0 1.2em;color:var(--ink-soft);font-weight:600}
+  .modal .stat{display:flex;justify-content:center;gap:22px;margin-bottom:18px}
+  .modal .stat div{font-weight:800;font-size:18px;color:var(--ink)}
+  .modal .stat small{display:block;font-weight:700;font-size:11px;color:#9b9281;margin-top:2px}
+  .btn-primary{background:var(--accent);color:#fff;border:none;font-weight:800;font-size:18px;padding:15px 0;width:100%;border-radius:999px;cursor:pointer;box-shadow:0 8px 20px rgba(232,97,90,.4);transition:.15s;letter-spacing:1px}
+  .btn-primary:hover{background:var(--accent-dk);transform:translateY(-1px)}
+  .btn-ghost{background:none;border:none;color:var(--ink-soft);font-weight:700;font-size:14px;margin-top:12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  .confetti{position:fixed;top:-12px;width:9px;height:14px;opacity:.9;z-index:60;pointer-events:none}
+  .gallery-modal{max-width:360px}
+  .gallery-canvas{width:240px;height:240px;margin:0 auto 16px;display:grid;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(43,58,74,.18);background:#fff}
+  .gallery-canvas .px{width:100%;height:100%}
+  .gallery-meta{display:flex;justify-content:center;gap:18px;margin:10px 0 16px;font-weight:700;font-size:13px;color:var(--ink-soft)}
+  .gallery-meta b{color:var(--ink);font-weight:800}
+  #gTitle{margin:.1em 0;font-size:24px;color:var(--ink)}
+  #gDesc{margin:.2em 0 .4em;color:var(--ink-soft);font-weight:600;font-size:14px}
+  @media (max-width:430px){.title{font-size:25px}.tick{font-size:13px}.tools{gap:10px}}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<!-- タイトル画面 -->
+<div id="titleScreen">
+  <div class="title-inner">
+    <div class="title-art" id="titleArt"></div>
+    <h1 class="game-title">オキロス</h1>
+    <p class="game-sub">隠岐の島 お絵かきロジック</p>
+    <p class="game-desc">数字をヒントにマスを塗ると<br>隠岐の名所や名物が浮かび上がる</p>
+    <button class="start-btn" id="startBtn">タップしてスタート</button>
+  </div>
+</div>
+
+<!-- ゲーム画面 -->
+<div class="wrap" id="gameScreen" style="display:none">
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" aria-label="タイトルへ">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+    </button>
+    <span class="topbar-title">オキロス</span>
+    <span style="width:36px"></span>
+  </div>
+  <div class="levels" id="levels">
+    <button class="lvbtn active" data-level="初級">初級</button>
+    <button class="lvbtn" data-level="中級">中級</button>
+    <button class="lvbtn" data-level="上級">上級</button>
+  </div>
+  <div class="picker" id="picker"></div>
+  <div class="status">
+    <span class="name" id="pName">—</span>
+    <span class="right">
+      <span class="mistakes" id="mistakes">ミス 0</span>
+      <span class="timer" id="timer">0:00</span>
+    </span>
+  </div>
+  <div class="board-shell"><div class="board" id="board"></div></div>
+  <div class="tools">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+      <button class="iconbtn warn" id="resetBtn" title="やり直す" aria-label="やり直す">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+      </button>
+      <span class="tool-label">リセット</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+      <button class="modebtn cross" id="modeBtn" aria-label="塗りモード切替">
+        <span class="knob"></span>
+        <span class="opt crossopt" title="バツ印">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </span>
+        <span class="opt fillopt" title="塗りつぶし">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+        </span>
+      </button>
+      <span class="tool-label">塗り / バツ</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+      <button class="iconbtn" id="hintBtn" title="ヒント" aria-label="ヒント">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2v.3h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/></svg>
+      </button>
+      <span class="tool-label">ヒント</span>
+    </div>
+  </div>
+  <p class="help">
+    <b>タップ</b>でマスを塗る／消す・<b>ドラッグ</b>で連続入力<br>
+    塗り間違えると<b style="color:var(--accent)">ミス</b>が増えるよ。行と列の数字を全部満たせばクリア！
+  </p>
+</div>
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <p class="big" id="mEmoji">🎉</p>
+    <h2 id="mTitle">クリア！</h2>
+    <p id="mSub">絵が完成しました</p>
+    <div class="stat">
+      <div id="mTime">0:00<small>タイム</small></div>
+      <div id="mMiss">0<small>ミス</small></div>
+    </div>
+    <button class="btn-primary" id="nextBtn">つぎのパズル ▶</button>
+    <br><button class="btn-ghost" id="closeBtn">もう一度この絵を見る</button>
+  </div>
+</div>
+<div class="overlay" id="galleryOverlay">
+  <div class="modal gallery-modal">
+    <div class="gallery-canvas" id="galleryCanvas"></div>
+    <h2 id="gTitle">サザエ</h2>
+    <p id="gDesc">隠岐名物さざえ丼</p>
+    <div class="gallery-meta" id="gMeta"></div>
+    <button class="btn-primary" id="galleryReplayBtn">もう一度遊ぶ ↻</button>
+    <br><button class="btn-ghost" id="galleryCloseBtn">とじる</button>
+  </div>
+</div>
+<script>
+const PUZZLES = [{"id":"tobiuo","stage":1,"name":"トビウオ","desc":"島根県の県魚「あご」","level":"初級","rows":[[1],[5],[4],[5],[1]],"cols":[[2,2],[3],[3],[3],[3]],"sol":[[1,0,0,0,0],[1,1,1,1,1],[0,1,1,1,1],[1,1,1,1,1],[1,0,0,0,0]],"colors":[["#3f6f9c","","","",""],["#3f6f9c","#3f6f9c","#3f6f9c","#bcd6e8","#bcd6e8"],["","#3f6f9c","#3f6f9c","#3f6f9c","#3f6f9c"],["#3f6f9c","#3f6f9c","#3f6f9c","#bcd6e8","#bcd6e8"],["#3f6f9c","","","",""]],"bg":"#eaf6fb"},{"id":"sazae","stage":2,"name":"サザエ","desc":"隠岐名物さざえ丼","level":"初級","rows":[[3],[5],[5],[5],[3]],"cols":[[3],[5],[5],[5],[3]],"sol":[[0,1,1,1,0],[1,1,1,1,1],[1,1,1,1,1],[1,1,1,1,1],[0,1,1,1,0]],"colors":[["","#6b5536","#6b5536","#6b5536",""],["#6b5536","#6b5536","#3f3320","#3f3320","#6b5536"],["#6b5536","#3f3320","#c8b48a","#3f3320","#6b5536"],["#6b5536","#3f3320","#3f3320","#6b5536","#6b5536"],["","#6b5536","#6b5536","#6b5536",""]],"bg":"#cfe6ee"},{"id":"toudai","stage":3,"name":"とうだい","desc":"島の岬の灯台","level":"初級","rows":[[2],[2],[2],[2],[4]],"cols":[[1],[5],[5],[1],[]],"sol":[[0,1,1,0,0],[0,1,1,0,0],[0,1,1,0,0],[0,1,1,0,0],[1,1,1,1,0]],"colors":[["","#d8504a","#d8504a","",""],["","#eef0f3","#eef0f3","",""],["","#d8504a","#d8504a","",""],["","#eef0f3","#eef0f3","",""],["#eef0f3","#eef0f3","#eef0f3","#eef0f3",""]],"bg":"#bfe3f7"},{"id":"rousoku","stage":4,"name":"ローソク島","desc":"隠岐のシンボル","level":"初級","rows":[[2],[2],[4],[4],[4],[6],[6],[6],[8],[10]],"cols":[[1],[2],[5],[8],[10],[10],[8],[5],[2],[1]],"sol":[[0,0,0,0,1,1,0,0,0,0],[0,0,0,0,1,1,0,0,0,0],[0,0,0,1,1,1,1,0,0,0],[0,0,0,1,1,1,1,0,0,0],[0,0,0,1,1,1,1,0,0,0],[0,0,1,1,1,1,1,1,0,0],[0,0,1,1,1,1,1,1,0,0],[0,0,1,1,1,1,1,1,0,0],[0,1,1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1,1,1]],"colors":[["","","","","#f5b915","#f5b915","","","",""],["","","","","#f5b915","#f5b915","","","",""],["","","","#8a5a3a","#8a5a3a","#8a5a3a","#8a5a3a","","",""],["","","","#5b4636","#5b4636","#5b4636","#5b4636","","",""],["","","","#5b4636","#5b4636","#5b4636","#5b4636","","",""],["","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","",""],["","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","",""],["","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","",""],["","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636",""],["#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636"]],"bg":"#e9954a"},{"id":"ushi","stage":5,"name":"うし","desc":"日本最古の牛突き","level":"初級","rows":[[1,1],[2,2],[7],[9],[10],[9],[8],[2,2],[2,2],[1,1]],"cols":[[2,3],[9],[7],[5],[5],[5],[6],[9],[7],[1]],"sol":[[1,0,0,0,0,0,0,1,0,0],[1,1,0,0,0,0,1,1,0,0],[0,1,1,1,1,1,1,1,0,0],[1,1,1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,0],[0,1,1,0,0,0,0,1,1,0],[0,1,1,0,0,0,0,1,1,0],[0,1,0,0,0,0,0,0,1,0]],"colors":[["#3a2f28","","","","","","","#3a2f28","",""],["#3a2f28","#3a2f28","","","","","#3a2f28","#3a2f28","",""],["","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","",""],["#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28",""],["#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28"],["#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28",""],["","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28","#3a2f28",""],["","#3a2f28","#3a2f28","","","","","#3a2f28","#3a2f28",""],["","#3a2f28","#3a2f28","","","","","#3a2f28","#3a2f28",""],["","#3a2f28","","","","","","","#3a2f28",""]],"bg":"#dcefe7"},{"id":"shell10","stage":6,"name":"まきがい","desc":"隠岐の海の幸","level":"中級","rows":[[4],[6],[8],[10],[10],[10],[10],[8],[6],[4]],"cols":[[4],[6],[8],[10],[10],[10],[10],[8],[6],[4]],"sol":[[0,0,0,1,1,1,1,0,0,0],[0,0,1,1,1,1,1,1,0,0],[0,1,1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,1,1,0],[0,0,1,1,1,1,1,1,0,0],[0,0,0,1,1,1,1,0,0,0]],"colors":[["","","","#6b5536","#6b5536","#6b5536","#6b5536","","",""],["","","#6b5536","#6b5536","#6b5536","#6b5536","#6b5536","#6b5536","",""],["","#6b5536","#6b5536","#4a3a22","#4a3a22","#4a3a22","#4a3a22","#6b5536","#6b5536",""],["#6b5536","#6b5536","#4a3a22","#4a3a22","#c8b48a","#c8b48a","#4a3a22","#4a3a22","#6b5536","#6b5536"],["#6b5536","#6b5536","#4a3a22","#c8b48a","#c8b48a","#c8b48a","#c8b48a","#4a3a22","#6b5536","#6b5536"],["#6b5536","#6b5536","#4a3a22","#c8b48a","#c8b48a","#c8b48a","#c8b48a","#4a3a22","#6b5536","#6b5536"],["#6b5536","#6b5536","#4a3a22","#4a3a22","#c8b48a","#c8b48a","#4a3a22","#4a3a22","#6b5536","#6b5536"],["","#6b5536","#6b5536","#4a3a22","#4a3a22","#4a3a22","#4a3a22","#6b5536","#6b5536",""],["","","#6b5536","#6b5536","#6b5536","#6b5536","#6b5536","#6b5536","",""],["","","","#6b5536","#6b5536","#6b5536","#6b5536","","",""]],"bg":"#cfe6ee"},{"id":"sugi","stage":7,"name":"おきの杉","desc":"樹齢800年の三大杉","level":"中級","rows":[[2],[4],[6],[8],[10],[12],[14],[8],[10],[12],[14],[4],[4],[4],[6]],"cols":[[],[1,1],[2,2],[3,3],[8],[9,1],[14],[15],[15],[14],[9,1],[8],[3,3],[2,2],[1,1]],"sol":[[0,0,0,0,0,0,0,1,1,0,0,0,0,0,0],[0,0,0,0,0,0,1,1,1,1,0,0,0,0,0],[0,0,0,0,0,1,1,1,1,1,1,0,0,0,0],[0,0,0,0,1,1,1,1,1,1,1,1,0,0,0],[0,0,0,1,1,1,1,1,1,1,1,1,1,0,0],[0,0,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[0,0,0,0,1,1,1,1,1,1,1,1,0,0,0],[0,0,0,1,1,1,1,1,1,1,1,1,1,0,0],[0,0,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[0,0,0,0,0,0,1,1,1,1,0,0,0,0,0],[0,0,0,0,0,0,1,1,1,1,0,0,0,0,0],[0,0,0,0,0,0,1,1,1,1,0,0,0,0,0],[0,0,0,0,0,1,1,1,1,1,1,0,0,0,0]],"colors":[["","","","","","","","#3f6e3a","#3f6e3a","","","","","",""],["","","","","","","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","","","","",""],["","","","","","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","","","",""],["","","","","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","","",""],["","","","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","",""],["","","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a",""],["","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a"],["","","","","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","","",""],["","","","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","",""],["","","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a",""],["","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a","#3f6e3a"],["","","","","","","#6a4a32","#6a4a32","#6a4a32","#6a4a32","","","","",""],["","","","","","","#6a4a32","#6a4a32","#6a4a32","#6a4a32","","","","",""],["","","","","","","#6a4a32","#6a4a32","#6a4a32","#6a4a32","","","","",""],["","","","","","#6a4a32","#6a4a32","#6a4a32","#6a4a32","#6a4a32","#6a4a32","","","",""]],"bg":"#cfeefb"},{"id":"funagoya","stage":8,"name":"舟小屋","desc":"杉皮葺きの舟小屋","level":"中級","rows":[[],[3],[5],[7],[9],[11],[13],[13],[13],[13],[13],[13],[13],[13],[15]],"cols":[[1],[9],[10],[11],[12],[13],[14],[14],[14],[13],[12],[11],[10],[9],[1]],"sol":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],[0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],[0,0,0,0,1,1,1,1,1,1,1,0,0,0,0],[0,0,0,1,1,1,1,1,1,1,1,1,0,0,0],[0,0,1,1,1,1,1,1,1,1,1,1,1,0,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],"colors":[["","","","","","","","","","","","","","",""],["","","","","","","#7a5a3a","#7a5a3a","#7a5a3a","","","","","",""],["","","","","","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","","","","",""],["","","","","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","","","",""],["","","","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","","",""],["","","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","",""],["","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a","#7a5a3a",""],["","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877",""],["","#caa877","#4a3520","#4a3520","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#4a3520","#4a3520","#caa877",""],["","#caa877","#4a3520","#4a3520","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#4a3520","#4a3520","#caa877",""],["","#caa877","#4a3520","#4a3520","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#4a3520","#4a3520","#caa877",""],["","#caa877","#4a3520","#4a3520","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#4a3520","#4a3520","#caa877",""],["","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877",""],["","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877","#caa877",""],["#3a6ea0","#3a6ea0","#3a6ea0","#3a6ea0","#3a6ea0","#3a6ea0","#3a6ea0","#3a6ea0","#3a6ea0","#3a6ea0","#3a6ea0","#3a6ea0","#3a6ea0","#3a6ea0","#3a6ea0"]],"bg":"#eaf3e0"},{"id":"kani","stage":9,"name":"松葉ガニ","desc":"冬の味覚 松葉ガニ","level":"中級","rows":[[1,1],[2,2],[2,2],[13],[14],[14],[14],[13],[11],[1,9,1],[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,1,1],[],[]],"cols":[[1,5,1,1],[1,6,1],[9],[11],[7],[10],[7],[10],[7],[11],[9],[1,6,1,1],[1,5,1,1],[3],[]],"sol":[[1,0,0,0,0,0,0,0,0,0,0,0,1,0,0],[0,1,1,0,0,0,0,0,0,0,1,1,0,0,0],[0,0,1,1,0,0,0,0,0,1,1,0,0,0,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],[0,1,1,1,1,1,1,1,1,1,1,1,0,0,0],[1,0,1,1,1,1,1,1,1,1,1,0,1,0,0],[0,1,0,1,0,1,0,1,0,1,0,1,0,0,0],[1,0,0,1,0,1,0,1,0,1,0,0,1,0,0],[0,0,0,1,0,1,0,1,0,1,0,1,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]],"colors":[["#d2502f","","","","","","","","","","","","#d2502f","",""],["","#d2502f","#d2502f","","","","","","","","#d2502f","#d2502f","","",""],["","","#d2502f","#d2502f","","","","","","#d2502f","#d2502f","","","",""],["#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","",""],["#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f",""],["#d2502f","#d2502f","#2b2b2b","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#2b2b2b","#d2502f","#d2502f",""],["#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f",""],["#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","",""],["","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","","",""],["#d2502f","","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","#d2502f","","#d2502f","",""],["","#d2502f","","#d2502f","","#d2502f","","#d2502f","","#d2502f","","#d2502f","","",""],["#d2502f","","","#d2502f","","#d2502f","","#d2502f","","#d2502f","","","#d2502f","",""],["","","","#d2502f","","#d2502f","","#d2502f","","#d2502f","","#d2502f","","",""],["","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","",""]],"bg":"#eaf6fb"},{"id":"gaki","stage":10,"name":"岩がき","desc":"隠岐が養殖発祥","level":"中級","rows":[[5],[7],[9],[10],[10],[10],[10],[10],[9],[9],[7],[5],[],[],[]],"cols":[[],[5],[8],[10],[12],[12],[12],[12],[12],[10],[8],[],[],[],[]],"sol":[[0,0,0,0,1,1,1,1,1,0,0,0,0,0,0],[0,0,0,1,1,1,1,1,1,1,0,0,0,0,0],[0,0,1,1,1,1,1,1,1,1,1,0,0,0,0],[0,1,1,1,1,1,1,1,1,1,1,0,0,0,0],[0,1,1,1,1,1,1,1,1,1,1,0,0,0,0],[0,1,1,1,1,1,1,1,1,1,1,0,0,0,0],[0,1,1,1,1,1,1,1,1,1,1,0,0,0,0],[0,1,1,1,1,1,1,1,1,1,1,0,0,0,0],[0,0,1,1,1,1,1,1,1,1,1,0,0,0,0],[0,0,1,1,1,1,1,1,1,1,1,0,0,0,0],[0,0,0,1,1,1,1,1,1,1,0,0,0,0,0],[0,0,0,0,1,1,1,1,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]],"colors":[["","","","","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","","","","","",""],["","","","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","","","","",""],["","","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","","","",""],["","#d8d2c4","#d8d2c4","#d8d2c4","#9a8a64","#9a8a64","#9a8a64","#9a8a64","#9a8a64","#d8d2c4","#d8d2c4","","","",""],["","#d8d2c4","#d8d2c4","#9a8a64","#9a8a64","#9a8a64","#9a8a64","#9a8a64","#9a8a64","#9a8a64","#d8d2c4","","","",""],["","#d8d2c4","#d8d2c4","#9a8a64","#9a8a64","#e89a4a","#e89a4a","#e89a4a","#9a8a64","#9a8a64","#d8d2c4","","","",""],["","#d8d2c4","#d8d2c4","#9a8a64","#9a8a64","#e89a4a","#e89a4a","#e89a4a","#9a8a64","#9a8a64","#d8d2c4","","","",""],["","#d8d2c4","#d8d2c4","#9a8a64","#9a8a64","#9a8a64","#9a8a64","#9a8a64","#9a8a64","#9a8a64","#d8d2c4","","","",""],["","","#d8d2c4","#d8d2c4","#9a8a64","#9a8a64","#9a8a64","#9a8a64","#9a8a64","#d8d2c4","#d8d2c4","","","",""],["","","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","","","",""],["","","","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","","","","",""],["","","","","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","#d8d2c4","","","","","",""],["","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","",""]],"bg":"#cfe6ee"},{"id":"cape","stage":11,"name":"岬の灯台","desc":"日本海に立つ岬","level":"上級","rows":[[],[2],[2],[4],[4],[4],[4],[6],[6],[8],[10],[12],[14],[16],[18],[19],[20],[20],[20],[20]],"cols":[[4],[5],[6],[7],[8],[9],[10],[11],[13],[17],[19],[19],[17],[13],[11],[10],[9],[8],[7],[6]],"sol":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0],[0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0],[0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],[0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],[0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],"colors":[["","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","#d8504a","#d8504a","","","","","","","",""],["","","","","","","","","","","#eef0f3","#eef0f3","","","","","","","",""],["","","","","","","","","","#d8504a","#d8504a","#d8504a","#d8504a","","","","","","",""],["","","","","","","","","","#eef0f3","#eef0f3","#eef0f3","#eef0f3","","","","","","",""],["","","","","","","","","","#d8504a","#d8504a","#d8504a","#d8504a","","","","","","",""],["","","","","","","","","","#eef0f3","#eef0f3","#eef0f3","#eef0f3","","","","","","",""],["","","","","","","","","#eef0f3","#eef0f3","#eef0f3","#eef0f3","#eef0f3","#eef0f3","","","","","",""],["","","","","","","","","#eef0f3","#eef0f3","#eef0f3","#eef0f3","#eef0f3","#eef0f3","","","","","",""],["","","","","","","","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","","","","",""],["","","","","","","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","","","",""],["","","","","","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","","",""],["","","","","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","",""],["","","","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a",""],["","","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a"],["","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a","#4a7a3a"],["#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0"],["#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0"],["#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296"],["#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296","#2f6296"]],"bg":"#cdeaf8"},{"id":"kanmuri","stage":12,"name":"後鳥羽上皇","desc":"隠岐配流の帝の冠","level":"上級","rows":[[],[],[1,1],[2,2],[2,4,2],[4,4],[3,3],[12],[14],[14],[14],[14],[14],[14],[12],[10],[],[],[],[]],"cols":[[],[],[],[6],[8],[13],[14],[11],[2,9],[1,9],[1,9],[2,9],[11],[14],[13],[8],[6],[],[],[]],"sol":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0],[0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0],[0,0,0,0,0,1,1,0,1,1,1,1,0,1,1,0,0,0,0,0],[0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0],[0,0,0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0,0,0],[0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0],[0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],[0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],[0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],[0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],[0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],[0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],[0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0],[0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]],"colors":[["","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","",""],["","","","","","","#caa030","","","","","","","#caa030","","","","","",""],["","","","","","#caa030","#caa030","","","","","","","#caa030","#caa030","","","","",""],["","","","","","#caa030","#caa030","","#caa030","#caa030","#caa030","#caa030","","#caa030","#caa030","","","","",""],["","","","","","#caa030","#caa030","#caa030","#caa030","","","#caa030","#caa030","#caa030","#caa030","","","","",""],["","","","","","#caa030","#caa030","#caa030","","","","","#caa030","#caa030","#caa030","","","","",""],["","","","","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","","","",""],["","","","#caa030","#caa030","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#caa030","#caa030","","",""],["","","","#caa030","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#caa030","","",""],["","","","#caa030","#6a3a6a","#6a3a6a","#c83a4a","#c83a4a","#c83a4a","#c83a4a","#c83a4a","#c83a4a","#c83a4a","#c83a4a","#6a3a6a","#6a3a6a","#caa030","","",""],["","","","#caa030","#6a3a6a","#6a3a6a","#c83a4a","#c83a4a","#c83a4a","#c83a4a","#c83a4a","#c83a4a","#c83a4a","#c83a4a","#6a3a6a","#6a3a6a","#caa030","","",""],["","","","#caa030","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#caa030","","",""],["","","","#caa030","#caa030","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#6a3a6a","#caa030","#caa030","","",""],["","","","","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","","","",""],["","","","","","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","#caa030","","","","",""],["","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","",""]],"bg":"#efe7d4"},{"id":"matengai","name":"摩天崖の馬","desc":"国賀海岸の絶景と放牧の馬","level":"上級","rows":[[],[],[3],[5],[5],[5],[3],[],[],[2],[4],[4],[5],[8],[11],[14],[18],[7,2,11],[8,2,13],[28],[30],[30],[30],[30],[30],[30],[30],[30],[30],[30]],"cols":[[10],[11],[12],[13],[14],[15],[16],[17],[18],[20],[8,11],[21],[20],[4,11],[17],[16],[16],[15],[15],[14],[3,14],[5,14],[5,13],[5,13],[3,13],[12],[12],[11],[11],[10]],"sol":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],[0,0,0,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0],[0,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],"colors":[["","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","","#f7c948","#f7c948","#f7c948","","","","","",""],["","","","","","","","","","","","","","","","","","","","","#f7c948","#f7c948","#f7c948","#f7c948","#f7c948","","","","",""],["","","","","","","","","","","","","","","","","","","","","#f7c948","#f7c948","#f7c948","#f7c948","#f7c948","","","","",""],["","","","","","","","","","","","","","","","","","","","","#f7c948","#f7c948","#f7c948","#f7c948","#f7c948","","","","",""],["","","","","","","","","","","","","","","","","","","","","","#f7c948","#f7c948","#f7c948","","","","","",""],["","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","#5a3f2a","#5a3f2a","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","","","","","","","","","","","","","","","","",""],["","","","","","","","","","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","","","","","","","","","","","","","","","","",""],["","","","","","","","","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","","","","","","","","","","","","","","","","",""],["","","","","","","","#5f9e4a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5f9e4a","#5f9e4a","","","","","","","","","","","","","","",""],["","","","","","","#5f9e4a","#5f9e4a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5f9e4a","#5f9e4a","#5f9e4a","","","","","","","","","","","","",""],["","","","","","#5f9e4a","#5f9e4a","#5f9e4a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","","","","","","","","","","",""],["","","","","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5a3f2a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","","","","","","","",""],["","","","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5a3f2a","#5a3f2a","","#5a3f2a","#5a3f2a","","#5a3f2a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","","","","",""],["","","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5a3f2a","#5a3f2a","","#5a3f2a","#5a3f2a","","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","","",""],["","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a",""],["#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a"],["#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a"],["#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a"],["#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#5f9e4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a"],["#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a","#8a6a4a"],["#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0"],["#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0"],["#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0"],["#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0"],["#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0","#3a78b0"]],"bg":"#bfe0f5","stage":13},{"id":"ushizuki","name":"牛突き","desc":"日本最古の闘牛の取組","level":"上級","rows":[[],[],[],[2,2],[3,3],[3,3],[4,4],[5,5],[8,8],[10,10],[12,12],[28],[29],[30],[13,15],[11,13],[10,12],[10,12],[10,12],[11,13],[11,13],[2,3,3,3,3,4],[2,3,3,3,3,4],[2,3,2,2,3,3],[2,3,2,2,3,3],[2,2,2,2,2,3],[],[30],[30],[30]],"cols":[[4,3],[16,3],[17,3],[2,13,3],[4,18,3],[22,3],[20,3],[15,3],[19,3],[19,3],[15,3],[7,2,3],[5,3],[3,3],[3,3],[5,2,3],[7,7,3],[18,3],[14,3],[18,3],[20,3],[21,3],[17,3],[4,18,3],[2,18,3],[17,3],[13,3],[10,3],[9,3],[2,3]],"sol":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0],[0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0],[0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],[0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0],[0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0],[0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,0,1,1,1,0,1,1,1,0,0,0,0,1,1,1,0,1,1,1,0,1,1,1,1,0,0,0],[0,1,1,0,1,1,1,0,1,1,1,0,0,0,0,1,1,1,0,1,1,1,0,1,1,1,1,0,0,0],[0,1,1,0,1,1,1,0,1,1,0,0,0,0,0,0,1,1,0,1,1,1,0,1,1,1,0,0,0,0],[0,1,1,0,1,1,1,0,1,1,0,0,0,0,0,0,1,1,0,1,1,1,0,1,1,1,0,0,0,0],[0,1,1,0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0,1,1,1,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],"colors":[["","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["","","","#33302e","#33302e","","","","","","","","","","","","","","","","","","","#33302e","#33302e","","","","",""],["","","","#33302e","#33302e","#33302e","","","","","","","","","","","","","","","","","#33302e","#33302e","#33302e","","","","",""],["","","","","#33302e","#33302e","#33302e","","","","","","","","","","","","","","","#33302e","#33302e","#33302e","","","","","",""],["","","","","#33302e","#33302e","#33302e","#33302e","","","","","","","","","","","","","#33302e","#33302e","#33302e","#33302e","","","","","",""],["","","","","","#33302e","#33302e","#33302e","#33302e","#33302e","","","","","","","","","#33302e","#33302e","#33302e","#33302e","#33302e","","","","","","",""],["","","","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","","","","","","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","","","",""],["","","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","","","","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","","",""],["","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","",""],["#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","",""],["#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e",""],["#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e"],["#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e"],["","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","","","","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e",""],["","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","","","","","","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e",""],["","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","","","","","","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e",""],["","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","","","","","","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e",""],["","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","","","","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e",""],["","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","","","","","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e","#33302e",""],["","#33302e","#33302e","","#33302e","#33302e","#33302e","","#33302e","#33302e","#33302e","","","","","#33302e","#33302e","#33302e","","#33302e","#33302e","#33302e","","#33302e","#33302e","#33302e","#33302e","","",""],["","#33302e","#33302e","","#33302e","#33302e","#33302e","","#33302e","#33302e","#33302e","","","","","#33302e","#33302e","#33302e","","#33302e","#33302e","#33302e","","#33302e","#33302e","#33302e","#33302e","","",""],["","#33302e","#33302e","","#33302e","#33302e","#33302e","","#33302e","#33302e","","","","","","","#33302e","#33302e","","#33302e","#33302e","#33302e","","#33302e","#33302e","#33302e","","","",""],["","#33302e","#33302e","","#33302e","#33302e","#33302e","","#33302e","#33302e","","","","","","","#33302e","#33302e","","#33302e","#33302e","#33302e","","#33302e","#33302e","#33302e","","","",""],["","#33302e","#33302e","","#33302e","#33302e","","","#33302e","#33302e","","","","","","","#33302e","#33302e","","","#33302e","#33302e","","#33302e","#33302e","#33302e","","","",""],["","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a"],["#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a"],["#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a","#b08a5a"]],"bg":"#e6dcc8","stage":14},{"id":"rousoku30","name":"ローソク島の夕日","desc":"夕日が灯る隠岐のシンボル","level":"上級","rows":[[],[1,1],[],[3],[7],[9],[9],[9],[7],[3],[3],[4],[5],[6],[6],[7],[8],[9],[9],[11],[11],[13],[2,21,5],[5,16,7],[1,8,5,8,4],[4,8,7,8],[2,5,8,6,5],[6,5,9,7],[1,13,10,3],[30]],"cols":[[8],[2,3,1],[3,3],[8],[3,4],[1,6],[5,2],[9],[7,3],[13],[3,9,5],[1,5,17],[5,16,2],[22,4],[27],[25,1],[5,12,5],[1,5,10,3],[3,11],[9],[8],[3,4],[1,3,2],[8],[3,3],[2,5],[6,1],[8],[8],[8]],"sol":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0],[1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1],[1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1],[1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1],[1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1],[1,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1],[1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1],[1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],"colors":[["","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","#f59a3c","","","","","","#f59a3c","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","#f59a3c","#f59a3c","#f59a3c","","","","","","","","","","","","","",""],["","","","","","","","","","","","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","","","","","","","","","","","",""],["","","","","","","","","","","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","","","","","","","","","","",""],["","","","","","","","","","","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","","","","","","","","","","",""],["","","","","","","","","","","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","","","","","","","","","","",""],["","","","","","","","","","","","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","#f59a3c","","","","","","","","","","","",""],["","","","","","","","","","","","","","#5b4636","#5b4636","#5b4636","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","#5b4636","#5b4636","#5b4636","","","","","","","","","","","","","",""],["","","","","","","","","","","","","#5b4636","#5b4636","#5b4636","#5b4636","","","","","","","","","","","","","",""],["","","","","","","","","","","","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","","","","","","","","","","","","",""],["","","","","","","","","","","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","","","","","","","","","","","","",""],["","","","","","","","","","","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","","","","","","","","","","","","",""],["","","","","","","","","","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","","","","","","","","","","","","",""],["","","","","","","","","","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","","","","","","","","","","","",""],["","","","","","","","","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","","","","","","","","","","","",""],["","","","","","","","","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","","","","","","","","","","","",""],["","","","","","","","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","","","","","","","","","","",""],["","","","","","","","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","","","","","","","","","","",""],["","","","","","","","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","","","","","","","","","",""],["#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8"],["#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#5b4636","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8"],["#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8"],["#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8"],["#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8"],["#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8"],["#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","","#2f6fa8","#2f6fa8","#2f6fa8"],["#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8","#2f6fa8"]],"bg":"#f5d9a8","stage":15}];
+let cur=null, state=[], mode="fill", mistakes=0;
+let startTs=0, timerId=null, running=false, lastElapsed=0;
+let dragging=false, dragVal=null, didDrag=false, downCell=null, downXY=null, processedCells=null;
+const cleared = {};
+const $=s=>document.querySelector(s);
+const board=$("#board");
+
+let curLevel="初級";  // 選択中の難易度グループ
+function buildPicker(){
+  const picker=$("#picker"); picker.innerHTML="";
+  PUZZLES.filter(p=>p.level===curLevel).forEach(p=>{
+    const b=document.createElement("button");
+    const clr=!!cleared[p.id];
+    b.className="chip"+(clr?" cleared":"")+(cur&&cur.id===p.id?" active":"");
+    b.dataset.id=p.id;
+    const sz=p.sol.length+"×"+p.sol[0].length;
+    b.innerHTML='<span class="stg">'+p.stage+'</span><span class="sz">'+sz+'</span>';
+    b.onclick=()=>{ if(clr) showGallery(p.id); else loadPuzzle(p.id); };
+    picker.appendChild(b);
+  });
+}
+function syncPicker(){
+  // 現在のステージが属する難易度に追従
+  if(cur) curLevel=cur.level;
+  document.querySelectorAll(".lvbtn").forEach(t=>t.classList.toggle("active",t.dataset.level===curLevel));
+  buildPicker();
+}
+function maxHintLen(arr){return Math.max(...arr.map(h=>h.filter(x=>x>0).length||1));}
+function loadPuzzle(id){
+  cur=PUZZLES.find(p=>p.id===id);
+  board.classList.remove("revealing");
+  const R=cur.sol.length, C=cur.sol[0].length;
+  state=Array.from({length:R},()=>Array(C).fill(0));
+  mistakes=0; updateMistakes();
+  $("#pName").textContent="Stage "+cur.stage;   // 絵の名前は伏せる
+  resetTimer(); renderBoard(); syncPicker();
+}
+function renderBoard(){
+  const R=cur.sol.length, C=cur.sol[0].length;
+  const colHintMax=maxHintLen(cur.cols);   // 列ヒントの最大個数(縦に並ぶ数)
+  // 行ヒントで横に必要な「文字数」の最大(桁数込み)、列ヒント数字の最大桁数
+  let rowMaxChars=1, colMaxDigits=1;
+  cur.rows.forEach(h=>{const f=h.filter(x=>x>0); if(f.length){ const chars=f.reduce((a,n)=>a+String(n).length,0); rowMaxChars=Math.max(rowMaxChars, chars + (f.length-1)*0.55); }});
+  cur.cols.forEach(h=>{const f=h.filter(x=>x>0); f.forEach(n=>{colMaxDigits=Math.max(colMaxDigits, String(n).length);});});
+  const shellW=Math.min(document.querySelector(".wrap").clientWidth, 520);
+
+  // フォント等をセル幅から算出。2桁ヒントがセルに収まるよう fs をセル幅・行高さで制約。
+  const computeHints = (cell)=>{
+    const fsByCell = Math.floor(cell / (colMaxDigits*0.72));  // 横: 2桁がセル幅に収まる上限
+    const fsByRow = cell - 2;                                 // 縦: 行の高さに収まる上限
+    const fsMin = Math.min(cell<=12 ? 7 : cell<=15 ? 9 : 11, Math.max(6, Math.min(fsByCell,fsByRow)));
+    const fs=Math.max(fsMin, Math.min(Math.round(cell*0.5), fsByCell, fsByRow, 22));
+    const ch = fs*0.66, lh = fs*1.28;
+    const padX = Math.round(fs*0.9), padY = Math.round(fs*0.7);
+    const rowHintW = Math.ceil(rowMaxChars*ch) + padX;   // 行ヒント帯の幅
+    const colHintH = Math.ceil(colHintMax*lh) + padY;    // 列ヒント帯の高さ
+    return {fs, rowHintW, colHintH};
+  };
+
+  // セル幅を「画面幅にちょうど収まる」よう決める。
+  // 行ヒント幅はセル幅に依存するので、数回反復して収束させる。
+  let cell = 40;  // 初期値
+  for(let i=0;i<6;i++){
+    const {rowHintW} = computeHints(cell);
+    const fit = Math.floor((shellW-4-rowHintW)/C);
+    if(fit===cell) break;
+    cell = fit;
+  }
+  cell = Math.max(8, cell);  // 念のための最小
+  let {fs, rowHintW, colHintH} = computeHints(cell);
+
+  board.style.gridTemplateColumns = rowHintW+"px repeat("+C+", "+cell+"px)";
+  board.style.gridTemplateRows = colHintH+"px repeat("+R+", "+cell+"px)";
+  board.innerHTML="";
+
+  // (1) 左上コーナー
+  const corner=document.createElement("div"); corner.className="cell corner"; board.appendChild(corner);
+
+  // (2) 上の列ヒント(各列1セル・縦並び・下詰め)
+  for(let c=0;c<C;c++){
+    const d=document.createElement("div"); d.className="cell hint col";
+    d.dataset.col=c; d.style.fontSize=fs+"px";
+    const hint=cur.cols[c].filter(x=>x>0); const arr=hint.length?hint:[];
+    arr.forEach(n=>{const s=document.createElement("span");s.textContent=n;d.appendChild(s);});
+    const chk=document.createElement("span"); chk.className="h-check"; chk.textContent="✓";
+    chk.style.fontSize=Math.round(fs*0.72)+"px"; d.appendChild(chk);
+    board.appendChild(d);
+  }
+
+  // (3) 各データ行: 左に行ヒント(1セル・横並び・右詰め) + マス
+  for(let r=0;r<R;r++){
+    const rd=document.createElement("div"); rd.className="cell hint row";
+    rd.dataset.row=r; rd.style.fontSize=fs+"px";
+    const hint=cur.rows[r].filter(x=>x>0); const arr=hint.length?hint:[];
+    arr.forEach(n=>{const s=document.createElement("span");s.textContent=n;rd.appendChild(s);});
+    const chk=document.createElement("span"); chk.className="h-check"; chk.textContent="✓";
+    chk.style.fontSize=Math.round(fs*0.72)+"px"; rd.appendChild(chk);
+    board.appendChild(rd);
+
+    for(let c=0;c<C;c++){
+      const d=document.createElement("div");
+      let cls="cell play";
+      if((c+1)%5===0 && c!==C-1) cls+=" b-right";
+      if((r+1)%5===0 && r!==R-1) cls+=" b-bottom";
+      if(c===0) cls+=" gleft";
+      if(r===0) cls+=" gtop";
+      d.className=cls; d.dataset.r=r; d.dataset.c=c;
+      const m=document.createElementNS("http://www.w3.org/2000/svg","svg");
+      m.setAttribute("viewBox","0 0 24 24"); m.setAttribute("class","mark");
+      m.setAttribute("fill","none"); m.setAttribute("stroke","currentColor");
+      m.setAttribute("stroke-width","3"); m.setAttribute("stroke-linecap","round");
+      const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+      path.setAttribute("d","M6 6l12 12M18 6L6 18");
+      m.appendChild(path); d.appendChild(m); board.appendChild(d);
+    }
+  }
+  paintAll(); updateHintChecks();
+}
+function cellEl(r,c){return board.querySelector('.play[data-r="'+r+'"][data-c="'+c+'"]');}
+function paintCell(r,c){
+  const el=cellEl(r,c); if(!el)return;
+  el.classList.toggle("filled",state[r][c]===1);
+  el.classList.toggle("cross",state[r][c]===2);
+}
+function paintAll(){const R=cur.sol.length,C=cur.sol[0].length;for(let r=0;r<R;r++)for(let c=0;c<C;c++)paintCell(r,c);}
+function applyCell(r,c,forceVal){
+  if(state[r][c]===1) return;
+  const target = forceVal!==undefined ? forceVal : (mode==="fill"?1:2);
+  let next;
+  if(forceVal!==undefined){ next=forceVal; }
+  else { next = (state[r][c]===target)?0:target; }
+  if(next===1){
+    if(cur.sol[r][c]===1){
+      state[r][c]=1; paintCell(r,c);
+      const el=cellEl(r,c); el.classList.remove("pop");void el.offsetWidth; el.classList.add("pop");
+    }else{
+      // 誤り: ミスにするが、目印のバツは付けず一瞬赤く光らせて空に戻す
+      mistakes++; updateMistakes();
+      state[r][c]=0; paintCell(r,c);
+      const el=cellEl(r,c); el.classList.remove("flash");void el.offsetWidth; el.classList.add("flash");
+      if(navigator.vibrate)navigator.vibrate(40);
+    }
+  }else{ state[r][c]=next; paintCell(r,c); }
+  updateHintChecks(); checkWin();
+}
+function getCellFromPoint(x,y){
+  const el=document.elementFromPoint(x,y);
+  if(el&&el.classList.contains("play")) return el;
+  if(el&&el.parentElement&&el.parentElement.classList.contains("play")) return el.parentElement;
+  return null;
+}
+// 1マスに入力を適用する共通処理。ドラッグでなぞったマスもタップも、ここを通る。
+// fillモード: 塗る方向なら正解判定(applyCell)、消す方向なら空に戻す。
+// crossモード: バツのトグル(ノーペナルティ)。
+function inputCell(r,c){
+  const key=r*1000+c;
+  if(processedCells && processedCells.has(key)) return; // ドラッグ中の二重処理を防ぐ
+  if(processedCells) processedCells.add(key);
+  if(mode==="fill"){
+    if(dragVal===0){
+      // 消すドラッグ: 塗り/バツに関わらず空へ(ミスなし)
+      if(state[r][c]!==0){ state[r][c]=0; paintCell(r,c); updateHintChecks(); }
+    }else{
+      // 塗るドラッグ/タップ: 正解なら塗り、不正解ならミス(applyCellが判定)
+      if(state[r][c]!==1) applyCell(r,c,1);
+    }
+  }else{
+    // バツモード
+    if(dragVal===2){ if(state[r][c]!==2){ state[r][c]=2; paintCell(r,c); updateHintChecks(); } }
+    else { if(state[r][c]!==0){ state[r][c]=0; paintCell(r,c); updateHintChecks(); } }
+  }
+}
+function pointerDown(e){
+  if(!running) startTimer();
+  const t=e.touches?e.touches[0]:e;
+  const el=getCellFromPoint(t.clientX,t.clientY);
+  if(!el)return;
+  e.preventDefault();
+  dragging=true; didDrag=false;
+  const r=+el.dataset.r,c=+el.dataset.c;
+  downCell={r,c}; downXY={x:t.clientX,y:t.clientY};
+  processedCells=new Set();
+  const before=state[r][c];
+  // ドラッグの方向(値)を最初のマスで決める
+  if(mode==="fill"){
+    dragVal = (before===1) ? 0 : 1;   // 既に塗り → 消す方向 / それ以外 → 塗る方向
+  }else{
+    dragVal = (before===2) ? 0 : 2;   // 既にバツ → 消す / それ以外 → バツ
+  }
+  inputCell(r,c);
+}
+function pointerMove(e){
+  if(!dragging || dragVal===null) return;
+  const t=e.touches?e.touches[0]:e;
+  if(downXY && Math.hypot(t.clientX-downXY.x, t.clientY-downXY.y) > 6) didDrag=true;
+  const el=getCellFromPoint(t.clientX,t.clientY);
+  if(!el)return;
+  e.preventDefault();
+  inputCell(+el.dataset.r, +el.dataset.c);
+}
+function pointerUp(){
+  dragging=false; dragVal=null; didDrag=false; downCell=null; downXY=null; processedCells=null;
+}
+board.addEventListener("mousedown",pointerDown);
+window.addEventListener("mousemove",pointerMove);
+window.addEventListener("mouseup",pointerUp);
+board.addEventListener("touchstart",pointerDown,{passive:false});
+board.addEventListener("touchmove",pointerMove,{passive:false});
+window.addEventListener("touchend",pointerUp);
+function lineGroups(vals){const g=[];let c=0;for(const v of vals){if(v)c++;else{if(c){g.push(c);c=0;}}}if(c)g.push(c);return g;}
+function updateHintChecks(){
+  const R=cur.sol.length,C=cur.sol[0].length;
+  for(let r=0;r<R;r++){
+    const filled=state[r].map(v=>v===1?1:0);
+    const target=cur.rows[r].filter(x=>x>0);
+    const got=lineGroups(filled);
+    const done=JSON.stringify(got)===JSON.stringify(target);
+    board.querySelectorAll('.hint.row[data-row="'+r+'"]').forEach(h=>h.classList.toggle("done",done));
+  }
+  for(let c=0;c<C;c++){
+    const col=[];for(let r=0;r<R;r++)col.push(state[r][c]===1?1:0);
+    const target=cur.cols[c].filter(x=>x>0);
+    const got=lineGroups(col);
+    const done=JSON.stringify(got)===JSON.stringify(target);
+    board.querySelectorAll('.hint.col[data-col="'+c+'"]').forEach(h=>h.classList.toggle("done",done));
+  }
+}
+function checkWin(){
+  const R=cur.sol.length,C=cur.sol[0].length;
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){ if(cur.sol[r][c]===1 && state[r][c]!==1) return; }
+  win();
+}
+function win(){
+  stopTimer(); cleared[cur.id]=true;
+  const R=cur.sol.length,C=cur.sol[0].length;
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){if(state[r][c]!==1){state[r][c]=2;paintCell(r,c);}}
+  syncPicker();
+  if(cur.colors){ revealPicture(); }      // カラー絵あり → 段階的に色を出す
+  else { setTimeout(showWin,350); }
+}
+// 塗りマスを元画像のカラーに、左上から波紋状に変化させる
+function revealPicture(){
+  const R=cur.sol.length,C=cur.sol[0].length;
+  board.classList.add("revealing");
+  // バツマークを消す(空マスは背景色へ)
+  board.querySelectorAll(".play.cross").forEach(el=>{el.classList.remove("cross");});
+  // 中心からの距離順でディレイ
+  const cy=(R-1)/2, cx=(C-1)/2;
+  let maxd=0;
+  const items=[];
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+    const d=Math.hypot(r-cy,c-cx); maxd=Math.max(maxd,d);
+    items.push({r,c,d});
+  }
+  items.forEach(it=>{
+    const el=cellEl(it.r,it.c); if(!el)return;
+    el.classList.add("reveal");
+    const delay = (it.d/maxd)*900;  // 0〜900ms
+    setTimeout(()=>{
+      const col=cur.colors[it.r][it.c];
+      el.style.backgroundColor = col ? col : cur.bg;  // 塗り→絵の色 / 空→背景色
+      el.classList.add("revealed");
+    }, delay);
+  });
+  // 絵が出そろってからモーダル
+  setTimeout(()=>{ showWin(); }, 1500);
+}
+function showWin(){
+  $("#mTime").firstChild.textContent=fmt(elapsed());
+  $("#mMiss").firstChild.textContent=mistakes;
+  const emojis={Dumb:"😀",Normal:"😎",Smart:"🤩",Genius:"🧠"};
+  $("#mEmoji").textContent= mistakes===0 ? "🏆" : (emojis[cur.level]||"🎉");
+  $("#mTitle").textContent= "「"+cur.name+"」だ！";   // ここで初めて絵の正体を明かす
+  $("#mSub").textContent= cur.desc || ("Stage "+cur.stage+" クリア！");  // 隠岐の豆知識
+  const idx=PUZZLES.findIndex(p=>p.id===cur.id);
+  const last = idx>=PUZZLES.length-1;
+  $("#nextBtn").textContent = last ? "最初のステージへ ▶" : "つぎのステージ ▶";
+  $("#overlay").classList.add("show"); burst();
+}
+function elapsed(){return (running||startTs)? Math.floor((Date.now()-startTs)/1000):lastElapsed;}
+function fmt(s){const m=Math.floor(s/60);return m+":"+String(s%60).padStart(2,"0");}
+function startTimer(){if(running)return;running=true;startTs=Date.now()-lastElapsed*1000;timerId=setInterval(()=>{$("#timer").textContent=fmt(elapsed());},250);}
+function stopTimer(){running=false;lastElapsed=elapsed();clearInterval(timerId);$("#timer").textContent=fmt(lastElapsed);}
+function resetTimer(){clearInterval(timerId);running=false;startTs=0;lastElapsed=0;$("#timer").textContent="0:00";}
+function updateMistakes(){$("#mistakes").textContent="ミス "+mistakes;}
+$("#modeBtn").onclick=()=>{
+  mode = mode==="fill"?"cross":"fill";
+  const b=$("#modeBtn");
+  b.classList.toggle("fill",mode==="fill");
+  b.classList.toggle("cross",mode==="cross");
+};
+$("#resetBtn").onclick=()=>{
+  if(state.flat().some(v=>v!==0) && !confirm("この絵を最初からやり直しますか？")) return;
+  const R=cur.sol.length,C=cur.sol[0].length;
+  state=Array.from({length:R},()=>Array(C).fill(0));
+  mistakes=0;updateMistakes();resetTimer();paintAll();updateHintChecks();
+};
+$("#hintBtn").onclick=()=>{
+  const R=cur.sol.length,C=cur.sol[0].length;
+  const cands=[];
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++) if(cur.sol[r][c]===1 && state[r][c]!==1) cands.push([r,c]);
+  if(!cands.length)return;
+  if(!running)startTimer();
+  const pick=cands[Math.floor(Math.random()*cands.length)];
+  const r=pick[0],c=pick[1];
+  state[r][c]=1;paintCell(r,c);
+  const el=cellEl(r,c);el.classList.remove("pop");void el.offsetWidth;el.classList.add("pop");
+  mistakes++;updateMistakes();
+  updateHintChecks();checkWin();
+};
+document.querySelectorAll(".lvbtn").forEach(t=>{
+  t.onclick=()=>{
+    curLevel=t.dataset.level;
+    document.querySelectorAll(".lvbtn").forEach(x=>x.classList.toggle("active",x===t));
+    buildPicker();   // そのグループの5ステージを表示(自由選択)
+  };
+});
+$("#nextBtn").onclick=()=>{
+  $("#overlay").classList.remove("show");
+  const idx=PUZZLES.findIndex(p=>p.id===cur.id);
+  const next=PUZZLES[(idx+1)%PUZZLES.length];
+  loadPuzzle(next.id);
+};
+$("#closeBtn").onclick=()=>$("#overlay").classList.remove("show");
+$("#overlay").onclick=e=>{if(e.target===$("#overlay"))$("#overlay").classList.remove("show");};
+
+// クリア済みステージのカラー画像ギャラリー
+let galleryId=null;
+function showGallery(id){
+  const p=PUZZLES.find(x=>x.id===id); if(!p)return;
+  galleryId=id;
+  const R=p.sol.length, C=p.sol[0].length;
+  const canvas=$("#galleryCanvas");
+  canvas.style.gridTemplateColumns="repeat("+C+",1fr)";
+  canvas.style.gridTemplateRows="repeat("+R+",1fr)";
+  canvas.innerHTML="";
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+    const d=document.createElement("div"); d.className="px";
+    const col=p.colors[r][c];
+    d.style.backgroundColor = col ? col : p.bg;
+    canvas.appendChild(d);
+  }
+  $("#gTitle").textContent=p.name;
+  $("#gDesc").textContent=p.desc||"";
+  $("#gMeta").innerHTML='Stage '+p.stage+'　<b>'+C+'×'+R+'</b>';
+  $("#galleryOverlay").classList.add("show");
+}
+$("#galleryCloseBtn").onclick=()=>$("#galleryOverlay").classList.remove("show");
+$("#galleryOverlay").onclick=e=>{if(e.target===$("#galleryOverlay"))$("#galleryOverlay").classList.remove("show");};
+$("#galleryReplayBtn").onclick=()=>{
+  $("#galleryOverlay").classList.remove("show");
+  if(galleryId) loadPuzzle(galleryId);
+};
+function burst(){
+  const colors=["#e8615a","#f5a623","#34b36b","#2f4156","#c9d432","#ffffff"];
+  for(let i=0;i<70;i++){
+    const c=document.createElement("div");
+    c.className="confetti";
+    c.style.left=Math.random()*100+"vw";
+    c.style.background=colors[i%colors.length];
+    c.style.transform="rotate("+Math.random()*360+"deg)";
+    c.style.borderRadius=Math.random()<.5?"2px":"50%";
+    document.body.appendChild(c);
+    const dur=2200+Math.random()*1400, x=(Math.random()-.5)*220;
+    c.animate([
+      {transform:c.style.transform+" translate(0,0)",opacity:1},
+      {transform:"translate("+x+"px,108vh) rotate("+(Math.random()*720)+"deg)",opacity:.9}
+    ],{duration:dur,easing:"cubic-bezier(.2,.6,.4,1)"});
+    setTimeout(()=>c.remove(),dur);
+  }
+}
+let rzT;
+window.addEventListener("resize",()=>{clearTimeout(rzT);rzT=setTimeout(renderBoard,150);});
+function toast(msg){
+  let t=document.getElementById("toast");
+  if(!t){ t=document.createElement("div"); t.id="toast"; document.body.appendChild(t); }
+  t.textContent=msg; t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
+  clearTimeout(t._timer); t._timer=setTimeout(()=>t.classList.remove("show"),2200);
+}
+// タイトル画面のピクセルアート(ローソク島の夕日を縮約した装飾)
+function buildTitleArt(){
+  const art=$("#titleArt"); if(!art)return;
+  // 写真に寄せた高解像度ローソク島の夕日(36x24)
+  const P=[
+    "....................................",
+    "....................................",
+    ".................sss................",
+    "...............ssssss...............",
+    "..............ssSSSSss..............",
+    ".............sSSSSSSSs..............",
+    ".............sSSSSSSSs..............",
+    ".............sSSSSSSSs..............",
+    "..............sSSSSSs...............",
+    "...............ssSSss...............",
+    "................rssr................",
+    "................rrr.................",
+    "................rrr.................",
+    "................rrrr................",
+    "................rrrr................",
+    "...............rrrrr................",
+    "...............rrrrr................",
+    "...............rrrrrr...............",
+    "..............rrrrrr................",
+    "..............rrrrrrr...............",
+    "..............rrrrrrr...............",
+    ".............rrrrrrrr...............",
+    ".............rrrrrwrrr..............",
+    "WWWWWWWWWWWWWrrrwwwrrrWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWwwwwWWWWWWWWWWWWWWWWW",
+  ];
+  const pal={
+    'S':'#fff0bd',  // 太陽中心(明るい黄白)
+    's':'#f4992f',  // 太陽まわりの光(オレンジ)
+    'r':'#1f160f',  // 岩(ほぼ黒のシルエット)
+    'W':'#bf5e1c',  // 海(夕日に染まったオレンジ茶)
+    'w':'#ffd964',  // 照り返し(明るい金)
+  };
+  const C=P[0].length, R=P.length;
+  art.style.gridTemplateColumns="repeat("+C+",1fr)";
+  art.style.gridTemplateRows="repeat("+R+",1fr)";
+  art.innerHTML="";
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+    const d=document.createElement("div");
+    const ch=P[r][c];
+    d.style.background = ch==='.' ? 'transparent' : pal[ch];
+    art.appendChild(d);
+  }
+}
+function startGame(){
+  $("#titleScreen").style.display="none";
+  $("#gameScreen").style.display="";
+  // ゲーム画面が表示されてから盤面を描く(幅計算のため)
+  if(!cur) loadPuzzle("tobiuo");
+  else renderBoard();
+}
+function goTitle(){
+  $("#gameScreen").style.display="none";
+  $("#titleScreen").style.display="";
+}
+$("#startBtn").onclick=startGame;
+$("#titleScreen").onclick=(e)=>{ startGame(); }; // 画面のどこをタップしてもスタート
+$("#homeBtn").onclick=goTitle;
+
+buildTitleArt();
+buildPicker();
+</script>
+</body>
+</html>
