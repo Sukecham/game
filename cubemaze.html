@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>キューブメイズ</title>
+<style>
+  :root{
+    --bg-top:#eaf1f8;
+    --bg-bot:#dde8f3;
+    --ink:#111418;
+    --accent:#5b54d6;
+    --heart:#ff3b6b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;}
+  body{
+    background:linear-gradient(170deg,var(--bg-top) 0%,var(--bg-bot) 100%);
+    -webkit-user-select:none;user-select:none;touch-action:none;
+  }
+  #app{position:fixed;inset:0;}
+  canvas{display:block;}
+
+  /* ---- HUD ---- */
+  .hud{position:fixed;left:0;right:0;top:0;padding:14px 18px;pointer-events:none;z-index:10;}
+  .hud-row{display:flex;align-items:flex-start;justify-content:space-between;}
+  .gear{
+    pointer-events:auto;width:52px;height:52px;border-radius:50%;
+    background:var(--accent);border:3px solid #fff;
+    box-shadow:0 6px 16px rgba(60,55,160,.35);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:transform .12s ease;
+  }
+  .gear:active{transform:scale(.92);}
+  .gear svg{width:26px;height:26px;fill:#fff;}
+  .center{flex:1;text-align:center;margin-top:4px;}
+  .level{font-weight:800;font-size:22px;color:var(--ink);letter-spacing:.5px;}
+  .hearts{margin-top:8px;display:flex;gap:6px;justify-content:center;}
+  .heart{width:24px;height:24px;}
+  .heart svg{width:100%;height:100%;fill:var(--heart);filter:drop-shadow(0 2px 2px rgba(255,59,107,.4));transition:opacity .3s, transform .3s;}
+  .heart.lost svg{opacity:.18;transform:scale(.8);fill:#9aa3b2;}
+  .counter{
+    pointer-events:none;min-width:64px;height:46px;padding:0 14px 0 12px;
+    background:#fff;border:2.5px solid var(--accent);border-radius:26px;
+    display:flex;align-items:center;gap:6px;
+    box-shadow:0 5px 14px rgba(60,55,160,.18);
+    font-weight:800;font-size:22px;color:var(--ink);
+    transform:translateX(18px);
+  }
+  .counter svg{width:18px;height:18px;fill:var(--accent);}
+
+  /* ---- hint / toast ---- */
+  .toast{
+    position:fixed;left:50%;top:62%;transform:transl(-50%,-50%) scale(.8);
+    transform:translate(-50%,-50%) scale(.8);
+    background:rgba(20,22,28,.86);color:#fff;padding:16px 30px;border-radius:18px;
+    font-size:26px;font-weight:800;letter-spacing:1px;opacity:0;pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;z-index:20;white-space:nowrap;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+
+  .hintbar{
+    position:fixed;left:50%;bottom:42px;transform:translateX(-50%);
+    background:rgba(255,255,255,.75);backdrop-filter:blur(6px);
+    color:#3a4250;font-size:14px;font-weight:600;padding:9px 18px;border-radius:20px;
+    box-shadow:0 4px 12px rgba(0,0,0,.06);z-index:10;pointer-events:none;
+    transition:opacity .4s ease;text-align:center;
+  }
+
+  /* ---- settings panel ---- */
+  .panel{
+    position:fixed;inset:0;background:rgba(20,22,30,.45);backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;z-index:30;
+  }
+  .panel.open{display:flex;}
+  .card{
+    width:min(86vw,340px);background:#fff;border-radius:24px;padding:26px 24px 22px;
+    box-shadow:0 20px 50px rgba(0,0,0,.25);text-align:center;
+  }
+  .card h2{font-size:22px;color:var(--ink);margin-bottom:18px;}
+  .card .row{display:flex;align-items:center;justify-content:space-between;padding:12px 4px;border-top:1px solid #eef0f4;font-size:16px;color:#3a4250;font-weight:600;}
+  .card .row:first-of-type{border-top:none;}
+  .btn{
+    width:100%;margin-top:18px;padding:14px;border:none;border-radius:16px;
+    background:var(--accent);color:#fff;font-size:17px;font-weight:800;cursor:pointer;
+    transition:transform .1s ease, filter .15s ease;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn.ghost{background:#eef0f6;color:#3a4250;margin-top:10px;}
+  .toggle{width:50px;height:30px;border-radius:16px;background:#d6dae3;position:relative;cursor:pointer;transition:background .2s;}
+  .toggle.on{background:var(--accent);}
+  .toggle::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+  .toggle.on::after{left:23px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div class="hud">
+  <div class="hud-row">
+    <div class="gear" id="gearBtn" aria-label="設定">
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94a7.5 7.5 0 0 0 .05-.94 7.5 7.5 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.2 8.2a.5.5 0 0 0 .12.64l2.03 1.58c-.03.31-.05.62-.05.94 0 .32.02.63.05.94L2.32 13.9a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.42.34.68.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.26.12.54.02.68-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+    </div>
+    <div class="center">
+      <div class="level" id="levelLabel">Level 1</div>
+      <div class="hearts" id="hearts"></div>
+    </div>
+    <div class="counter" id="counter">
+      <svg viewBox="0 0 24 24"><path d="M12 3l8 8h-5v10H9V11H4z"/></svg>
+      <span id="counterVal">0</span>
+    </div>
+  </div>
+</div>
+
+<div class="hintbar" id="hintbar">矢印をタップ・前が空いていれば外へ抜ける・ドラッグで回転</div>
+<div class="toast" id="toast"></div>
+
+<div class="panel" id="panel">
+  <div class="card">
+    <h2>設定</h2>
+    <div class="row"><span>サウンド</span><div class="toggle on" id="tgSound"></div></div>
+    <div class="row"><span>ヒント表示</span><div class="toggle on" id="tgHint"></div></div>
+    <div class="row"><span>難易度</span><span id="diffLabel" style="color:var(--accent)">レベル1</span></div>
+    <button class="btn" id="resumeBtn">続ける</button>
+    <button class="btn ghost" id="restartBtn">このレベルをやり直す</button>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* =========================================================================
+   キューブメイズ — ガラスキューブの各面に描かれた矢印経路をなぞって消すパズル
+   - 各面 = グリッド上の一筆書き経路（複数本）
+   - タップした経路を1本消す → 残数カウンタが減る
+   - 全消しでレベルクリア → 次レベル自動生成
+   - ドラッグでキューブ回転、タップで経路選択
+   ========================================================================= */
+
+// ---------- 基本セットアップ ----------
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, window.innerWidth/window.innerHeight, 0.1, 100);
+camera.position.set(0, 0.3, 10.2);
+camera.lookAt(0, 0.25, 0);
+
+// ---------- 環境マップ（ガラスの映り込み用に簡易グラデ） ----------
+function makeEnvTexture(){
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  const grd = g.createLinearGradient(0,0,0,256);
+  grd.addColorStop(0,'#ffffff');
+  grd.addColorStop(0.45,'#dce6f2');
+  grd.addColorStop(0.55,'#c2d2e6');
+  grd.addColorStop(1,'#eef3f9');
+  g.fillStyle = grd; g.fillRect(0,0,256,256);
+  // soft highlight blobs
+  for(let i=0;i<5;i++){
+    const x=Math.random()*256,y=Math.random()*120;
+    const r=40+Math.random()*60;
+    const rg=g.createRadialGradient(x,y,0,x,y,r);
+    rg.addColorStop(0,'rgba(255,255,255,.9)');
+    rg.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=rg; g.beginPath(); g.arc(x,y,r,0,7); g.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+const envMap = makeEnvTexture();
+scene.environment = envMap;
+
+// ---------- ライティング ----------
+scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+const key = new THREE.DirectionalLight(0xffffff, 1.4); key.position.set(4,7,6); scene.add(key);
+const fill = new THREE.DirectionalLight(0xbfd2ec, 0.6); fill.position.set(-5,-2,3); scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffffff, 0.8); rim.position.set(-3,4,-6); scene.add(rim);
+
+// ---------- ゲーム状態 ----------
+const SOUND = { on:true };
+const HINT  = { on:true };
+let level = 1;
+let lives = 3;
+let totalArrows = 0;
+let clearedArrows = 0;
+let busy = false; // 遷移中ロック
+
+// ---------- 面の定義 ----------
+// 立方体の6面。それぞれローカル法線と「面の2軸（u,v）」をワールド方向で持つ。
+const SIZE = 2.2;          // 基準辺
+const GRID = 5;            // 面内グリッド（5x5セル）
+const HALF = SIZE/2;
+
+// 立体の各軸の寸法（applyShape で変更）。初期は立方体。
+const DIM = { x:SIZE, y:SIZE, z:SIZE };
+// 形状プリセット（基準SIZEに対する各軸の倍率）
+const SHAPES = {
+  cube: {x:1,   y:1,   z:1  },
+  tall: {x:0.8, y:1.6, z:0.8},   // 縦長
+  long: {x:1.7, y:0.8, z:0.8},   // 横長（X方向に長い）
+  wide: {x:0.8, y:0.8, z:1.7},   // 奥行きに長い
+  slab: {x:1.5, y:0.6, z:1.2},   // 板状
+};
+function axisLen(axis){ return DIM[axis]; }
+function halfAxis(axis){ return DIM[axis]/2; }
+
+// 面: name, normal, uDir, vDir （uDir×vが法線になるよう右手系で）
+// uAxis/vAxis: その面の u,v 方向が対応するワールド軸（寸法計算用）
+const FACES = [
+  { name:'px', n:new THREE.Vector3( 1,0,0), u:new THREE.Vector3(0,0,-1), v:new THREE.Vector3(0,1,0), nAxis:'x', uAxis:'z', vAxis:'y' },
+  { name:'nx', n:new THREE.Vector3(-1,0,0), u:new THREE.Vector3(0,0, 1), v:new THREE.Vector3(0,1,0), nAxis:'x', uAxis:'z', vAxis:'y' },
+  { name:'py', n:new THREE.Vector3(0, 1,0), u:new THREE.Vector3(1,0,0),  v:new THREE.Vector3(0,0,-1), nAxis:'y', uAxis:'x', vAxis:'z' },
+  { name:'ny', n:new THREE.Vector3(0,-1,0), u:new THREE.Vector3(1,0,0),  v:new THREE.Vector3(0,0, 1), nAxis:'y', uAxis:'x', vAxis:'z' },
+  { name:'pz', n:new THREE.Vector3(0,0, 1), u:new THREE.Vector3(1,0,0),  v:new THREE.Vector3(0,1,0), nAxis:'z', uAxis:'x', vAxis:'y' },
+  { name:'nz', n:new THREE.Vector3(0,0,-1), u:new THREE.Vector3(-1,0,0), v:new THREE.Vector3(0,1,0), nAxis:'z', uAxis:'x', vAxis:'y' },
+];
+
+// ---------- キューブ本体（ガラス） ----------
+const cubeGroup = new THREE.Group();
+scene.add(cubeGroup);
+
+const glassMat = new THREE.MeshPhysicalMaterial({
+  color:0xf2f7fc, metalness:0, roughness:0.12,
+  clearcoat:1.0, clearcoatRoughness:0.04,
+  envMap, envMapIntensity:1.15,
+  transparent:true, opacity:0.28,
+  side:THREE.DoubleSide,
+  depthWrite:false,
+});
+let glass = new THREE.Mesh(new THREE.BoxGeometry(DIM.x,DIM.y,DIM.z), glassMat);
+glass.renderOrder = 0;
+cubeGroup.add(glass);
+
+// うっすらしたエッジ枠（角を強調）
+let edges = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(DIM.x,DIM.y,DIM.z)),
+  new THREE.LineBasicMaterial({ color:0xb9c6da, transparent:true, opacity:0.55 })
+);
+cubeGroup.add(edges);
+
+// 形状を適用：glass・edges・面平面の寸法を更新
+function applyShape(name){
+  const s = SHAPES[name] || SHAPES.cube;
+  DIM.x = SIZE*s.x; DIM.y = SIZE*s.y; DIM.z = SIZE*s.z;
+  // glass 差し替え
+  glass.geometry.dispose();
+  glass.geometry = new THREE.BoxGeometry(DIM.x, DIM.y, DIM.z);
+  // edges 差し替え
+  edges.geometry.dispose();
+  edges.geometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(DIM.x, DIM.y, DIM.z));
+  // 面平面の寸法・位置を更新
+  if(typeof updateFaceMeshDims === 'function') updateFaceMeshDims();
+}
+
+// ---------- 経路テクスチャ描画 ----------
+// 面ごとに「path（セル座標の列）」を複数持つ。各pathを線+矢じりで描く。
+const TEX = 512;          // テクスチャ解像度
+const faceCanvases = {};  // name -> {canvas, ctx, texture, mesh}
+
+function cellToPx(c){
+  // グリッドセル中心を px に。GRID分割、外周に余白。
+  const pad = TEX*0.12;
+  const span = TEX - pad*2;
+  const step = span/(GRID-1);
+  return pad + c*step;
+}
+
+// 面上の px 座標(0..TEX)を、その面の3Dローカル座標(cubeGroup内)に変換する。
+// 面の実寸（u軸長×v軸長）に合わせてマッピング。法線方向は その軸の半分＋ε。
+function pxTo3D(face, px, py){
+  const uLen = axisLen(face.uAxis)*0.97;
+  const vLen = axisLen(face.vAxis)*0.97;
+  const u = (px/TEX - 0.5) * uLen;
+  const v = (0.5 - py/TEX) * vLen;   // y反転
+  const base = face.n.clone().multiplyScalar(halfAxis(face.nAxis) + 0.012);
+  return base.add(face.u.clone().multiplyScalar(u)).add(face.v.clone().multiplyScalar(v));
+}
+
+// グリッドセル(gx,gy)→面の3D座標（範囲外の値もそのまま線形計算）。
+function gridTo3D(face, gx, gy){
+  return pxTo3D(face, cellToPx(gx), cellToPx(gy));
+}
+function faceByName(name){ return FACES.find(f=>f.name===name); }
+
+// 3D点が乗っている面を判定（各軸の |座標|/halfAxis が最大の軸＝その面の外向き法線）
+function faceOfPoint(p){
+  let best=null, bestR=-Infinity;
+  for(const f of FACES){
+    // 法線方向成分が正で最大の面
+    const comp = p.dot(f.n) / (halfAxis(f.nAxis)||1);
+    if(comp>bestR){ bestR=comp; best=f; }
+  }
+  return best;
+}
+// 3D点を、指定面のローカル(u,v)→グリッドセル(gx,gy)。範囲外でも端にクランプして返す。
+// 面の表面に正射影してからローカル座標を取る（法線方向のずれを無視）。
+function pointToCell(face, p){
+  const uLen = axisLen(face.uAxis)*0.97;
+  const vLen = axisLen(face.vAxis)*0.97;
+  const rel = p.clone().sub(face.n.clone().multiplyScalar(halfAxis(face.nAxis)+0.012));
+  const u = rel.dot(face.u);
+  const v = rel.dot(face.v);
+  const px = (u/uLen + 0.5)*TEX;
+  const py = (0.5 - v/vLen)*TEX;
+  const pad = TEX*0.12, span = TEX - pad*2, stepP = span/(GRID-1);
+  let gx = Math.round((px - pad)/stepP);
+  let gy = Math.round((py - pad)/stepP);
+  // わずかなはみ出しは端にクランプ（隣接面グリッドの噛み合わせのため）
+  const cgx = Math.max(0, Math.min(GRID-1, gx));
+  const cgy = Math.max(0, Math.min(GRID-1, gy));
+  // 大きく外れている場合は無効（その面ではない）
+  if(gx < -1 || gx > GRID || gy < -1 || gy > GRID) return {gx:-99, gy:-99, raw:true};
+  return { gx:cgx, gy:cgy };
+}
+
+// あるセルから方向dirへ1歩。面内ならそのまま、縁を越えたら表面に沿って隣接面へ回り込む。
+function stepCell(faceName, x, y, dir){
+  const nx = x + dir.x, ny = y + dir.y;
+  if(nx>=0 && ny>=0 && nx<GRID && ny<GRID){
+    return { face:faceName, x:nx, y:ny };       // 面内
+  }
+  // 縁を越えた：平面延長点 nbr3 を、元の面を除く各面に投影し、
+  // その面のセル範囲に収まる中で最も「表面に近い」面を選ぶ（＝隣接面に正しく回り込む）。
+  const face = faceByName(faceName);
+  const nbr3 = gridTo3D(face, nx, ny);          // 面外（平面延長）の点
+  let best=null, bestScore=Infinity;
+  for(const f of FACES){
+    if(f.name===faceName) continue;
+    const cell = pointToCell(f, nbr3);
+    if(cell.gx<0||cell.gy<0||cell.gx>=GRID||cell.gy>=GRID) continue;
+    // f の表面（法線方向 halfAxis）からの距離＝面に乗っている度合い
+    const surfDist = Math.abs(nbr3.dot(f.n) - halfAxis(f.nAxis));
+    if(surfDist<bestScore){ bestScore=surfDist; best={face:f.name, x:cell.gx, y:cell.gy}; }
+  }
+  return best;  // 見つからなければ null（角など）
+}
+
+// 点を立方体表面に貼り付ける（はみ出した軸をクランプし、法線方向はその面の表面へ）
+function clampToCubeSurface(p){
+  const hx=halfAxis('x'), hy=halfAxis('y'), hz=halfAxis('z');
+  // 各軸のはみ出し量（正規化）
+  const ax=Math.abs(p.x)/hx, ay=Math.abs(p.y)/hy, az=Math.abs(p.z)/hz;
+  const q=p.clone();
+  // はみ出した軸はクランプ
+  if(ax>1) q.x=Math.sign(p.x)*hx;
+  if(ay>1) q.y=Math.sign(p.y)*hy;
+  if(az>1) q.z=Math.sign(p.z)*hz;
+  // どの軸にも触れていない（内側）の場合、最大成分の軸を表面へ押し出す
+  const m=Math.max(ax,ay,az);
+  if(m<1){
+    if(m===ax) q.x=Math.sign(p.x||1)*hx;
+    else if(m===ay) q.y=Math.sign(p.y||1)*hy;
+    else q.z=Math.sign(p.z||1)*hz;
+  }
+  return q;
+}
+
+// ---- 折れ線の弧長ユーティリティ ----
+// セル座標列(尻尾→頭)を px 折れ線に変換し、必要なら頭方向へ延長する。
+function buildPolyline(path, extend, exit){
+  // exit が指定されれば、その端を頭にする（両方向で尻尾側から抜ける場合は逆順）。
+  let cells = path.points;
+  let dir = path.headDir;
+  if(exit){
+    dir = exit.dir;
+    // exit.cell が末尾でなければ反転（頭=exit.cell にする）
+    const last = cells[cells.length-1];
+    if(!(last.x===exit.cell.x && last.y===exit.cell.y)){
+      cells = cells.slice().reverse();
+    }
+  }
+  const pts = cells.map(p=>({x:cellToPx(p.x), y:cellToPx(p.y)}));
+  // 頭方向に延長（縁の外まで抜けるための直線）
+  if(extend>0){
+    const head = pts[pts.length-1];
+    const step = (cellToPx(1)-cellToPx(0)); // 1セル分のpx
+    const ex = head.x + dir.x*step*extend;
+    const ey = head.y + dir.y*step*extend;
+    pts.push({x:ex, y:ey});
+  }
+  return pts;
+}
+function polyLength(pts){
+  let L=0; const seg=[0];
+  for(let i=1;i<pts.length;i++){ L+=Math.hypot(pts[i].x-pts[i-1].x, pts[i].y-pts[i-1].y); seg.push(L); }
+  return {total:L, cum:seg};
+}
+// 弧長 s の点と接線方向を返す
+function pointAtArc(pts, cum, s){
+  s = Math.max(0, Math.min(cum[cum.length-1], s));
+  let i=1;
+  while(i<cum.length && cum[i]<s) i++;
+  if(i>=cum.length) i=cum.length-1;
+  const a=pts[i-1], b=pts[i];
+  const segLen = cum[i]-cum[i-1] || 1;
+  const t = (s-cum[i-1])/segLen;
+  return {
+    x: a.x + (b.x-a.x)*t,
+    y: a.y + (b.y-a.y)*t,
+    ang: Math.atan2(b.y-a.y, b.x-a.x),
+  };
+}
+// 弧長区間 [s0,s1] の折れ線サンプルを返す（角を保持）
+function sampleArc(pts, cum, s0, s1){
+  const out=[];
+  out.push(pointAtArc(pts,cum,s0));
+  for(let i=0;i<cum.length;i++){
+    if(cum[i]>s0 && cum[i]<s1) out.push({x:pts[i].x, y:pts[i].y, ang:0});
+  }
+  out.push(pointAtArc(pts,cum,s1));
+  return out;
+}
+
+// ---------- 3D 飛び出し矢印（リボン） ----------
+// 抜ける経路を、面の縁を越えてキューブ外へ伸びる3Dの帯として描く。
+// cubeGroup に追加するので、キューブと一緒に回転する。
+function makeRibbonMesh(){
+  const geo = new THREE.BufferGeometry();
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x15171c, side: THREE.DoubleSide,
+    transparent:true, opacity:1, depthTest:true, depthWrite:false,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.renderOrder = 5;
+  mesh.frustumCulled = false;
+  mesh.userData.isRibbon = true;
+  cubeGroup.add(mesh);
+  return mesh;
+}
+
+// 取り残された3Dリボンを全て掃除（レベル切替・やり直し時）
+function clearAllRibbons(){
+  for(let i=cubeGroup.children.length-1;i>=0;i--){
+    const c = cubeGroup.children[i];
+    if(c.userData && c.userData.isRibbon){
+      cubeGroup.remove(c);
+      if(c.geometry) c.geometry.dispose();
+      if(c.material) c.material.dispose();
+    }
+  }
+}
+
+// 弧長区間 [tailS, headS] のリボン頂点を構築して mesh に流し込む
+function updateRibbon(mesh, face, sn, tailS, headS, lineWidthPx, headSizePx, color){
+  const bodyHeadS = Math.max(tailS, headS - headSizePx*0.7);
+  const samplesPx = sampleArc(sn.pts, sn.cum, tailS, bodyHeadS);
+  // 面の実寸（u,v平均）でpx→3Dスケールを決める
+  const faceScale = (axisLen(face.uAxis) + axisLen(face.vAxis)) * 0.5 * 0.97;
+  const halfW = (lineWidthPx/TEX) * faceScale * 0.5;
+  const positions = [];
+  const pts3 = samplesPx.map(s=>pxTo3D(face, s.x, s.y));
+  const faceN = face.n;
+  function sideVec(i){
+    const a = pts3[Math.max(0,i-1)], b = pts3[Math.min(pts3.length-1,i+1)];
+    const tan = b.clone().sub(a);
+    if(tan.lengthSq()<1e-9) tan.copy(faceN);
+    return new THREE.Vector3().crossVectors(tan, faceN).normalize();
+  }
+  for(let i=0;i<pts3.length-1;i++){
+    const s0=sideVec(i).multiplyScalar(halfW);
+    const s1=sideVec(i+1).multiplyScalar(halfW);
+    const a=pts3[i], b=pts3[i+1];
+    const a0=a.clone().add(s0), a1=a.clone().sub(s0);
+    const b0=b.clone().add(s1), b1=b.clone().sub(s1);
+    positions.push(a0.x,a0.y,a0.z, b0.x,b0.y,b0.z, a1.x,a1.y,a1.z);
+    positions.push(a1.x,a1.y,a1.z, b0.x,b0.y,b0.z, b1.x,b1.y,b1.z);
+  }
+  // 矢じり
+  const headPt = pointAtArc(sn.pts, sn.cum, headS);
+  const basePt = pointAtArc(sn.pts, sn.cum, Math.max(tailS, headS - headSizePx));
+  const h3 = pxTo3D(face, headPt.x, headPt.y);
+  const base3 = pxTo3D(face, basePt.x, basePt.y);
+  const tan = h3.clone().sub(base3);
+  if(tan.lengthSq()>1e-9){
+    tan.normalize();
+    const side = new THREE.Vector3().crossVectors(tan, faceN).normalize();
+    const headLen3 = (headSizePx/TEX)*faceScale;
+    const headHalf3 = headLen3*0.7;
+    const tip = h3.clone();
+    const back = h3.clone().sub(tan.clone().multiplyScalar(headLen3));
+    const left = back.clone().add(side.clone().multiplyScalar(headHalf3));
+    const right = back.clone().sub(side.clone().multiplyScalar(headHalf3));
+    positions.push(tip.x,tip.y,tip.z, left.x,left.y,left.z, right.x,right.y,right.z);
+  }
+  mesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions,3));
+  mesh.geometry.computeBoundingSphere();
+  mesh.material.color.set(color);
+}
+
+function drawArrow(ctx, path, alpha){
+  if(path.points.length<2) return;
+  // 抜けるアニメ中はテクスチャに描かない（3Dリボンで描画される）
+  if(path.exiting) return;
+  // 赤=誤り（最優先）, 緑=両方向, 黒=通常（片方向）
+  const color = path.wrong ? '#e23b3b' : (path.twoWay ? '#21b36b' : '#15171c');
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = TEX*0.044;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const headSize = TEX*0.115;
+
+  const ox = path.offset ? path.offset.x : 0;
+  const oy = path.offset ? path.offset.y : 0;
+  const pts = path.points.map(p=>({x:cellToPx(p.x)+ox, y:cellToPx(p.y)+oy}));
+  drawSnakeBody(ctx, pts, headSize, path.twoWay);   // twoWay は両端に矢じり
+  ctx.restore();
+}
+
+// 折れ線（先頭が矢じり）を描く共通関数。pts[last] が頭。bothHeads なら pts[0] にも矢じり。
+function drawSnakeBody(ctx, pts, headSize, bothHeads){
+  if(pts.length<2) return;
+  // 線（両端の矢じり分を短縮）
+  const tailShrink = bothHeads ? headSize*0.7 : 0;
+  const p0=pts[0], p0n=pts[1];
+  const tailAng=Math.atan2(p0n.y-p0.y, p0n.x-p0.x);
+  const startX = p0.x + Math.cos(tailAng)*tailShrink;
+  const startY = p0.y + Math.sin(tailAng)*tailShrink;
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  for(let i=1;i<pts.length;i++){
+    if(i===pts.length-1){
+      const a=pts[i-1], b=pts[i];
+      const ang=Math.atan2(b.y-a.y,b.x-a.x);
+      ctx.lineTo(b.x-Math.cos(ang)*headSize*0.7, b.y-Math.sin(ang)*headSize*0.7);
+    } else {
+      ctx.lineTo(pts[i].x, pts[i].y);
+    }
+  }
+  ctx.stroke();
+  const spread=0.42;
+  // 頭の矢じり
+  const a=pts[pts.length-2], b=pts[pts.length-1];
+  const ang=Math.atan2(b.y-a.y,b.x-a.x);
+  ctx.beginPath();
+  ctx.moveTo(b.x,b.y);
+  ctx.lineTo(b.x-Math.cos(ang-spread)*headSize, b.y-Math.sin(ang-spread)*headSize);
+  ctx.lineTo(b.x-Math.cos(ang+spread)*headSize, b.y-Math.sin(ang+spread)*headSize);
+  ctx.closePath();
+  ctx.fill();
+  if(bothHeads){
+    // 尻尾側の矢じり（外向き = tailAng の逆）
+    const ta = tailAng + Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y);
+    ctx.lineTo(p0.x-Math.cos(ta-spread)*headSize, p0.y-Math.sin(ta-spread)*headSize);
+    ctx.lineTo(p0.x-Math.cos(ta+spread)*headSize, p0.y-Math.sin(ta+spread)*headSize);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    // 片方向：尻尾の丸
+    ctx.beginPath();
+    ctx.arc(pts[0].x,pts[0].y,ctx.lineWidth*0.5,0,7);
+    ctx.fill();
+  }
+}
+
+function renderFace(name){
+  const f = faceCanvases[name];
+  const ctx = f.ctx;
+  ctx.clearRect(0,0,TEX,TEX);
+  // 面の経路を描画。消えた経路はうっすら残像 or 完全消去
+  for(const p of f.paths){
+    if(p.done) continue;
+    drawArrow(ctx, p, p.fading!=null ? p.fading : 1);
+  }
+  f.texture.needsUpdate = true;
+}
+
+// ---------- 面またぎ線の3D描画 ----------
+// 各セルを3D点に変換し、太いリボン＋端の矢じりで描く。cubeGroup に常時表示。
+function buildCrossMesh(line){
+  const geo = new THREE.BufferGeometry();
+  const baseColor = line.twoWay ? 0x21b36b : 0x15171c;
+  const mat = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    side:THREE.DoubleSide, transparent:true, opacity:1,
+    depthTest:true, depthWrite:false,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.renderOrder = 4;
+  mesh.frustumCulled = false;
+  mesh.userData.isCrossMesh = true;
+  mesh.userData.baseColor = baseColor;
+  mesh.userData.line = line;
+  cubeGroup.add(mesh);
+  line.mesh = mesh;
+  updateCrossMesh(line);
+}
+
+// セル列の3D点。面が変わる箇所には共有エッジ上の正確な中継点を挟み、表面に沿わせる。
+function crossPts3D(line){
+  const out=[];
+  const cells=line.cells;
+  for(let i=0;i<cells.length;i++){
+    const c=cells[i];
+    const p=gridTo3D(faceByName(c.face), c.x, c.y);
+    if(i>0){
+      const prev=cells[i-1];
+      if(prev.face!==c.face){
+        // 面が変わる：共有エッジ上の点を作る。
+        // 各面の法線軸はその面の表面値に、共通の自由軸は両点の平均にする。
+        const pf=faceByName(prev.face), cf=faceByName(c.face);
+        const pp=gridTo3D(pf, prev.x, prev.y);
+        const mid=pp.clone().add(p).multiplyScalar(0.5);
+        // prev面の法線軸 → prev面の表面、cur面の法線軸 → cur面の表面
+        setAxis(mid, pf.nAxis, Math.sign(pf.n[pf.nAxis]) * (halfAxis(pf.nAxis)+0.012));
+        setAxis(mid, cf.nAxis, Math.sign(cf.n[cf.nAxis]) * (halfAxis(cf.nAxis)+0.012));
+        out.push(mid);
+      }
+    }
+    out.push(p);
+  }
+  return out;
+}
+function setAxis(v, axis, val){ if(axis==='x') v.x=val; else if(axis==='y') v.y=val; else v.z=val; }
+
+function updateCrossMesh(line){
+  if(!line.mesh) return;
+  const pts3 = crossPts3D(line);
+  if(pts3.length<2){ line.mesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute([],3)); return; }
+  const lineW = (TEX*0.044/TEX) * (SIZE*0.97);
+  const halfW = lineW*0.5;
+  const headLen = (TEX*0.115/TEX) * (SIZE*0.97);
+  const positions=[];
+  const vnormals=[];   // 各頂点が乗る面の法線（不透明度計算用）
+  function normalAt(pt){ const f=faceOfPoint(pt); return f? f.n : new THREE.Vector3(0,1,0); }
+  function pushTri(p0,p1,p2, fn){
+    positions.push(p0.x,p0.y,p0.z, p1.x,p1.y,p1.z, p2.x,p2.y,p2.z);
+    for(let k=0;k<3;k++) vnormals.push(fn.x,fn.y,fn.z);
+  }
+  function sideVec(i){
+    const a=pts3[Math.max(0,i-1)], b=pts3[Math.min(pts3.length-1,i+1)];
+    const tan=b.clone().sub(a);
+    const fn=normalAt(pts3[i]);
+    let s=new THREE.Vector3().crossVectors(tan, fn);
+    if(s.lengthSq()<1e-9) s=new THREE.Vector3().crossVectors(tan, new THREE.Vector3(0,1,0));
+    return s.normalize();
+  }
+  const drawStart = 0, drawEnd = pts3.length-1;
+  for(let i=drawStart;i<drawEnd;i++){
+    const s0=sideVec(i).multiplyScalar(halfW), s1=sideVec(i+1).multiplyScalar(halfW);
+    const a=pts3[i], b=pts3[i+1];
+    const a0=a.clone().add(s0), a1=a.clone().sub(s0);
+    const b0=b.clone().add(s1), b1=b.clone().sub(s1);
+    // このセグメントの面法線（中点で判定）
+    const segN = normalAt(a.clone().add(b).multiplyScalar(0.5));
+    pushTri(a0,b0,a1, segN);
+    pushTri(a1,b0,b1, segN);
+  }
+  function addHead(tipIdx, baseIdx){
+    const tip=pts3[tipIdx], base=pts3[baseIdx];
+    const tan=tip.clone().sub(base); if(tan.lengthSq()<1e-9) return; tan.normalize();
+    const fn=normalAt(tip);
+    const side=new THREE.Vector3().crossVectors(tan,fn).normalize();
+    const back=tip.clone().add(tan.clone().multiplyScalar(headLen*0.2));
+    const bk=back.clone().sub(tan.clone().multiplyScalar(headLen));
+    const l=bk.clone().add(side.clone().multiplyScalar(headLen*0.7));
+    const r=bk.clone().sub(side.clone().multiplyScalar(headLen*0.7));
+    pushTri(back,l,r, fn);
+  }
+  addHead(pts3.length-1, pts3.length-2);
+  if(line.twoWay) addHead(0, 1);
+  line.mesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions,3));
+  // 各頂点の面法線を保存し、頂点カラー属性を用意（色は updateCrossOpacity で毎フレーム更新）
+  line.mesh.userData.vnormals = vnormals;
+  const colors = new Float32Array(vnormals.length); // 同数(=頂点数*3)
+  line.mesh.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors,3));
+  line.mesh.geometry.computeBoundingSphere();
+  updateCrossOpacity(line.mesh);   // 初期色
+}
+
+// 面またぎメッシュの頂点色を、各頂点が乗る面のカメラ向きに応じて更新。
+// 奥（裏）の頂点ほど背景色に近づけ、薄く見せる。
+const _crossCamDir = new THREE.Vector3();
+const BG_COLOR = new THREE.Color(0xeaf0f7);   // 背景に近い淡色
+function updateCrossOpacity(mesh){
+  if(!mesh.userData.vnormals) return;
+  camera.getWorldDirection(_crossCamDir);
+  const vn = mesh.userData.vnormals;
+  const base = new THREE.Color(mesh.userData.baseColor);
+  const colorAttr = mesh.geometry.getAttribute('color');
+  if(!colorAttr) return;
+  const q = cubeGroup.quaternion;
+  const tmp = new THREE.Vector3();
+  for(let i=0;i<vn.length;i+=3){
+    tmp.set(vn[i],vn[i+1],vn[i+2]).applyQuaternion(q).normalize();
+    const d = tmp.dot(_crossCamDir);   // -1:正面, +1:裏
+    // 正面=本来色, 裏=背景色寄り。面の不透明度カーブに合わせる。
+    let t; // 0=本来色, 1=背景色
+    if(d <= 0) t = Math.min(0.62, d*-1*0 + (1-(-d))*0.62); // d=-1→0, d=0→0.62
+    else       t = 0.62 + d*0.30;                            // d=0→0.62, d=1→0.92
+    t = Math.max(0, Math.min(0.92, t));
+    const r = base.r + (BG_COLOR.r-base.r)*t;
+    const g = base.g + (BG_COLOR.g-base.g)*t;
+    const bl= base.b + (BG_COLOR.b-base.b)*t;
+    colorAttr.array[i]=r; colorAttr.array[i+1]=g; colorAttr.array[i+2]=bl;
+  }
+  colorAttr.needsUpdate = true;
+}
+
+function renderCrossLines(){
+  for(const line of crossLines){
+    if(line.done){ if(line.mesh){ cubeGroup.remove(line.mesh); line.mesh.geometry.dispose(); line.mesh.material.dispose(); line.mesh=null; } continue; }
+    if(!line.mesh) buildCrossMesh(line);
+  }
+}
+function clearAllCrossMeshes(){
+  for(let i=cubeGroup.children.length-1;i>=0;i--){
+    const c=cubeGroup.children[i];
+    if(c.userData && c.userData.isCrossMesh){ cubeGroup.remove(c); if(c.geometry)c.geometry.dispose(); if(c.material)c.material.dispose(); }
+  }
+  for(const line of crossLines) line.mesh=null;
+}
+
+// ---------- 面メッシュ（経路テクスチャを内側に） ----------
+function buildFaceMeshes(){
+  for(const f of FACES){
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = TEX;
+    const ctx = canvas.getContext('2d');
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+
+    const mat = new THREE.MeshBasicMaterial({
+      map:tex, transparent:true, depthWrite:false, depthTest:true,
+      side:THREE.DoubleSide,
+    });
+    // 面実寸で平面を作る（u軸長 × v軸長）
+    const uLen = axisLen(f.uAxis)*0.97, vLen = axisLen(f.vAxis)*0.97;
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(uLen, vLen), mat);
+    plane.renderOrder = 2;
+
+    // 面の向き：ローカル軸(X→u, Y→v, Z→n)を面の基底に合わせる回転行列で確実に整合させる
+    const m = new THREE.Matrix4().makeBasis(f.u, f.v, f.n);
+    plane.quaternion.setFromRotationMatrix(m);
+    plane.position.copy(f.n.clone().multiplyScalar(halfAxis(f.nAxis) + 0.012));
+
+    cubeGroup.add(plane);
+    faceCanvases[f.name] = { canvas, ctx, texture:tex, mesh:plane, paths:[], face:f };
+  }
+}
+buildFaceMeshes();
+
+// 形状変更時に面平面の寸法・位置を更新
+function updateFaceMeshDims(){
+  for(const f of FACES){
+    const fc = faceCanvases[f.name];
+    const uLen = axisLen(f.uAxis)*0.97, vLen = axisLen(f.vAxis)*0.97;
+    fc.mesh.geometry.dispose();
+    fc.mesh.geometry = new THREE.PlaneGeometry(uLen, vLen);
+    fc.mesh.position.copy(f.n.clone().multiplyScalar(halfAxis(f.nAxis) + 0.012));
+  }
+}
+
+// ---------- 経路自動生成 ----------
+// 各面で、グリッド上にランダムな自己回避ウォークを複数引く。
+// 1本の長さは 3〜7 セル程度。重ならないようにセル占有を管理。
+function genFacePaths(name, count, maxLen){
+  maxLen = maxLen || 7;
+  const occupied = new Set();
+  const key=(x,y)=>x+','+y;
+  const paths=[];
+  const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
+
+  let attempts=0;
+  while(paths.length<count && attempts<count*40){
+    attempts++;
+    // ランダム起点
+    const sx=Math.floor(Math.random()*GRID);
+    const sy=Math.floor(Math.random()*GRID);
+    if(occupied.has(key(sx,sy))) continue;
+    const len=3+Math.floor(Math.random()*(maxLen-2)); // 3..maxLen
+    const pts=[{x:sx,y:sy}];
+    const used=new Set([key(sx,sy)]);
+    let cx=sx,cy=sy;
+    let lastDir=-1;
+    let ok=true;
+    for(let s=0;s<len-1;s++){
+      // 進める方向を集める。直進をやや優先しつつ曲がりも入れる。
+      const cand=[];
+      for(let d=0;d<4;d++){
+        const nx=cx+DIRS[d][0], ny=cy+DIRS[d][1];
+        if(nx<0||ny<0||nx>=GRID||ny>=GRID) continue;
+        if(used.has(key(nx,ny))||occupied.has(key(nx,ny))) continue;
+        // 進行方向が180度逆はなし
+        if(lastDir>=0 && DIRS[d][0]===-DIRS[lastDir][0] && DIRS[d][1]===-DIRS[lastDir][1]) continue;
+        cand.push(d);
+      }
+      if(cand.length===0){ break; }
+      // 直進があれば確率で優先
+      let pick;
+      if(lastDir>=0 && cand.includes(lastDir) && Math.random()<0.55) pick=lastDir;
+      else pick=cand[Math.floor(Math.random()*cand.length)];
+      cx+=DIRS[pick][0]; cy+=DIRS[pick][1];
+      lastDir=pick;
+      pts.push({x:cx,y:cy});
+      used.add(key(cx,cy));
+    }
+    if(pts.length<2) continue;
+    // 占有を確定
+    for(const p of pts) occupied.add(key(p.x,p.y));
+    // 両端の外向き方向
+    const headDir = {x: pts[pts.length-1].x - pts[pts.length-2].x, y: pts[pts.length-1].y - pts[pts.length-2].y};
+    const tailDir = {x: pts[0].x - pts[1].x, y: pts[0].y - pts[1].y};
+    const cells = new Set(pts.map(p=>key(p.x,p.y)));
+    // 両方向矢印にするか（確率）。両端どちらからも抜けられる。
+    const twoWay = Math.random() < (window.__twoWayProb || 0);
+    const exits = twoWay
+      ? [ {cell:pts[pts.length-1], dir:headDir}, {cell:pts[0], dir:tailDir} ]
+      : [ {cell:pts[pts.length-1], dir:headDir} ];
+    paths.push({
+      points:pts, done:false, fading:null, offset:{x:0,y:0},
+      headDir, tailDir, exits, twoWay, cells, anim:false,
+    });
+  }
+  faceCanvases[name].paths = paths;
+  return paths.length;
+}
+
+// ---------- 抜けられるか判定 ----------
+// 矢印の頭から進行方向に1セルずつ進み、面の縁を越えるまでに
+// 他の未消去経路のセルが無ければ「抜けられる」。
+// 経路が「いずれかの抜け方向」で面の縁まで到達できるか。
+// path.exits = [{cell:{x,y}, dir:{x,y}}, ...] 抜け候補（片方向なら1つ、両方向なら2つ）。
+// その方向に進んで、他の未消去経路に塞がれず縁を越えられれば true。
+function canExitDir(faceName, path, exit){
+  const f = faceCanvases[faceName];
+  let cx = exit.cell.x + exit.dir.x;
+  let cy = exit.cell.y + exit.dir.y;
+  while(cx>=0 && cy>=0 && cx<GRID && cy<GRID){
+    const k = cx+','+cy;
+    for(const other of f.paths){
+      if(other===path || other.done || other.exiting) continue;
+      if(other.cells.has(k)) return false;
+    }
+    cx += exit.dir.x;
+    cy += exit.dir.y;
+  }
+  return true;
+}
+// この経路が抜けられるか（いずれかの端から）。抜けられる exit を返す（無ければ null）。
+function findExit(faceName, path){
+  for(const ex of path.exits){
+    if(canExitDir(faceName, path, ex)) return ex;
+  }
+  return null;
+}
+function canExit(faceName, path){
+  return findExit(faceName, path) !== null;
+}
+
+// ある面の上で、指定経路を除く全経路（単一面＋面またぎ）が占有するセル "x,y" の集合
+function occupiedOnFace(faceName, exclude){
+  const occ = new Set();
+  const fc = faceCanvases[faceName];
+  for(const p of fc.paths){
+    if(p===exclude || p.done || p.exiting) continue;
+    for(const c of p.cells) occ.add(c);
+  }
+  for(const line of crossLines){
+    if(line===exclude || line.done || line.exiting) continue;
+    for(const c of line.cells){ if(c.face===faceName) occ.add(c.x+','+c.y); }
+  }
+  return occ;
+}
+// 面またぎ線が、ある端 exit から抜けられるか（端セルの面で、その方向に障害物なく縁へ）
+function canCrossExitDir(line, exit){
+  const endCell = exit.cell;             // {face,x,y}
+  const occ = occupiedOnFace(endCell.face, line);
+  let cx=endCell.x + exit.dir.x, cy=endCell.y + exit.dir.y;
+  while(cx>=0 && cy>=0 && cx<GRID && cy<GRID){
+    if(occ.has(cx+','+cy)) return false;
+    cx+=exit.dir.x; cy+=exit.dir.y;
+  }
+  return true;
+}
+function findCrossExit(line){
+  for(const ex of line.exits){ if(canCrossExitDir(line, ex)) return ex; }
+  return null;
+}
+
+// ---------- 面が全消し可能か（ソルバ） ----------
+// 「抜けられる矢印を1本抜く」を繰り返し、全部抜ければ解ける。
+function isFaceSolvable(paths){
+  // 状態を複製（cells と done）。exits はそのまま参照（cell座標は不変）。
+  const state = paths.map(p=>({
+    exits:p.exits, cells:new Set(p.cells), done:false,
+  }));
+  function canExitSim(path){
+    for(const ex of path.exits){
+      let cx=ex.cell.x + ex.dir.x;
+      let cy=ex.cell.y + ex.dir.y;
+      let blocked=false;
+      while(cx>=0&&cy>=0&&cx<GRID&&cy<GRID){
+        const k=cx+','+cy;
+        for(const o of state){ if(o===path||o.done) continue; if(o.cells.has(k)){ blocked=true; break; } }
+        if(blocked) break;
+        cx+=ex.dir.x; cy+=ex.dir.y;
+      }
+      if(!blocked) return true;   // この端から抜けられる
+    }
+    return false;
+  }
+  let remaining = state.length;
+  let guard = 0;
+  while(remaining>0 && guard<1000){
+    guard++;
+    let progressed=false;
+    for(const p of state){
+      if(p.done) continue;
+      if(canExitSim(p)){ p.done=true; p.cells.clear(); remaining--; progressed=true; }
+    }
+    if(!progressed) return false; // 詰み
+  }
+  return remaining===0;
+}
+
+function genSolvableFace(name, count, maxLen){
+  // 解ける盤面が出るまで試行（だめなら本数を減らす）
+  for(let tries=0; tries<60; tries++){
+    genFacePaths(name, count, maxLen);
+    if(isFaceSolvable(faceCanvases[name].paths)) return faceCanvases[name].paths.length;
+  }
+  // 最終手段：1本減らして再挑戦
+  if(count>1) return genSolvableFace(name, count-1, maxLen);
+  // それでもだめなら現状を返す（count=1ならほぼ常に解ける）
+  return faceCanvases[name].paths.length;
+}
+
+// ---------- 面またぎ連続線（本実装） ----------
+// 1本の矢印線が縁を越えて隣の面へ続く。points は {face,x,y} のセル列。
+let crossLines = [];
+
+// 全経路（単一面＋面またぎ）が、ある球面セル {face,x,y} を占有しているか
+function cellKeyG(face,x,y){ return face+':'+x+','+y; }
+
+// 面またぎ線を1本生成。空いていれば返す（occupiedG に追加）。失敗で null。
+function makeCrossLine(occupiedG, maxLen){
+  const DIRS=[{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+  for(let tries=0; tries<50; tries++){
+    // ランダム面・セルから開始
+    const f0 = FACES[Math.floor(Math.random()*FACES.length)].name;
+    let cx=Math.floor(Math.random()*GRID), cy=Math.floor(Math.random()*GRID);
+    if(occupiedG.has(cellKeyG(f0,cx,cy))) continue;
+    const cells=[{face:f0,x:cx,y:cy}];
+    const used=new Set([cellKeyG(f0,cx,cy)]);
+    let curFace=f0, lastDir=null, crossed=false;
+    const len = 4 + Math.floor(Math.random()*(maxLen-3));
+    for(let s=0;s<len-1;s++){
+      // 候補方向（180度逆は除外）
+      const cand=DIRS.filter(d=>!(lastDir && d.x===-lastDir.x && d.y===-lastDir.y));
+      // 面をまたぐ方向を少し優先（まだまたいでなければ強めに）
+      let stepped=null, pick=null;
+      const order = cand.slice().sort(()=>Math.random()-0.5);
+      for(const d of order){
+        const nc = stepCell(curFace, cells[cells.length-1].x, cells[cells.length-1].y, d);
+        if(!nc) continue;
+        const k=cellKeyG(nc.face,nc.x,nc.y);
+        if(used.has(k)||occupiedG.has(k)) continue;
+        stepped=nc; pick=d;
+        // 面が変わる方向を優先採用
+        if(nc.face!==curFace){ crossed=true; break; }
+      }
+      if(!stepped) break;
+      cells.push(stepped); used.add(cellKeyG(stepped.face,stepped.x,stepped.y));
+      if(stepped.face!==curFace) crossed=true;
+      curFace=stepped.face; lastDir=pick;
+    }
+    // 面をまたいでいて、長さ十分なら採用
+    if(crossed && cells.length>=4){
+      for(const c of cells) occupiedG.add(cellKeyG(c.face,c.x,c.y));
+      return cells;
+    }
+  }
+  return null;
+}
+
+function addCrossFaceLines(targetCount){
+  crossLines = [];
+  if(targetCount<=0) return;
+  // 既存の単一面経路の占有を集める
+  const occupiedG = new Set();
+  for(const f of FACES){
+    for(const p of faceCanvases[f.name].paths){
+      for(const c of p.cells){ occupiedG.add(cellKeyG(f.name, ...c.split(',').map(Number))); }
+    }
+  }
+  let made=0, attempts=0;
+  while(made<targetCount && attempts<targetCount*15 + 30){
+    attempts++;
+    const cells = makeCrossLine(occupiedG, 8);
+    if(!cells){ continue; }
+    const a0=cells[0], a1=cells[1];
+    const b0=cells[cells.length-1], b1=cells[cells.length-2];
+    function endDir(end, prev){ return {x:end.x-prev.x, y:end.y-prev.y}; }
+    const headDir = endDir(b0,b1);
+    const tailDir = endDir(a0,a1);
+    const twoWay = Math.random() < (window.__twoWayProb||0)*1.2;
+    const exits = twoWay
+      ? [ {endIdx:cells.length-1, cell:b0, dir:headDir}, {endIdx:0, cell:a0, dir:tailDir} ]
+      : [ {endIdx:cells.length-1, cell:b0, dir:headDir} ];
+    crossLines.push({
+      cells, done:false, anim:false, exiting:false, twoWay, exits,
+      isCross:true,
+    });
+    made++;
+  }
+}
+
+// レベルに応じた難度設定を返す（面またぎを主役に、早めに難化）
+function levelConfig(lv){
+  let perFace, maxLen, crossCount, twoWayProb, shape;
+  if(lv<=1){            // Lv1：導入
+    perFace = 2; maxLen = 5; crossCount = 0; twoWayProb = 0;    shape='cube';
+  } else if(lv<=3){     // Lv2-3：両方向が登場
+    perFace = 3; maxLen = 6; crossCount = 0; twoWayProb = 0.22; shape='cube';
+  } else if(lv<=5){     // Lv4-5：面またぎ登場（複数本）
+    perFace = 2; maxLen = 6; crossCount = 3; twoWayProb = 0.25; shape='cube';
+  } else if(lv<=8){     // Lv6-8：形の変化＋面またぎ増
+    perFace = 2; maxLen = 7; crossCount = 4; twoWayProb = 0.28;
+    const cs=['tall','long','wide']; shape = cs[lv % cs.length];
+  } else if(lv<=12){    // Lv9-12：面またぎ多め
+    perFace = 3; maxLen = 7; crossCount = 5; twoWayProb = 0.3;
+    const cs=['cube','tall','long','wide','slab']; shape = cs[lv % cs.length];
+  } else {              // Lv13+：面またぎさらに多め
+    perFace = 3; maxLen = 7; crossCount = 6; twoWayProb = 0.32;
+    const cs=['cube','tall','long','wide','slab']; shape = cs[lv % cs.length];
+  }
+  perFace = Math.min(perFace + Math.floor(Math.max(0,lv-22)/8), 4);
+  crossCount = Math.min(crossCount + Math.floor(Math.max(0,lv-12)/3), 9);
+  return { perFace, maxLen, crossCount, twoWayProb, shape };
+}
+
+function generateLevel(lv){
+  totalArrows=0; clearedArrows=0;
+  clearAllRibbons();                              // 残った飛び出し矢印を掃除
+  clearAllCrossMeshes();                          // 残った面またぎ線メッシュを掃除
+  crossLines = [];
+  const cfg = levelConfig(lv);
+  window.__twoWayProb = cfg.twoWayProb || 0;       // 両方向矢印の出現率
+  applyShape(cfg.shape);                           // 立体の形を設定（直方体など）
+  // 単一面の経路を生成
+  for(const f of FACES){
+    const target = cfg.perFace + Math.floor(Math.random()*2);
+    genSolvableFace(f.name, target, cfg.maxLen);
+  }
+  // 面またぎ連続線（1本が隣の面へ続く本物）を、目標本数だけ追加
+  if(cfg.crossCount>0) addCrossFaceLines(cfg.crossCount);
+  // カウント集計＆描画
+  totalArrows = 0;
+  for(const f of FACES){
+    totalArrows += faceCanvases[f.name].paths.length;
+    for(const p of faceCanvases[f.name].paths){ p.offset={x:0,y:0}; p.fading=null; p.anim=false; }
+    renderFace(f.name);
+  }
+  // 面またぎ線の本数も加算＆3Dメッシュ生成
+  totalArrows += crossLines.length;
+  renderCrossLines();
+  updateHUD();
+}
+
+// ---------- HUD更新 ----------
+const counterVal=document.getElementById('counterVal');
+const levelLabel=document.getElementById('levelLabel');
+const heartsBox=document.getElementById('hearts');
+function buildHearts(){
+  heartsBox.innerHTML='';
+  for(let i=0;i<3;i++){
+    const d=document.createElement('div'); d.className='heart';
+    d.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-10-9.2C.3 8 2 4.5 5.3 4.5c1.9 0 3.3 1 3.7 1.8C9.4 5.5 10.8 4.5 12.7 4.5 16 4.5 17.7 8 16 11.8 13.5 16.4 12 21 12 21z"/></svg>';
+    heartsBox.appendChild(d);
+  }
+}
+buildHearts();
+function updateHUD(){
+  counterVal.textContent = (totalArrows - clearedArrows);
+  levelLabel.textContent = 'Level '+level;
+  document.getElementById('diffLabel').textContent='レベル'+level;
+  const hs=heartsBox.children;
+  for(let i=0;i<3;i++) hs[i].classList.toggle('lost', i>=lives);
+}
+
+// ---------- 効果音（WebAudio合成・ファイル不要） ----------
+let actx=null;
+function beep(freq, dur, type='sine', gain=0.18){
+  if(!SOUND.on) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type=type; o.frequency.value=freq;
+    o.connect(g); g.connect(actx.destination);
+    const t=actx.currentTime;
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(gain,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.start(t); o.stop(t+dur);
+  }catch(e){}
+}
+function popSound(){ beep(660,0.12,'triangle',0.22); setTimeout(()=>beep(990,0.1,'triangle',0.18),60); }
+function clearSound(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.18,'triangle',0.2),i*90)); }
+function errSound(){ beep(180,0.18,'sawtooth',0.15); }
+// 抜ける音：高めから上昇する「シュッ」
+function slideSound(){ beep(720,0.13,'triangle',0.2); setTimeout(()=>beep(1080,0.12,'sine',0.16),55); }
+// 詰まり音：低い「ボッ」（動かせない手応え）
+function blockSound(){ beep(150,0.13,'square',0.16); setTimeout(()=>beep(120,0.1,'square',0.12),60); }
+
+// ---------- トースト ----------
+const toast=document.getElementById('toast');
+function showToast(msg, ms=1200){
+  toast.textContent=msg; toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t=setTimeout(()=>toast.classList.remove('show'),ms);
+}
+
+// ---------- レイキャストで経路選択 ----------
+const raycaster=new THREE.Raycaster();
+const pointer=new THREE.Vector2();
+
+function pickPathAt(clientX, clientY){
+  pointer.x = (clientX/window.innerWidth)*2-1;
+  pointer.y = -(clientY/window.innerHeight)*2+1;
+  raycaster.setFromCamera(pointer, camera);
+
+  // まず面またぎ線の3Dメッシュをヒットテスト（手前にある）
+  const crossMeshes = crossLines.filter(l=>!l.done && l.mesh).map(l=>l.mesh);
+  let crossHitDist = Infinity, crossHitLine = null;
+  if(crossMeshes.length){
+    const ch = raycaster.intersectObjects(crossMeshes, false);
+    if(ch.length){
+      crossHitDist = ch[0].distance;
+      crossHitLine = crossLines.find(l=>l.mesh===ch[0].object);
+    }
+  }
+
+  // 全面メッシュと交差判定（手前のものを優先）
+  const meshes = FACES.map(f=>faceCanvases[f.name].mesh);
+  const hits = raycaster.intersectObjects(meshes, false);
+  for(const hit of hits){
+    const faceName = Object.keys(faceCanvases).find(k=>faceCanvases[k].mesh===hit.object);
+    const f = faceCanvases[faceName];
+    const worldNormal = f.face.n.clone().applyQuaternion(cubeGroup.quaternion);
+    const toCam = camera.position.clone().sub(hit.point).normalize();
+    if(worldNormal.dot(toCam) < 0.15) continue;
+
+    const uv = hit.uv; if(!uv) continue;
+    const px = uv.x*TEX;
+    const py = (1-uv.y)*TEX;
+    let best=null,bestD=1e9;
+    for(const p of f.paths){
+      if(p.done) continue;
+      const d=distToPath(px,py,p);
+      if(d<bestD){bestD=d;best=p;}
+    }
+    const tol=TEX*0.07;
+    // 面またぎ線の方が手前にヒットしていれば、そちらを優先
+    if(crossHitLine && crossHitDist < hit.distance + 0.02){
+      return {crossLine: crossHitLine};
+    }
+    if(best && bestD<tol){ return {face:f, path:best}; }
+  }
+  // 面ヒットが無く、面またぎ線だけヒットした場合
+  if(crossHitLine) return {crossLine: crossHitLine};
+  return null;
+}
+
+function distToPath(px,py,path){
+  let min=1e9;
+  const pts=path.points.map(p=>({x:cellToPx(p.x),y:cellToPx(p.y)}));
+  for(let i=0;i<pts.length-1;i++){
+    min=Math.min(min, segDist(px,py,pts[i],pts[i+1]));
+  }
+  return min;
+}
+function segDist(px,py,a,b){
+  const dx=b.x-a.x, dy=b.y-a.y;
+  const l2=dx*dx+dy*dy;
+  if(l2===0) return Math.hypot(px-a.x,py-a.y);
+  let t=((px-a.x)*dx+(py-a.y)*dy)/l2;
+  t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(a.x+t*dx), py-(a.y+t*dy));
+}
+
+// ---------- 経路を消すアニメ ----------
+// 経路ごとのアニメ状態を立てるだけ。実際の更新は animate() のメインループで毎フレーム行う。
+function clearPath(f, path){
+  if(path.done||path.anim) return;
+  const faceName = f.face.name;
+
+  const exit = findExit(faceName, path);
+  if(exit){
+    // 抜けられる：選ばれた端から、経路に沿って縁を越え、外へ飛び出す（3Dリボン）
+    path.anim = true;
+    path.animKind = 'slide';
+    path.animT0 = null;
+    path.animDur = 520;
+    path.animFace = faceName;
+    path.exiting = true;                            // テクスチャからは消す
+    path.cells.clear();                             // 即解放（タイムラグ防止）
+    const extendCells = GRID + 6;
+    const pts = buildPolyline(path, extendCells, exit);   // 抜ける端を頭に
+    const pl = polyLength(pts);
+    const bodyLen = pl.cum[pl.cum.length-2];
+    const tipMax = pl.cum[pl.cum.length-1];
+    path.snake = {
+      pts, cum:pl.cum, bodyLen,
+      headStart: bodyLen,
+      headEnd: tipMax + bodyLen,
+      headS: bodyLen,
+    };
+    path.ribbon = makeRibbonMesh();
+    path.ribbonFace = f.face;
+    renderFace(faceName);
+    slideSound();
+  } else {
+    // 抜けられない：揺れる。初回の誤タップのみライフ−1し、赤くマークする。
+    if(!path.wrong){
+      path.wrong = true;            // 以降この矢印は赤。再タップしてもライフは減らない。
+      loseLife();
+    }
+    path.anim = true;
+    path.animKind = 'block';
+    path.animT0 = null;
+    path.animDur = 300;
+    path.animFace = faceName;
+    renderFace(faceName);           // 赤を即反映
+    blockSound();
+  }
+}
+
+// ---------- 面またぎ線：抜けアニメ ----------
+// 3D点列の弧長
+function poly3DLen(pts){
+  let L=0; const cum=[0];
+  for(let i=1;i<pts.length;i++){ L+=pts[i].distanceTo(pts[i-1]); cum.push(L); }
+  return {total:L, cum};
+}
+function pointAt3D(pts, cum, s){
+  s=Math.max(0,Math.min(cum[cum.length-1],s));
+  let i=1; while(i<cum.length && cum[i]<s) i++; if(i>=cum.length) i=cum.length-1;
+  const a=pts[i-1], b=pts[i]; const seg=cum[i]-cum[i-1]||1; const t=(s-cum[i-1])/seg;
+  return a.clone().lerp(b, t);
+}
+function sample3D(pts, cum, s0, s1){
+  const out=[pointAt3D(pts,cum,s0)];
+  for(let i=0;i<cum.length;i++){ if(cum[i]>s0 && cum[i]<s1) out.push(pts[i].clone()); }
+  out.push(pointAt3D(pts,cum,s1));
+  return out;
+}
+// 面またぎリボンを、3D点列の区間[tailS,headS]で構築
+function updateCrossRibbon(line, tailS, headS){
+  const mesh=line.ribbon; if(!mesh) return;
+  const headLen=(TEX*0.115/TEX)*(SIZE*0.97);
+  const bodyHeadS=Math.max(tailS, headS-headLen*0.7);
+  const seg=sample3D(line._pts3, line._cum, tailS, bodyHeadS);
+  const halfW=(TEX*0.044/TEX)*(SIZE*0.97)*0.5;
+  const positions=[];
+  function side(i,arr){ const a=arr[Math.max(0,i-1)], b=arr[Math.min(arr.length-1,i+1)];
+    const tan=b.clone().sub(a); const up=line._faceN;
+    let s=new THREE.Vector3().crossVectors(tan,up); if(s.lengthSq()<1e-9) s=new THREE.Vector3().crossVectors(tan,new THREE.Vector3(0,1,0)); return s.normalize(); }
+  for(let i=0;i<seg.length-1;i++){
+    const s0=side(i,seg).multiplyScalar(halfW), s1=side(i+1,seg).multiplyScalar(halfW);
+    const a=seg[i], b=seg[i+1];
+    const a0=a.clone().add(s0),a1=a.clone().sub(s0),b0=b.clone().add(s1),b1=b.clone().sub(s1);
+    positions.push(a0.x,a0.y,a0.z,b0.x,b0.y,b0.z,a1.x,a1.y,a1.z);
+    positions.push(a1.x,a1.y,a1.z,b0.x,b0.y,b0.z,b1.x,b1.y,b1.z);
+  }
+  // 頭の矢じり
+  const tip=pointAt3D(line._pts3,line._cum,headS);
+  const base=pointAt3D(line._pts3,line._cum,Math.max(tailS,headS-headLen));
+  const tan=tip.clone().sub(base);
+  if(tan.lengthSq()>1e-9){ tan.normalize(); const sd=new THREE.Vector3().crossVectors(tan,line._faceN).normalize();
+    const bk=tip.clone().sub(tan.clone().multiplyScalar(headLen));
+    const l=bk.clone().add(sd.clone().multiplyScalar(headLen*0.7)), r=bk.clone().sub(sd.clone().multiplyScalar(headLen*0.7));
+    positions.push(tip.x,tip.y,tip.z,l.x,l.y,l.z,r.x,r.y,r.z);
+  }
+  mesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions,3));
+  mesh.geometry.computeBoundingSphere();
+}
+
+function clearCrossLine(line){
+  if(line.done||line.anim) return;
+  const exit = findCrossExit(line);
+  if(exit){
+    line.anim=true; line.animKind='slide'; line.animT0=null; line.animDur=560; line.exiting=true;
+    // セル列を、抜ける端を頭にして並べる
+    let cells = line.cells.slice();
+    if(exit.endIdx===0) cells.reverse();
+    // 3D点列化（面が変わる箇所に共有エッジ上の正確な中継点を挟む）
+    const pts3 = [];
+    for(let i=0;i<cells.length;i++){
+      const c=cells[i]; const p=gridTo3D(faceByName(c.face), c.x, c.y);
+      if(i>0 && cells[i-1].face!==c.face){
+        const pf=faceByName(cells[i-1].face), cf=faceByName(c.face);
+        const pp=gridTo3D(pf, cells[i-1].x, cells[i-1].y);
+        const mid=pp.clone().add(p).multiplyScalar(0.5);
+        setAxis(mid, pf.nAxis, Math.sign(pf.n[pf.nAxis]) * (halfAxis(pf.nAxis)+0.012));
+        setAxis(mid, cf.nAxis, Math.sign(cf.n[cf.nAxis]) * (halfAxis(cf.nAxis)+0.012));
+        pts3.push(mid);
+      }
+      pts3.push(p);
+    }
+    // 頭方向へ延長（端セルの面で exit.dir 方向、立体外まで）
+    const headFace = faceByName(cells[cells.length-1].face);
+    const step3 = gridTo3D(headFace, cells[cells.length-1].x+exit.dir.x, cells[cells.length-1].y+exit.dir.y)
+                  .sub(gridTo3D(headFace, cells[cells.length-1].x, cells[cells.length-1].y));
+    const tip = pts3[pts3.length-1].clone().add(step3.clone().multiplyScalar(GRID+6));
+    pts3.push(tip);
+    const pl = poly3DLen(pts3);
+    line._pts3 = pts3; line._cum = pl.cum;
+    line._faceN = headFace.n.clone();
+    const bodyLen = pl.cum[pl.cum.length-2];
+    line.snake = { bodyLen, headStart:bodyLen, headEnd:pl.total+bodyLen, headS:bodyLen };
+    if(!line.ribbon){ line.ribbon = makeRibbonMesh(); }
+    if(line.mesh){ cubeGroup.remove(line.mesh); line.mesh.geometry.dispose(); line.mesh.material.dispose(); line.mesh=null; }
+    line.ribbon.material.color.set(line.twoWay?0x21b36b:0x15171c);
+    slideSound();
+  } else {
+    // 抜けられない：ライフ減＆赤（面またぎ線も対象）
+    if(!line.wrong){ line.wrong=true; loseLife(); }
+    line.animKind='blockCross'; line.anim=true; line.animT0=null; line.animDur=300;
+    // 赤くしてmesh更新
+    if(line.mesh) line.mesh.material.color.set(0xe23b3b);
+    blockSound();
+  }
+}
+
+// ライフを1減らす。0になったらゲームオーバー演出→レベルやり直し。
+function loseLife(){
+  if(lives<=0) return;
+  lives--;
+  updateHUD();
+  errSound();
+  if(lives<=0) onGameOver();
+}
+
+function onGameOver(){
+  if(busy) return; busy=true;
+  showToast('ゲームオーバー', 1400);
+  // 少し待ってライフ回復＆同レベルやり直し
+  setTimeout(()=>{
+    lives = 3;
+    for(const f of FACES) faceCanvases[f.name].paths=[];
+    generateLevel(level);
+    busy=false;
+  }, 1500);
+}
+
+// メインループから毎フレーム呼ぶ：進行中アニメを進める
+function stepAnimations(now){
+  const dirtyFaces = new Set();
+  for(const f of FACES){
+    const fc = faceCanvases[f.name];
+    for(const p of fc.paths){
+      if(!p.anim) continue;
+      if(p.animT0==null) p.animT0 = now;          // 初回フレームで時間基準を rAF に同期
+      const k = Math.min((now - p.animT0)/p.animDur, 1);
+      if(p.animKind === 'slide'){
+        const e = 1-Math.pow(1-k, 2);            // ease-out（するっと流れる）
+        const sn = p.snake;
+        sn.headS = sn.headStart + (sn.headEnd - sn.headStart)*e;
+        const tailS = Math.max(0, sn.headS - sn.bodyLen);
+        // 3Dリボンを更新（キューブ外へ伸びる）
+        if(p.ribbon){
+          const color = p.wrong ? 0xe23b3b : (p.twoWay ? 0x21b36b : 0x15171c);
+          updateRibbon(p.ribbon, p.ribbonFace, sn, tailS, sn.headS, TEX*0.044, TEX*0.115, color);
+        }
+        if(k>=1){
+          p.anim=false; p.done=true; p.exiting=false; p.snake=null;
+          if(p.ribbon){ cubeGroup.remove(p.ribbon); p.ribbon.geometry.dispose(); p.ribbon.material.dispose(); p.ribbon=null; }
+          p.cells.clear();             // セル解放 → 他の矢印が抜けられるように
+          clearedArrows++; updateHUD();
+          if(clearedArrows>=totalArrows) onLevelClear();
+        }
+      } else if(p.animKind === 'block'){
+        const s = Math.sin(k*Math.PI*3) * (1-k) * (TEX*0.022);
+        p.offset.x = p.headDir.x * s;
+        p.offset.y = p.headDir.y * s;
+        dirtyFaces.add(f.name);
+        if(k>=1){ p.anim=false; p.offset.x=0; p.offset.y=0; }
+      }
+    }
+  }
+  for(const name of dirtyFaces) renderFace(name);
+
+  // 面またぎ線のアニメ
+  for(const line of crossLines){
+    if(!line.anim) continue;
+    if(line.animT0==null) line.animT0=now;
+    const k=Math.min((now-line.animT0)/line.animDur,1);
+    if(line.animKind==='slide'){
+      const e=1-Math.pow(1-k,2);
+      const sn=line.snake;
+      sn.headS=sn.headStart+(sn.headEnd-sn.headStart)*e;
+      const tailS=Math.max(0, sn.headS-sn.bodyLen);
+      updateCrossRibbon(line, tailS, sn.headS);
+      if(k>=1){
+        line.anim=false; line.done=true; line.exiting=false;
+        if(line.ribbon){ cubeGroup.remove(line.ribbon); line.ribbon.geometry.dispose(); line.ribbon.material.dispose(); line.ribbon=null; }
+        clearedArrows++; updateHUD();
+        if(clearedArrows>=totalArrows) onLevelClear();
+      }
+    } else if(line.animKind==='blockCross'){
+      // 軽く明滅（mesh は赤）。終わったら通常色には戻さず赤を維持。
+      if(k>=1){ line.anim=false; }
+    }
+  }
+}
+
+// ---------- レベルクリア / 失敗 ----------
+function onLevelClear(){
+  if(busy) return; busy=true;
+  clearSound();
+  showToast('クリア！', 1100);
+  // キューブをくるっと回して祝福
+  const startQ = cubeGroup.quaternion.clone();
+  const spin = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.3, Math.PI*2, 0));
+  const endQ = startQ.clone().multiply(spin);
+  const t0=performance.now(), dur=900;
+  function step(now){
+    const k=Math.min((now-t0)/dur,1);
+    const e=1-Math.pow(1-k,3);
+    cubeGroup.quaternion.slerpQuaternions(startQ,endQ,e);
+    if(k<1) requestAnimationFrame(step);
+    else{
+      level++;
+      lives = 3;                    // 次レベルはライフ満タンで開始
+      // 面をクリア
+      for(const f of FACES) faceCanvases[f.name].paths=[];
+      generateLevel(level);
+      updateHUD();
+      busy=false;
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+// ---------- 入力：ドラッグで回転 / タップで選択 ----------
+let dragging=false, moved=0, lastX=0, lastY=0, downX=0, downY=0, downT=0;
+let velX=0, velY=0;
+const ROT_SPEED=0.008;
+
+function onDown(x,y){
+  dragging=true; moved=0;
+  lastX=downX=x; lastY=downY=y; downT=performance.now();
+  velX=velY=0;
+}
+function onMove(x,y){
+  if(!dragging) return;
+  const dx=x-lastX, dy=y-lastY;
+  moved+=Math.abs(dx)+Math.abs(dy);
+  // Y軸回転=横ドラッグ、X軸回転=縦ドラッグ。ワールド軸で回す。
+  const qy=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), dx*ROT_SPEED);
+  const qx=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), dy*ROT_SPEED);
+  cubeGroup.quaternion.premultiply(qy).premultiply(qx);
+  velX=dx; velY=dy;
+  lastX=x; lastY=y;
+}
+function onUp(x,y){
+  if(!dragging) return;
+  dragging=false;
+  const dt=performance.now()-downT;
+  // 移動量が小さく短時間なら「タップ」=経路選択
+  if(moved<10 && dt<350 && !busy){
+    const hit=pickPathAt(x,y);
+    if(hit){
+      if(hit.crossLine) clearCrossLine(hit.crossLine);
+      else clearPath(hit.face, hit.path);
+      hideHintOnce();
+    }
+    else { /* 何もない所タップ：無反応 */ }
+  }
+}
+
+// マウス
+renderer.domElement.addEventListener('mousedown', e=>onDown(e.clientX,e.clientY));
+window.addEventListener('mousemove', e=>onMove(e.clientX,e.clientY));
+window.addEventListener('mouseup', e=>onUp(e.clientX,e.clientY));
+// タッチ
+renderer.domElement.addEventListener('touchstart', e=>{const t=e.touches[0];onDown(t.clientX,t.clientY);}, {passive:true});
+window.addEventListener('touchmove', e=>{const t=e.touches[0];if(t)onMove(t.clientX,t.clientY);}, {passive:true});
+window.addEventListener('touchend', e=>{const t=e.changedTouches[0];onUp(t.clientX,t.clientY);});
+
+// ---------- ヒント自動消し ----------
+const hintbar=document.getElementById('hintbar');
+let hintHidden=false;
+function hideHintOnce(){
+  if(hintHidden) return; hintHidden=true;
+  hintbar.style.opacity='0';
+  setTimeout(()=>hintbar.style.display='none',500);
+}
+function refreshHintVisibility(){
+  hintbar.style.display = HINT.on && !hintHidden ? 'block':'none';
+}
+
+// ---------- 設定パネル ----------
+const panel=document.getElementById('panel');
+document.getElementById('gearBtn').onclick=()=>panel.classList.add('open');
+document.getElementById('resumeBtn').onclick=()=>panel.classList.remove('open');
+document.getElementById('restartBtn').onclick=()=>{
+  panel.classList.remove('open');
+  for(const f of FACES) faceCanvases[f.name].paths=[];
+  generateLevel(level);
+};
+const tgSound=document.getElementById('tgSound');
+const tgHint=document.getElementById('tgHint');
+tgSound.onclick=()=>{SOUND.on=!SOUND.on; tgSound.classList.toggle('on',SOUND.on);};
+tgHint.onclick=()=>{HINT.on=!HINT.on; tgHint.classList.toggle('on',HINT.on); hintHidden=false; refreshHintVisibility();};
+
+// ---------- 面の向きに応じた不透明度（奥の矢印は薄くガラス越しに） ----------
+const _camDir = new THREE.Vector3();
+function updateFaceOpacity(){
+  camera.getWorldDirection(_camDir); // カメラの視線方向
+  for(const f of FACES){
+    const fc = faceCanvases[f.name];
+    const wn = f.n.clone().applyQuaternion(cubeGroup.quaternion).normalize();
+    const d = wn.dot(_camDir); // 正面で約 -1
+    let op;
+    if(d <= 0) op = 0.38 + (-d)*0.62;      // 0.38..1.0
+    else       op = 0.38 - d*0.22;          // 0.16..0.38
+    fc.mesh.material.opacity = Math.max(0.14, Math.min(1, op));
+    fc.mesh.renderOrder = d < 0 ? 3 : 1;    // 正面の面を最後に描く
+  }
+  // 面またぎ線（3Dメッシュ）も、頂点ごとに奥/手前で色を薄く
+  for(const c of cubeGroup.children){
+    if(c.userData && c.userData.isCrossMesh) updateCrossOpacity(c);
+  }
+}
+
+// ---------- 慣性回転＋ゆらぎ ----------
+let idleT=0;
+function animate(now){
+  requestAnimationFrame(animate);
+  const t = performance.now();
+  if(!dragging && !busy){
+    // 慣性
+    if(Math.abs(velX)>0.05||Math.abs(velY)>0.05){
+      const qy=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), velX*ROT_SPEED);
+      const qx=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), velY*ROT_SPEED);
+      cubeGroup.quaternion.premultiply(qy).premultiply(qx);
+      velX*=0.93; velY*=0.93;
+    } else {
+      // ごく僅かなアイドル揺れ
+      idleT+=0.01;
+      cubeGroup.position.y = Math.sin(idleT)*0.03;
+    }
+  }
+  stepAnimations(t);        // 進行中の矢印アニメを進める
+  updateFaceOpacity();
+  renderer.render(scene,camera);
+}
+
+// ---------- 起動 ----------
+// 初期姿勢を動画に近い角度に
+cubeGroup.quaternion.setFromEuler(new THREE.Euler(-0.35, -0.6, 0));
+generateLevel(level);
+animate();
+
+// ---------- リサイズ ----------
+window.addEventListener('resize', ()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
