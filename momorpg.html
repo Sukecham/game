@@ -1,5 +1,27 @@
-```react
-import { useState, useEffect, useCallback, useRef } from "react";
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>ももたろう 〜おにたいじ RPG〜</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<style>
+  html,body{margin:0;padding:0;background:#000;height:100%;overflow:hidden}
+  #root{height:100%}
+  @keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-12px)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @keyframes floatPeach{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  @keyframes wave{0%,100%{transform:translateX(0)}50%{transform:translateX(10px)}}
+  @keyframes flicker{0%,100%{opacity:1}50%{opacity:.5}}
+  @keyframes boatRock{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback, useRef } = React;
 
 const PHASES = { TITLE: "title", STORY: "story", MAP: "map", BATTLE: "battle", VICTORY: "victory" };
 
@@ -413,7 +435,7 @@ function MapBG({ type, children }) {
 }
 
 // ========== MAIN GAME ==========
-export default function App() {
+function App() {
   const [phase, setPhase] = useState(PHASES.TITLE);
   const [storyIdx, setStoryIdx] = useState(0);
   const [curMap, setCurMap] = useState("village");
@@ -840,4 +862,7 @@ export default function App() {
   return <div style={ctn} />;
 }
 
-```
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
