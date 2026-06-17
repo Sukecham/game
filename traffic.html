@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#BFE6F2">
+<title>こうつう あんぜん ゲーム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky1:#BFE6F2; --sky2:#EAF7FC; --paper:#FFFDF7; --ink:#46403A;
+    --leaf:#37C98E; --leaf-d:#23A877; --coral:#FF6F6B; --coral-d:#E8504C;
+    --sun:#FFD23F; --grape:#7C5CFF; --pink:#FF6F91; --line:#F0E6D6;
+    --shadow:0 14px 30px rgba(70,64,58,.14), 0 4px 10px rgba(70,64,58,.08);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; height:100%}
+  body{
+    font-family:"M PLUS Rounded 1c",system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #FFFFFF55, transparent),
+      linear-gradient(180deg,var(--sky1) 0%, var(--sky2) 60%, #FFF6E9 100%);
+    min-height:100svh; display:flex; align-items:center; justify-content:center;
+    padding:14px;
+  }
+  /* soft floating clouds in the page bg */
+  .bg-cloud{position:fixed; border-radius:50%; background:#ffffffcc; filter:blur(.5px); pointer-events:none; z-index:0}
+  .stage{position:relative; z-index:1; width:100%; max-width:760px}
+
+  .screen{display:none; animation:rise .45s cubic-bezier(.2,.8,.25,1)}
+  .screen.active{display:block}
+  @keyframes rise{from{opacity:0; transform:translateY(14px)}to{opacity:1; transform:none}}
+
+  /* ---------- TITLE ---------- */
+  .title-card{
+    background:var(--paper); border-radius:34px; box-shadow:var(--shadow);
+    padding:30px 24px 26px; text-align:center; position:relative; overflow:hidden;
+    border:3px solid #fff;
+  }
+  .title-card::before{content:""; position:absolute; inset:-2px; border-radius:34px;
+    background:linear-gradient(180deg,#FFFFFF, transparent 30%); pointer-events:none}
+  h1.title{font-family:"Mochiy Pop One",sans-serif; font-weight:400;
+    font-size:clamp(30px,7.5vw,50px); line-height:1.15; margin:6px 0 2px; color:#3E96BC;
+    text-shadow:0 3px 0 #D6EEF7}
+  h1.title .pop{color:var(--coral); text-shadow:0 3px 0 #FFD9D7}
+  .subtitle{font-weight:700; color:#8A8377; font-size:clamp(14px,3.6vw,17px); margin:0 0 6px}
+  .mascot-wrap{width:min(220px,52vw); margin:2px auto 6px}
+  .mascot-wrap svg{display:block; width:100%; height:auto; animation:bob 3s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-8px) rotate(1.5deg)}}
+  .pick-label{font-weight:800; font-size:clamp(16px,4.2vw,20px); margin:10px 0 12px; color:var(--ink)}
+  .modes{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .mode{
+    border:none; cursor:pointer; border-radius:22px; padding:18px 12px 16px; color:#fff;
+    font-family:"M PLUS Rounded 1c"; font-weight:800; font-size:clamp(17px,4.6vw,21px);
+    box-shadow:0 8px 0 rgba(0,0,0,.12), var(--shadow); transition:transform .08s, box-shadow .08s;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  .mode .ico{width:64px; height:64px}
+  .mode small{font-weight:700; font-size:13px; opacity:.95}
+  .mode.walk{background:linear-gradient(180deg,#5CC8F0,#3E9FD0)}
+  .mode.car{background:linear-gradient(180deg,#9D86FF,#7C5CFF)}
+  .mode.all{background:linear-gradient(180deg,#FFB13C,#FF8F2E); grid-column:1 / -1; flex-direction:row; justify-content:center}
+  .mode.all .ico{width:46px;height:46px}
+  .mode:active{transform:translateY(6px); box-shadow:0 2px 0 rgba(0,0,0,.12), var(--shadow)}
+  .foot-note{margin-top:16px; font-size:12.5px; color:#A59C8C; font-weight:700; line-height:1.5}
+  .foot-note svg{vertical-align:-3px; margin-right:3px}
+
+  /* ---------- QUIZ ---------- */
+  .topbar{display:flex; align-items:center; gap:10px; margin-bottom:12px}
+  .iconbtn{width:48px; height:48px; flex:0 0 auto; border:none; border-radius:16px; background:#FFFFFFEE;
+    box-shadow:var(--shadow); cursor:pointer; display:grid; place-items:center; transition:transform .08s}
+  .iconbtn:active{transform:scale(.92)}
+  .stars{flex:1; display:flex; gap:5px; justify-content:center; align-items:center}
+  .stars svg{width:clamp(20px,5vw,26px); height:clamp(20px,5vw,26px)}
+  .scene{position:relative; width:100%; aspect-ratio:8/5; border-radius:28px; overflow:hidden;
+    box-shadow:var(--shadow); border:3px solid #fff; background:var(--sky1)}
+  .scene > svg{display:block; width:100%; height:100%}
+  .stamp{position:absolute; inset:0; display:grid; place-items:center; pointer-events:none;
+    opacity:0; transform:scale(.3) rotate(-18deg)}
+  .stamp.show{animation:stamp .5s cubic-bezier(.2,1.4,.4,1) forwards}
+  @keyframes stamp{to{opacity:1; transform:scale(1) rotate(-8deg)}}
+  .stamp svg{width:46%; height:46%; filter:drop-shadow(0 8px 14px rgba(0,0,0,.22))}
+
+  .bubble{position:relative; background:var(--paper); border-radius:22px; box-shadow:var(--shadow);
+    margin:16px 0 0; padding:18px 56px 18px 20px; border:3px solid #fff}
+  .bubble::after{content:""; position:absolute; top:-13px; left:40px; width:26px; height:18px;
+    background:var(--paper); border-radius:0 0 0 16px; transform:rotate(0);
+    clip-path:polygon(0 100%,100% 100%,50% 0); border-top:none}
+  .q-text{font-weight:800; font-size:clamp(18px,4.8vw,24px); line-height:1.5; margin:0}
+  .replay{position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    width:42px; height:42px; border:none; border-radius:13px; background:#FFF1D6; cursor:pointer;
+    display:grid; place-items:center; box-shadow:0 4px 0 #F2D89A; transition:transform .08s}
+  .replay:active{transform:translateY(-50%) translateY(3px); box-shadow:0 1px 0 #F2D89A}
+
+  .answers{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px}
+  .ans{border:none; cursor:pointer; border-radius:24px; padding:18px 8px 16px; color:#fff;
+    font-family:"Mochiy Pop One"; font-weight:400; font-size:clamp(20px,5.4vw,26px);
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    box-shadow:0 9px 0 rgba(0,0,0,.14), var(--shadow); transition:transform .09s, box-shadow .09s, filter .15s}
+  .ans .gly{width:62px; height:62px}
+  .ans.maru{background:linear-gradient(180deg,#46D89C,var(--leaf-d))}
+  .ans.batsu{background:linear-gradient(180deg,#FF8682,var(--coral-d))}
+  .ans:active{transform:translateY(7px); box-shadow:0 2px 0 rgba(0,0,0,.14), var(--shadow)}
+  .ans:disabled{cursor:default}
+  .answers.locked .ans{filter:grayscale(.55) opacity(.55)}
+  .answers.locked .ans.picked{filter:none; outline:5px solid #ffffff; outline-offset:-5px}
+
+  /* explanation */
+  .explain{margin-top:16px; display:none; animation:rise .4s ease}
+  .explain.show{display:block}
+  .ex-row{display:flex; gap:14px; align-items:flex-start;
+    background:var(--paper); border-radius:24px; box-shadow:var(--shadow); padding:16px; border:3px solid #fff}
+  .ex-badge{flex:0 0 auto; width:84px; height:84px; border-radius:50%; overflow:hidden;
+    background:radial-gradient(circle at 50% 35%,#FFF6E2,#FFE9C2); border:3px solid #fff; box-shadow:0 4px 10px rgba(0,0,0,.12)}
+  .ex-badge svg{width:100%; height:100%; transform:translateY(6px) scale(1.18)}
+  .ex-head{font-family:"Mochiy Pop One"; font-size:clamp(17px,4.4vw,21px); margin:2px 0 6px}
+  .ex-head.ok{color:var(--leaf-d)} .ex-head.no{color:var(--coral-d)}
+  .ex-text{font-weight:700; font-size:clamp(15px,4vw,18px); line-height:1.55; margin:0}
+  .next{margin-top:14px; width:100%; border:none; cursor:pointer; border-radius:22px; padding:18px;
+    color:#fff; font-family:"Mochiy Pop One"; font-size:clamp(18px,4.8vw,22px);
+    background:linear-gradient(180deg,#FFC04A,#FF9A2E);
+    box-shadow:0 8px 0 #E07F1E, var(--shadow); transition:transform .08s, box-shadow .08s;
+    display:flex; align-items:center; justify-content:center; gap:10px}
+  .next:active{transform:translateY(5px); box-shadow:0 3px 0 #E07F1E, var(--shadow)}
+
+  /* ---------- RESULT ---------- */
+  .result-card{background:var(--paper); border-radius:34px; box-shadow:var(--shadow);
+    padding:28px 24px; text-align:center; border:3px solid #fff}
+  .result-card .mascot-wrap{width:min(200px,46vw)}
+  .res-title{font-family:"Mochiy Pop One"; font-size:clamp(24px,6.4vw,34px); color:#3E96BC; margin:4px 0 2px}
+  .res-stars{display:flex; gap:8px; justify-content:center; margin:10px 0 4px; flex-wrap:wrap}
+  .res-stars svg{width:38px; height:38px; animation:pop .4s backwards}
+  @keyframes pop{from{transform:scale(0)}60%{transform:scale(1.25)}to{transform:scale(1)}}
+  .res-line{font-weight:800; font-size:clamp(16px,4.4vw,20px); color:#8A8377; margin:6px 0 18px}
+  .res-btns{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .res-btns button{border:none; cursor:pointer; border-radius:22px; padding:18px 10px; color:#fff;
+    font-family:"M PLUS Rounded 1c"; font-weight:800; font-size:clamp(16px,4.4vw,20px);
+    box-shadow:0 7px 0 rgba(0,0,0,.13), var(--shadow); transition:transform .08s, box-shadow .08s;
+    display:flex; align-items:center; justify-content:center; gap:8px}
+  .res-btns .again{background:linear-gradient(180deg,#46D89C,var(--leaf-d))}
+  .res-btns .home{background:linear-gradient(180deg,#7FB7E8,#4F8FD0)}
+  .res-btns button:active{transform:translateY(4px); box-shadow:0 3px 0 rgba(0,0,0,.13), var(--shadow)}
+
+  /* confetti */
+  #confetti{position:fixed; inset:0; pointer-events:none; z-index:50; overflow:hidden}
+  .confetti-bit{position:absolute; will-change:transform; border-radius:3px}
+
+  :focus-visible{outline:4px solid #2E78C7; outline-offset:3px; border-radius:14px}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001s !important}
+    .mascot-wrap svg{animation:none}
+  }
+</style>
+</head>
+<body>
+  <div class="bg-cloud" style="width:160px;height:60px;top:8%;left:6%"></div>
+  <div class="bg-cloud" style="width:120px;height:46px;top:16%;right:8%"></div>
+  <div class="bg-cloud" style="width:200px;height:70px;bottom:10%;left:-3%;opacity:.7"></div>
+
+  <div class="stage">
+    <!-- TITLE -->
+    <section id="screen-title" class="screen active">
+      <div class="title-card">
+        <p class="subtitle">よんさい から の</p>
+        <h1 class="title">こうつう <span class="pop">あんぜん</span><br>ゲーム</h1>
+        <div class="mascot-wrap" id="title-mascot"></div>
+        <p class="pick-label">どれで あそぶ？</p>
+        <div class="modes">
+          <button class="mode walk" data-mode="walk">
+            <span class="ico" id="ico-walk"></span>あるく とき<small>みち・しんごう</small>
+          </button>
+          <button class="mode car" data-mode="car">
+            <span class="ico" id="ico-car"></span>くるまの とき<small>シートベルト</small>
+          </button>
+          <button class="mode all" data-mode="all">
+            <span class="ico" id="ico-all"></span>ぜんぶ やってみる！
+          </button>
+        </div>
+        <p class="foot-note">
+          <span id="ico-ear"></span>もんだいは こえで よみあげます。タップで あそべます。<br>
+          おとなの かたと いっしょに あそんでね。
+        </p>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="screen-quiz" class="screen">
+      <div class="topbar">
+        <button class="iconbtn" id="btn-home" aria-label="さいしょに もどる"></button>
+        <div class="stars" id="stars"></div>
+        <button class="iconbtn" id="btn-sound" aria-label="おとの オンオフ"></button>
+      </div>
+      <div class="scene" id="scene">
+        <div class="stamp" id="stamp"></div>
+      </div>
+      <div class="bubble">
+        <p class="q-text" id="q-text"></p>
+        <button class="replay" id="btn-replay" aria-label="もういちど きく"></button>
+      </div>
+      <div class="answers" id="answers">
+        <button class="ans maru" data-choice="true"><span class="gly" id="gly-maru"></span>まる</button>
+        <button class="ans batsu" data-choice="false"><span class="gly" id="gly-batsu"></span>ばつ</button>
+      </div>
+      <div class="explain" id="explain">
+        <div class="ex-row">
+          <div class="ex-badge" id="ex-badge"></div>
+          <div>
+            <p class="ex-head" id="ex-head"></p>
+            <p class="ex-text" id="ex-text"></p>
+          </div>
+          <button class="replay" id="btn-replay2" style="position:static; align-self:center" aria-label="かいせつを もういちど きく"></button>
+        </div>
+        <button class="next" id="btn-next"></button>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section id="screen-result" class="screen">
+      <div class="result-card">
+        <div class="mascot-wrap" id="result-mascot"></div>
+        <h2 class="res-title" id="res-title"></h2>
+        <div class="res-stars" id="res-stars"></div>
+        <p class="res-line" id="res-line"></p>
+        <div class="res-btns">
+          <button class="again" id="btn-again"><span id="ico-replay-s"></span>もういちど</button>
+          <button class="home" id="btn-home2"><span id="ico-home-s"></span>おうちへ</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="confetti"></div>
+
+<script>
+"use strict";
+/* ============================ COLOR TOKENS ============================ */
+const C = {
+  TAN:"#E9A85B", TAN_D:"#D8923F", CREAM:"#FBEBCB", BLUSH:"#F6A8A0",
+  CAP:"#FFD23F", CAP_D:"#F2B705", SKIN:"#FBD3A6", HAIR:"#5A3B2E",
+  DRESS:"#FF6F91", DRESS2:"#E85C7B", INK:"#3A3530",
+  ROAD:"#6E7A86", CURB:"#C9CFD6", WALK:"#F3F4F6", GRASS:"#9FD86B",
+  HOUSE1:"#FFC4A3", ROOF1:"#E07A5F", HOUSE2:"#A8D8E8", ROOF2:"#5C8A9A",
+  GLASS:"#CDEBF5", TIRE:"#3A3530", SEAT:"#7C5CFF", SEAT2:"#9D86FF",
+  CARTEAL:"#4FB3D9", CARTEAL_D:"#3E96BC", HUB:"#D7DEE4", BELT:"#FF8C42", SUN:"#FFE08A"
+};
+
+/* ============================ SHARED SVG PARTS ============================ */
+function sun(x,y,r){return `<circle cx="${x}" cy="${y}" r="${r}" fill="${C.SUN}"/>`;}
+function cloud(x,y,s=1){return `<g transform="translate(${x},${y}) scale(${s})"><ellipse cx="0" cy="0" rx="34" ry="16" fill="#fff" opacity=".92"/><ellipse cx="26" cy="-6" rx="24" ry="14" fill="#fff" opacity=".92"/></g>`;}
+function house(x,body,roof,w=80,h=70){const top=120-h;return `<g transform="translate(${x},0)">
+  <rect x="0" y="${top}" width="${w}" height="${h}" rx="6" fill="${body}"/>
+  <path d="M-8 ${top} L${w/2} ${top-34} L${w+8} ${top} Z" fill="${roof}"/>
+  <rect x="${w*0.18}" y="${top+16}" width="16" height="16" rx="3" fill="#fff" opacity=".85"/>
+  <rect x="${w*0.62}" y="${top+16}" width="16" height="16" rx="3" fill="#fff" opacity=".85"/>
+  <rect x="${w*0.4}" y="${120-30}" width="18" height="30" rx="4" fill="${roof}" opacity=".55"/></g>`;}
+function curbRoad(){return `<rect x="0" y="200" width="480" height="100" fill="${C.ROAD}"/><rect x="0" y="200" width="480" height="8" fill="${C.CURB}"/>`;}
+function stripes(){let s="";for(let i=0;i<5;i++)s+=`<rect x="${150+i*40}" y="208" width="22" height="84" rx="3" fill="${C.WALK}"/>`;return s;}
+function trafficLight(active){
+  const r=active==="red"?"#FF5A4D":"#5B2A26", y=active==="yellow"?"#FFC83D":"#5B4A1E", g=active==="green"?"#36C98E":"#1E5240";
+  let glow="";
+  if(active==="red") glow=`<circle cx="33" cy="28" r="22" fill="#FF5A4D" opacity=".25"/>`;
+  if(active==="green") glow=`<circle cx="33" cy="120" r="22" fill="#36C98E" opacity=".25"/>`;
+  return `<g transform="translate(388,22)">
+    <rect x="26" y="150" width="14" height="86" fill="#7E8794"/><rect x="22" y="150" width="22" height="10" rx="3" fill="#6b7480"/>
+    <rect x="0" y="0" width="66" height="150" rx="18" fill="#414C57"/>${glow}
+    <circle cx="33" cy="28" r="16" fill="${r}"/><circle cx="33" cy="74" r="16" fill="${y}"/><circle cx="33" cy="120" r="16" fill="${g}"/></g>`;
+}
+/* consistent kid face (front) */
+function kidFace(cx,cy,r){return `
+  <circle cx="${cx}" cy="${cy}" r="${r}" fill="${C.SKIN}"/>
+  <path d="M${cx-r} ${cy} q${-r*0.06} ${-r*1.2} ${r} ${-r*1.24} q${r*1.06} ${r*0.04} ${r} ${r*1.24} q${-r*0.13} ${-r*0.55} ${-r} ${-r*0.55} q${-r*0.87} 0 ${-r} ${r*0.55} z" fill="${C.HAIR}"/>
+  <circle cx="${cx-r*0.3}" cy="${cy+r*0.04}" r="${r*0.12}" fill="${C.INK}"/>
+  <circle cx="${cx+r*0.3}" cy="${cy+r*0.04}" r="${r*0.12}" fill="${C.INK}"/>
+  <circle cx="${cx-r*0.26}" cy="${cy}" r="${r*0.045}" fill="#fff"/><circle cx="${cx+r*0.34}" cy="${cy}" r="${r*0.045}" fill="#fff"/>
+  <ellipse cx="${cx-r*0.62}" cy="${cy+r*0.22}" rx="${r*0.16}" ry="${r*0.1}" fill="${C.BLUSH}" opacity=".7"/>
+  <ellipse cx="${cx+r*0.62}" cy="${cy+r*0.22}" rx="${r*0.16}" ry="${r*0.1}" fill="${C.BLUSH}" opacity=".7"/>
+  <path d="M${cx-r*0.2} ${cy+r*0.28} q${r*0.2} ${r*0.18} ${r*0.4} 0" fill="none" stroke="${C.INK}" stroke-width="${r*0.1}" stroke-linecap="round"/>`;}
+
+/* kid in poses; drawn within ~90x150, feet near y=146, head center near (45,64) */
+function kid(pose="stand"){
+  const legs=`<rect x="34" y="112" width="9" height="30" rx="4.5" fill="${C.SKIN}"/><rect x="48" y="112" width="9" height="30" rx="4.5" fill="${C.SKIN}"/>
+    <ellipse cx="38" cy="144" rx="8" ry="4.5" fill="${C.DRESS2}"/><ellipse cx="53" cy="144" rx="8" ry="4.5" fill="${C.DRESS2}"/>`;
+  const body=`<path d="M24 86 q21 -12 42 0 l8 36 q-29 12 -58 0 z" fill="${C.DRESS}"/>`;
+  const head=kidFace(45,64,27);
+  if(pose==="reach"){ /* inner arm reaches LEFT to hold an adult hand */
+    return `<g>${legs}${body}
+      <path d="M28 92 q-16 0 -26 6" fill="none" stroke="${C.SKIN}" stroke-width="11" stroke-linecap="round"/>
+      <circle cx="2" cy="98" r="8" fill="${C.SKIN}"/>
+      <path d="M70 90 q12 6 12 24" fill="none" stroke="${C.SKIN}" stroke-width="11" stroke-linecap="round"/>
+      ${head}</g>`;
+  }
+  if(pose==="step"){ /* walking stride */
+    return `<g>
+      <ellipse cx="45" cy="146" rx="30" ry="6" fill="#000" opacity=".08"/>
+      <rect x="30" y="110" width="9" height="30" rx="4.5" fill="${C.SKIN}" transform="rotate(-14 34 112)"/>
+      <rect x="52" y="110" width="9" height="30" rx="4.5" fill="${C.SKIN}" transform="rotate(16 56 112)"/>
+      <ellipse cx="30" cy="143" rx="8" ry="4.5" fill="${C.DRESS2}"/><ellipse cx="62" cy="146" rx="8" ry="4.5" fill="${C.DRESS2}"/>
+      ${body}
+      <path d="M70 88 q14 -2 22 -14" fill="none" stroke="${C.SKIN}" stroke-width="11" stroke-linecap="round"/>
+      <path d="M24 90 q-12 2 -16 16" fill="none" stroke="${C.SKIN}" stroke-width="11" stroke-linecap="round"/>
+      ${head}</g>`;
+  }
+  /* stand + small wave */
+  return `<g>
+    <ellipse cx="45" cy="146" rx="30" ry="6" fill="#000" opacity=".08"/>${legs}${body}
+    <path d="M16 88 q-10 6 -12 22" fill="none" stroke="${C.SKIN}" stroke-width="11" stroke-linecap="round"/>
+    <path d="M74 88 q12 4 14 -10" fill="none" stroke="${C.SKIN}" stroke-width="11" stroke-linecap="round"/>
+    <circle cx="88" cy="76" r="8" fill="${C.SKIN}"/>
+    ${head}</g>`;
+}
+
+function adultHand(){ /* big guiding hand + sleeve from left, meeting child's left hand near (x=2,y=98 in kid local) */
+  return `<g>
+    <rect x="-30" y="120" width="40" height="120" rx="14" fill="#6FA8DC"/>
+    <path d="M-30 150 q60 -60 70 -52" fill="none" stroke="#5C8FC0" stroke-width="20" stroke-linecap="round"/>
+    <circle cx="44" cy="100" r="15" fill="${C.SKIN_ADULT||'#F2C49B'}"/>
+    <ellipse cx="44" cy="118" rx="13" ry="9" fill="${'#F2C49B'}"/>
+  </g>`;
+}
+function ball(x,y){return `<g transform="translate(${x},${y})">
+  <circle cx="0" cy="0" r="26" fill="#fff"/>
+  <path d="M0 -26 A26 26 0 0 1 24 10 L0 0 Z" fill="#FF6F6B"/>
+  <path d="M24 10 A26 26 0 0 1 -18 19 L0 0 Z" fill="#FFD23F"/>
+  <path d="M-18 19 A26 26 0 0 1 -24 -10 L0 0 Z" fill="#5CC8F0"/>
+  <path d="M-24 -10 A26 26 0 0 1 0 -26 L0 0 Z" fill="#37C98E"/>
+  <circle cx="0" cy="0" r="5" fill="#fff"/></g>`;}
+function motion(x,y){return `<g stroke="#9AA6B2" stroke-width="5" stroke-linecap="round" fill="none" opacity=".8">
+  <path d="M${x} ${y} q-16 4 -22 0"/><path d="M${x} ${y+14} q-22 5 -30 0"/><path d="M${x} ${y+28} q-16 4 -22 0"/></g>`;}
+function warn(x,y){return `<g transform="translate(${x},${y})"><path d="M0 -22 L22 20 L-22 20 Z" rx="6" fill="#FFC83D" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="-3.5" y="-8" width="7" height="16" rx="3.5" fill="#7A5A00"/><circle cx="0" cy="13" r="3.6" fill="#7A5A00"/></g>`;}
+function glance(){return `<g stroke="#3E96BC" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <path d="M18 150 l-14 -10 l14 -10"/><path d="M72 150 l14 -10 l-14 -10"/></g>`;}
+
+/* ---- extra parts for added scenes ---- */
+function rainDrops(){let s="";for(let i=0;i<9;i++){const x=40+i*48+(i%2)*16, y=20+(i%3)*30;s+=`<line x1="${x}" y1="${y}" x2="${x-8}" y2="${y+22}" stroke="#8FC9E8" stroke-width="4" stroke-linecap="round" opacity=".75"/>`;}return s;}
+function puddle(x,y){return `<ellipse cx="${x}" cy="${y}" rx="42" ry="9" fill="#9FD0EA" opacity=".75"/><ellipse cx="${x}" cy="${y}" rx="26" ry="5" fill="#C7E6F4" opacity=".7"/>`;}
+function umbrella(x,y){return `<g transform="translate(${x},${y})">
+  <path d="M-44 0 q44 -54 88 0 q-22 -14 -44 -14 q-22 0 -44 14z" fill="#FF6F6B"/>
+  <path d="M-44 0 q14 -10 22 0 q8 -10 22 0 q14 -10 22 0 q-22 6 -44 0 q-22 6 -22 0z" fill="#E85C5C" opacity=".5"/>
+  <rect x="-2" y="0" width="4" height="58" rx="2" fill="#7A5A00"/>
+  <path d="M2 58 q10 2 8 -8" fill="none" stroke="#7A5A00" stroke-width="4" stroke-linecap="round"/></g>`;}
+function parkedCar(x,y,s=1){return `<g transform="translate(${x},${y}) scale(${s})">
+  <ellipse cx="60" cy="74" rx="74" ry="8" fill="#000" opacity=".08"/>
+  <circle cx="24" cy="66" r="16" fill="${C.TIRE}"/><circle cx="24" cy="66" r="6" fill="${C.HUB}"/>
+  <circle cx="96" cy="66" r="16" fill="${C.TIRE}"/><circle cx="96" cy="66" r="6" fill="${C.HUB}"/>
+  <path d="M-8 66 q-1 -30 22 -32 l22 -20 q8 -7 18 -7 l38 0 q12 0 19 8 l13 17 q22 2 22 34 z" fill="#B98BE0"/>
+  <path d="M40 16 q5 -6 14 -6 l30 0 q9 0 14 7 l10 13 l-82 0 z" fill="${C.GLASS}"/></g>`;}
+function bike(x,y,s=1){return `<g transform="translate(${x},${y}) scale(${s})">
+  <circle cx="0" cy="40" r="30" fill="none" stroke="${C.TIRE}" stroke-width="6"/>
+  <circle cx="84" cy="40" r="30" fill="none" stroke="${C.TIRE}" stroke-width="6"/>
+  <circle cx="0" cy="40" r="4" fill="${C.TIRE}"/><circle cx="84" cy="40" r="4" fill="${C.TIRE}"/>
+  <path d="M0 40 L42 40 L60 6 M42 40 L62 8 L84 40 M42 40 L30 6 L18 6" fill="none" stroke="#5C8FC0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="24" y="0" width="16" height="6" rx="3" fill="#3A3530"/>
+  <circle cx="62" cy="2" r="5" fill="#FFD23F"/></g>`;}
+function bell(x,y){return `<g transform="translate(${x},${y})" stroke="#F2B705" stroke-width="4" fill="none" opacity=".9">
+  <path d="M0 -6 q10 -8 20 0"/><path d="M-2 0 q14 -12 28 0"/><path d="M-4 6 q18 -16 36 0"/></g>`;}
+
+/* exterior car (side view) */
+function carSide(opts={}){
+  let extra="";
+  if(opts.window){
+    extra+=`<g transform="translate(322,150)">
+      <path d="M0 18 q26 -6 44 14" fill="none" stroke="${C.SKIN}" stroke-width="13" stroke-linecap="round"/>
+      <circle cx="48" cy="34" r="9" fill="${C.SKIN}"/>
+      <circle cx="-2" cy="0" r="22" fill="${C.SKIN}"/>
+      <path d="M-22 0 q-2 -24 22 -25 q24 1 22 25 q-6 -13 -22 -13 q-16 0 -22 13z" fill="${C.HAIR}"/>
+      <circle cx="6" cy="2" r="3" fill="${C.INK}"/>
+      <ellipse cx="-4" cy="9" rx="4.5" ry="3" fill="${C.BLUSH}" opacity=".7"/>
+      <path d="M2 12 q5 4 9 -1" fill="none" stroke="${C.INK}" stroke-width="2.2" stroke-linecap="round"/></g>`;
+  }
+  if(opts.doorOpen){
+    extra+=`<g transform="translate(296,150) rotate(26)">
+      <rect x="0" y="0" width="78" height="86" rx="12" fill="${C.CARTEAL_D}"/>
+      <rect x="10" y="10" width="58" height="32" rx="8" fill="${C.GLASS}"/>
+      <rect x="8" y="58" width="40" height="8" rx="4" fill="#9fc7d9"/></g>`;
+  }
+  return `<g>
+    <ellipse cx="270" cy="266" rx="170" ry="14" fill="#000" opacity=".08"/>
+    <circle cx="190" cy="250" r="30" fill="${C.TIRE}"/><circle cx="190" cy="250" r="13" fill="${C.HUB}"/>
+    <circle cx="356" cy="250" r="30" fill="${C.TIRE}"/><circle cx="356" cy="250" r="13" fill="${C.HUB}"/>
+    <path d="M120 250 q-2 -54 40 -56 l40 -36 q14 -12 34 -12 l70 0 q22 0 34 14 l24 30 q40 4 40 60 z" fill="${C.CARTEAL}"/>
+    <path d="M196 162 q10 -10 26 -10 l54 0 q16 0 26 12 l18 24 l-148 0 z" fill="${C.GLASS}"/>
+    <rect x="244" y="156" width="8" height="40" fill="${C.CARTEAL}"/>
+    <path d="M120 232 l300 0 q4 -10 0 -18 l-300 0 z" fill="${C.CARTEAL_D}" opacity=".6"/>
+    <circle cx="132" cy="214" r="8" fill="${C.SUN}"/>
+    ${extra}</g>`;
+}
+
+/* car seat back + harness; child optional via 'child' = 'buckled' or none */
+function carSeatUnit(tx,ty,withChild){
+  let child="";
+  if(withChild){
+    child=`<g transform="translate(84,120)">
+      <path d="M-40 36 q40 -18 80 0 l8 78 l-96 0 z" fill="${C.DRESS}"/>${kidFace(0,0,36)}</g>
+      <path d="M58 150 L84 196" stroke="${C.BELT}" stroke-width="14" stroke-linecap="round"/>
+      <path d="M110 150 L84 196" stroke="${C.BELT}" stroke-width="14" stroke-linecap="round"/>
+      <rect x="50" y="148" width="16" height="34" rx="6" fill="#FFB066" transform="rotate(-28 58 165)"/>
+      <rect x="102" y="148" width="16" height="34" rx="6" fill="#FFB066" transform="rotate(28 110 165)"/>
+      <rect x="72" y="190" width="24" height="22" rx="6" fill="#E0701E"/>
+      <rect x="77" y="195" width="14" height="6" rx="3" fill="#FFC58A"/>`;
+  }
+  return `<g transform="translate(${tx},${ty})">
+    <rect x="6" y="44" width="156" height="210" rx="34" fill="${C.SEAT}"/>
+    <path d="M-2 96 q-12 0 -12 26 l0 70 q0 18 16 18 l0 -114 z" fill="${C.SEAT}"/>
+    <path d="M170 96 q12 0 12 26 l0 70 q0 18 -16 18 l0 -114 z" fill="${C.SEAT}"/>
+    <rect x="24" y="70" width="120" height="170" rx="24" fill="${C.SEAT2}"/>
+    ${child}</g>`;
+}
+
+/* ============================ SCENES ============================ */
+const SKY = (extra="")=>`<rect width="480" height="300" fill="${C.SKY1||'#BFE6F2'}"/>${sun(60,52,26)}${cloud(150,46)}${extra}`;
+
+const SCENES = {
+  redlight(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#BFE6F2"/>${sun(60,50,26)}${cloud(150,44)}
+    <rect x="0" y="186" width="480" height="22" fill="${C.GRASS}"/>
+    ${house(20,C.HOUSE1,C.ROOF1)}${house(110,C.HOUSE2,C.ROOF2,70,56)}
+    ${curbRoad()}${stripes()}${trafficLight("red")}
+    <g transform="translate(58,150)">${kid("stand")}</g></svg>`;},
+
+  greenlight(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#BFE6F2"/>${sun(60,50,26)}${cloud(150,44)}
+    <rect x="0" y="186" width="480" height="22" fill="${C.GRASS}"/>
+    ${house(20,C.HOUSE1,C.ROOF1)}${house(110,C.HOUSE2,C.ROOF2,70,56)}
+    ${curbRoad()}${stripes()}${trafficLight("green")}
+    <g transform="translate(58,150)">${kid("stand")}${glance()}</g></svg>`;},
+
+  holdhands(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#BFE6F2"/>${sun(420,50,26)}${cloud(120,44)}
+    <rect x="0" y="186" width="480" height="22" fill="${C.GRASS}"/>
+    ${house(330,C.HOUSE2,C.ROOF2,80,64)}
+    ${curbRoad()}${stripes()}
+    <g transform="translate(150,150)">${adultHand()}${kid("reach")}</g></svg>`;},
+
+  ball(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#BFE6F2"/>${sun(60,50,26)}${cloud(160,44)}
+    <rect x="0" y="186" width="480" height="22" fill="${C.GRASS}"/>
+    ${house(20,C.HOUSE1,C.ROOF1)}
+    ${curbRoad()}
+    ${carSideMini(360,300)}
+    ${ball(250,250)}
+    <g transform="translate(70,150)">${kid("stand")}</g>
+    ${warn(170,150)}</svg>`;},
+
+  crosswalk(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#BFE6F2"/>${sun(420,50,26)}${cloud(110,44)}
+    <rect x="0" y="186" width="480" height="22" fill="${C.GRASS}"/>
+    ${house(360,C.HOUSE1,C.ROOF1,80,60)}
+    ${curbRoad()}${stripes()}${trafficLight("green")}
+    <g transform="translate(150,150)">${kid("step")}</g></svg>`;},
+
+  carseat(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#DCEFF6"/>
+    <rect x="262" y="40" width="186" height="140" rx="18" fill="${C.GLASS}"/>${sun(306,78,16)}${cloud(364,96,.8)}
+    <rect x="262" y="150" width="186" height="30" rx="6" fill="${C.GRASS}"/>
+    <rect x="0" y="206" width="480" height="94" fill="#C7D2DB"/><rect x="0" y="206" width="480" height="8" fill="#B4C0CA"/>
+    ${carSeatUnit(96,30,true)}</svg>`;},
+
+  window(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#BFE6F2"/>${sun(60,54,26)}${cloud(170,50)}
+    <rect x="0" y="270" width="480" height="30" fill="${C.ROAD}"/><rect x="0" y="266" width="480" height="6" fill="${C.CURB}"/>
+    ${carSide({window:true})}
+    ${warn(110,120)}</svg>`;},
+
+  standing(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#DCEFF6"/>
+    <rect x="262" y="36" width="186" height="120" rx="18" fill="${C.GLASS}"/>${sun(300,72,14)}
+    <rect x="0" y="206" width="480" height="94" fill="#C7D2DB"/><rect x="0" y="206" width="480" height="8" fill="#B4C0CA"/>
+    ${carSeatUnit(96,30,false)}
+    <!-- loose undone straps -->
+    <path d="M154 150 q-6 50 -2 96" stroke="${C.BELT}" stroke-width="13" stroke-linecap="round" fill="none"/>
+    <path d="M206 150 q6 50 2 96" stroke="${C.BELT}" stroke-width="13" stroke-linecap="round" fill="none"/>
+    <!-- child standing in front of seat -->
+    <g transform="translate(135,86)">${kid("stand")}</g>
+    ${motion(120,150)}${warn(300,120)}</svg>`;},
+
+  exit(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#BFE6F2"/>${sun(60,52,26)}${cloud(150,46)}
+    <rect x="0" y="236" width="480" height="14" fill="${C.GRASS}"/>
+    <rect x="0" y="250" width="480" height="50" fill="${C.CURB}"/>
+    <rect x="0" y="250" width="480" height="6" fill="#B7BEC6"/>
+    ${carSide({doorOpen:true})}
+    <g transform="translate(372,150) scale(.92)">${adultHand()}${kid("reach")}</g>
+    <g transform="translate(420,150)">${glance()}</g></svg>`;},
+
+  noisy(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#C7D2DB"/>
+    <rect x="40" y="20" width="400" height="120" rx="20" fill="${C.GLASS}"/>
+    <rect x="40" y="104" width="400" height="36" rx="6" fill="${C.ROAD}"/>
+    <rect x="226" y="108" width="28" height="14" rx="3" fill="#fff"/><rect x="226" y="128" width="28" height="12" rx="3" fill="#fff" opacity=".8"/>
+    ${sun(100,50,16)}
+    <rect x="20" y="140" width="440" height="36" rx="14" fill="#94A0AB"/>
+    <circle cx="350" cy="186" r="30" fill="none" stroke="#5B6470" stroke-width="10"/><circle cx="350" cy="186" r="8" fill="#5B6470"/>
+    <rect x="278" y="176" width="120" height="124" rx="26" fill="#8A95A0"/>
+    <rect x="82" y="176" width="120" height="124" rx="26" fill="#8A95A0"/>
+    <circle cx="338" cy="196" r="34" fill="${C.HAIR}"/><circle cx="338" cy="196" r="26" fill="#6E4A38"/>
+    <g transform="translate(150,150)">
+      <path d="M-30 60 q30 -16 60 0 l6 50 l-72 0 z" fill="${C.DRESS}"/>
+      <circle cx="0" cy="22" r="30" fill="${C.SKIN}"/>
+      <path d="M-30 22 q-3 -34 30 -35 q33 1 30 35 q-7 -18 -30 -18 q-23 0 -30 18z" fill="${C.HAIR}"/>
+      <circle cx="-11" cy="22" r="3.8" fill="${C.INK}"/><circle cx="11" cy="22" r="3.8" fill="${C.INK}"/>
+      <ellipse cx="0" cy="38" rx="9" ry="11" fill="#C0392B"/><ellipse cx="0" cy="36" rx="6" ry="6" fill="#F47C8C"/>
+      <path d="M40 6 l16 -6 l-6 14 l16 0 l-14 12 l8 14 l-18 -8 l-6 12 l-4 -16 z" fill="#FFD23F"/>
+      <path d="M-44 0 l-14 -6 l5 13 l-15 -1 l13 11 l-8 13 l17 -8 z" fill="#FFD23F" opacity=".85"/></g></svg>`;},
+
+  /* WALK: walk on sidewalk not road */
+  sidewalk(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#BFE6F2"/>${sun(420,50,26)}${cloud(110,44)}
+    <rect x="0" y="150" width="480" height="20" fill="${C.GRASS}"/>
+    ${house(360,C.HOUSE2,C.ROOF2,80,52)}
+    <rect x="0" y="170" width="480" height="74" fill="${C.ROAD}"/>
+    <rect x="120" y="202" width="40" height="10" rx="3" fill="#fff" opacity=".7"/>
+    <rect x="226" y="202" width="40" height="10" rx="3" fill="#fff" opacity=".7"/>
+    <rect x="332" y="202" width="40" height="10" rx="3" fill="#fff" opacity=".7"/>
+    <rect x="0" y="244" width="480" height="8" fill="#AEB6BE"/>
+    <rect x="0" y="252" width="480" height="48" fill="${C.CURB}"/>
+    <g transform="translate(180,150)">${kid("step")}</g></svg>`;},
+
+  /* WALK: dont dash out between parked cars */
+  parkedcar(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#BFE6F2"/>${sun(60,50,26)}${cloud(170,46)}
+    <rect x="0" y="186" width="480" height="22" fill="${C.GRASS}"/>
+    ${curbRoad()}
+    ${parkedCar(20,150,1)}${parkedCar(300,150,1)}
+    <g transform="translate(210,150)">${kid("stand")}</g>
+    ${warn(230,120)}</svg>`;},
+
+  /* WALK: rainy day - dont run on wet road */
+  rainyroad(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#A9C4D2"/>${cloud(330,40,1.1)}${cloud(110,58,.9)}
+    ${rainDrops()}
+    <rect x="0" y="186" width="480" height="22" fill="#86B86A"/>
+    ${curbRoad()}
+    ${puddle(350,256)}${puddle(120,278)}
+    <g transform="translate(150,150)">${kid("stand")}</g>
+    ${umbrella(168,150)}
+    ${warn(330,150)}</svg>`;},
+
+  /* WALK: bike bell from behind - step aside */
+  bicycle(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#BFE6F2"/>${sun(60,50,26)}${cloud(160,44)}
+    <rect x="0" y="186" width="480" height="22" fill="${C.GRASS}"/>
+    <rect x="0" y="206" width="480" height="94" fill="${C.CURB}"/>
+    <rect x="0" y="206" width="480" height="6" fill="#B7BEC6"/>
+    ${bike(40,196,1)}${bell(150,210)}
+    <g transform="translate(300,150)">${kid("stand")}</g></svg>`;},
+
+  /* CAR: dont play with the door handle while moving */
+  doorlock(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#DCEFF6"/>
+    <rect x="40" y="30" width="400" height="150" rx="20" fill="${C.GLASS}"/>${sun(360,70,16)}${cloud(120,70,.8)}
+    <rect x="0" y="186" width="480" height="114" fill="#C7D2DB"/><rect x="0" y="186" width="480" height="8" fill="#B4C0CA"/>
+    <rect x="250" y="120" width="200" height="120" rx="14" fill="#8A95A0"/>
+    <rect x="270" y="150" width="70" height="14" rx="7" fill="#5B6470"/>
+    <g transform="translate(110,86)">${kid("stand")}</g>
+    ${warn(360,150)}</svg>`;},
+
+  /* CAR: feeling sick - tell adult quietly */
+  feelsick(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#DCEFF6"/>
+    <rect x="262" y="36" width="186" height="120" rx="18" fill="${C.GLASS}"/>${sun(300,72,14)}
+    <rect x="0" y="206" width="480" height="94" fill="#C7D2DB"/><rect x="0" y="206" width="480" height="8" fill="#B4C0CA"/>
+    ${carSeatUnit(96,30,false)}
+    <g transform="translate(180,150)">
+      <path d="M-40 26 q40 -18 80 0 l8 70 l-96 0 z" fill="${C.DRESS}"/>
+      <circle cx="0" cy="-10" r="34" fill="${C.SKIN}"/>
+      <path d="M-34 -10 q-3 -38 34 -39 q37 1 34 39 q-7 -20 -34 -20 q-27 0 -34 20z" fill="${C.HAIR}"/>
+      <circle cx="-12" cy="-10" r="3.6" fill="${C.INK}"/><circle cx="12" cy="-10" r="3.6" fill="${C.INK}"/>
+      <ellipse cx="-20" cy="2" rx="8" ry="6" fill="#9FD86B" opacity=".55"/>
+      <ellipse cx="20" cy="2" rx="8" ry="6" fill="#9FD86B" opacity=".55"/>
+      <path d="M-8 12 q8 -5 16 0" fill="none" stroke="${C.INK}" stroke-width="3" stroke-linecap="round"/>
+      <path d="M-30 30 q-14 6 -16 26" fill="none" stroke="${C.SKIN}" stroke-width="11" stroke-linecap="round"/>
+    </g></svg>`;},
+
+  /* CAR: keep harness on even when sleepy */
+  sleepy(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#CFE4EF"/>
+    <rect x="262" y="36" width="186" height="120" rx="18" fill="${C.GLASS}"/>
+    <circle cx="408" cy="74" r="16" fill="#FFF1B8"/>
+    <path d="M398 64 a16 16 0 1 0 18 22 a13 13 0 1 1 -18 -22z" fill="#F4E08A"/>
+    <rect x="0" y="206" width="480" height="94" fill="#C7D2DB"/><rect x="0" y="206" width="480" height="8" fill="#B4C0CA"/>
+    ${carSeatUnit(96,30,false)}
+    <g transform="translate(180,150)">
+      <path d="M-40 30 q40 -18 80 0 l8 74 l-96 0 z" fill="${C.DRESS}"/>
+      <g transform="rotate(-12 0 -6)">
+        <circle cx="0" cy="-6" r="34" fill="${C.SKIN}"/>
+        <path d="M-34 -6 q-3 -38 34 -39 q37 1 34 39 q-7 -20 -34 -20 q-27 0 -34 20z" fill="${C.HAIR}"/>
+        <path d="M-16 -6 q5 5 12 0" fill="none" stroke="${C.INK}" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M4 -6 q5 5 12 0" fill="none" stroke="${C.INK}" stroke-width="2.6" stroke-linecap="round"/>
+        <ellipse cx="-18" cy="6" rx="7" ry="5" fill="${C.BLUSH}" opacity=".7"/>
+        <ellipse cx="18" cy="6" rx="7" ry="5" fill="${C.BLUSH}" opacity=".7"/>
+        <ellipse cx="2" cy="14" rx="5" ry="6" fill="#E89BA8" opacity=".8"/>
+      </g>
+      <path d="M-26 30 L2 86" stroke="${C.BELT}" stroke-width="12" stroke-linecap="round"/>
+      <path d="M30 30 L2 86" stroke="${C.BELT}" stroke-width="12" stroke-linecap="round"/>
+      <rect x="-8" y="80" width="20" height="18" rx="5" fill="#E0701E"/>
+    </g>
+    <g fill="#7E8794" font-family="sans-serif" font-weight="700" opacity=".8">
+      <text x="250" y="80" font-size="20">Z</text><text x="268" y="64" font-size="26">Z</text><text x="290" y="46" font-size="32">Z</text>
+    </g></svg>`;},
+
+  /* CAR: little kids ride in the back seat */
+  backseat(){return `<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="480" height="300" fill="#BFE6F2"/>${sun(60,52,26)}${cloud(150,46)}
+    <rect x="0" y="236" width="480" height="14" fill="${C.GRASS}"/>
+    <rect x="0" y="250" width="480" height="50" fill="${C.CURB}"/>
+    <rect x="0" y="250" width="480" height="6" fill="#B7BEC6"/>
+    <g>
+      <ellipse cx="248" cy="250" rx="196" ry="14" fill="#000" opacity=".08"/>
+      <circle cx="150" cy="236" r="32" fill="${C.TIRE}"/><circle cx="150" cy="236" r="13" fill="${C.HUB}"/>
+      <circle cx="350" cy="236" r="32" fill="${C.TIRE}"/><circle cx="350" cy="236" r="13" fill="${C.HUB}"/>
+      <path d="M70 236 q-2 -58 44 -60 l44 -40 q14 -12 36 -12 l130 0 q24 0 36 16 l26 36 q44 4 44 64 z" fill="${C.CARTEAL}"/>
+      <path d="M160 150 q10 -12 28 -12 l54 0 l0 56 l-104 0 z" fill="${C.GLASS}"/>
+      <circle cx="208" cy="172" r="20" fill="${C.HAIR}"/><circle cx="208" cy="172" r="14" fill="#6E4A38"/>
+      <path d="M256 150 l72 0 q16 0 26 12 l16 26 l-114 0 z" fill="${C.GLASS}"/>
+      <rect x="284" y="150" width="64" height="56" rx="12" fill="${C.SEAT}" opacity=".9"/>
+      <rect x="294" y="158" width="44" height="44" rx="9" fill="${C.SEAT2}"/>
+      <circle cx="316" cy="178" r="17" fill="${C.SKIN}"/>
+      <path d="M299 178 q-2 -19 17 -20 q19 1 17 20 q-4 -10 -17 -10 q-13 0 -17 10z" fill="${C.HAIR}"/>
+      <circle cx="310" cy="178" r="2.6" fill="${C.INK}"/><circle cx="322" cy="178" r="2.6" fill="${C.INK}"/>
+      <path d="M310 186 q6 4 12 0" fill="none" stroke="${C.INK}" stroke-width="2.4" stroke-linecap="round"/>
+      <rect x="244" y="148" width="8" height="44" fill="${C.CARTEAL}"/>
+      <circle cx="92" cy="200" r="8" fill="${C.SUN}"/>
+    </g></svg>`;}
+};
+/* tiny far-away approaching car for the ball scene */
+function carSideMini(x,y){return `<g transform="translate(${x},${y}) scale(.42)">${carSide()}</g>`;}
+
+/* ============================ MASCOT (Shiba) ============================ */
+function shibaHead(expr){
+  let eyes,mouth,tongue="";
+  if(expr==="happy"){
+    eyes=`<path d="M96 118 q8 -12 16 0" fill="none" stroke="${C.INK}" stroke-width="6" stroke-linecap="round"/><path d="M148 118 q8 -12 16 0" fill="none" stroke="${C.INK}" stroke-width="6" stroke-linecap="round"/>`;
+    mouth=`<path d="M118 150 q12 16 24 0" fill="none" stroke="${C.INK}" stroke-width="5" stroke-linecap="round"/>`;
+    tongue=`<path d="M124 150 q6 14 12 0 z" fill="#F47C8C"/>`;
+  }else if(expr==="gentle"){
+    eyes=`<circle cx="104" cy="120" r="6" fill="${C.INK}"/><circle cx="156" cy="120" r="6" fill="${C.INK}"/>`;
+    mouth=`<path d="M120 152 q10 8 20 0" fill="none" stroke="${C.INK}" stroke-width="5" stroke-linecap="round"/>`;
+  }else{
+    eyes=`<circle cx="104" cy="120" r="6.5" fill="${C.INK}"/><circle cx="156" cy="120" r="6.5" fill="${C.INK}"/><circle cx="106" cy="118" r="2" fill="#fff"/><circle cx="158" cy="118" r="2" fill="#fff"/>`;
+    mouth=`<path d="M118 150 q12 12 24 0" fill="none" stroke="${C.INK}" stroke-width="5" stroke-linecap="round"/>`;
+    tongue=`<path d="M124 150 q6 12 12 0 z" fill="#F47C8C"/>`;
+  }
+  return `
+    <path d="M74 70 L66 18 L116 56 Z" fill="${C.TAN}"/><path d="M186 70 L194 18 L144 56 Z" fill="${C.TAN}"/>
+    <path d="M80 64 L76 34 L106 56 Z" fill="${C.CREAM}"/><path d="M180 64 L184 34 L154 56 Z" fill="${C.CREAM}"/>
+    <circle cx="130" cy="112" r="62" fill="${C.TAN}"/>
+    <path d="M86 120 q-6 40 44 44 q50 -4 44 -44 q-44 26 -88 0 z" fill="${C.CREAM}"/>
+    <ellipse cx="130" cy="140" rx="34" ry="26" fill="${C.CREAM}"/>
+    <ellipse cx="92" cy="132" rx="12" ry="8" fill="${C.BLUSH}" opacity=".7"/><ellipse cx="168" cy="132" rx="12" ry="8" fill="${C.BLUSH}" opacity=".7"/>
+    ${eyes}<ellipse cx="130" cy="132" rx="9" ry="6.5" fill="${C.INK}"/>${mouth}${tongue}
+    <path d="M70 78 q60 -54 120 0 q-60 -22 -120 0 z" fill="${C.CAP}"/>
+    <path d="M64 80 q66 -16 132 0 q4 12 -8 16 q-58 -16 -116 0 q-12 -4 -8 -16 z" fill="${C.CAP_D}"/>
+    <ellipse cx="130" cy="60" rx="14" ry="10" fill="${C.CAP}"/><circle cx="130" cy="58" r="6" fill="#fff"/><circle cx="130" cy="58" r="3" fill="${C.DRESS}"/>`;
+}
+function shibaFull(expr="happy"){
+  const paws = expr==="cheer"
+    ? `<path d="M70 200 q-14 -40 6 -64" fill="none" stroke="${C.TAN}" stroke-width="22" stroke-linecap="round"/>
+       <path d="M190 200 q14 -40 -6 -64" fill="none" stroke="${C.TAN}" stroke-width="22" stroke-linecap="round"/>
+       <circle cx="64" cy="132" r="13" fill="${C.CREAM}"/><circle cx="196" cy="132" r="13" fill="${C.CREAM}"/>`
+    : `<ellipse cx="100" cy="246" rx="20" ry="13" fill="${C.CREAM}"/><ellipse cx="160" cy="246" rx="20" ry="13" fill="${C.CREAM}"/>`;
+  return `<svg viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="130" cy="248" rx="78" ry="12" fill="#000" opacity=".08"/>
+    <path d="M70 250 q-14 -90 60 -96 q74 6 60 96 z" fill="${C.TAN}"/>
+    <path d="M96 250 q-8 -64 34 -68 q42 4 34 68 z" fill="${C.CREAM}"/>
+    ${paws}${shibaHead(expr==="cheer"?"happy":expr)}</svg>`;
+}
+function shibaBadge(expr){return `<svg viewBox="40 24 180 150" xmlns="http://www.w3.org/2000/svg">${shibaHead(expr)}</svg>`;}
+
+/* ============================ UI ICONS ============================ */
+const ICON = {
+  walk:`<svg viewBox="0 0 64 64" fill="none"><circle cx="34" cy="13" r="7" fill="#fff"/><path d="M34 22 L34 40 M34 28 L24 34 M34 28 L46 33 M34 40 L26 56 M34 40 L42 54" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>`,
+  car:`<svg viewBox="0 0 64 64" fill="none"><path d="M10 40 q1 -14 11 -14 l22 0 q9 0 12 14 l0 8 l-45 0 z" fill="#fff"/><circle cx="22" cy="49" r="6" fill="#5C4A8A"/><circle cx="44" cy="49" r="6" fill="#5C4A8A"/><rect x="24" y="28" width="16" height="9" rx="3" fill="#9D86FF"/></svg>`,
+  all:`<svg viewBox="0 0 64 64" fill="none"><path d="M32 8 l6 16 17 1 -13 11 4 17 -14 -9 -14 9 4 -17 -13 -11 17 -1 z" fill="#fff"/></svg>`,
+  ear:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M11 5 L6 9 H2 v6 h4 l5 4 z" fill="#A59C8C"/><path d="M15 8 q3 4 0 8 M18 5 q6 7 0 14" stroke="#A59C8C" stroke-width="2" stroke-linecap="round" fill="none"/></svg>`,
+  home:`<svg viewBox="0 0 24 24" width="26" height="26" fill="none"><path d="M4 11 L12 4 L20 11" stroke="#5C8FC0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10 v9 h12 v-9" fill="#9FD0F0"/><rect x="10" y="13" width="4" height="6" fill="#5C8FC0"/></svg>`,
+  homeW:`<svg viewBox="0 0 24 24" width="22" height="22" fill="none"><path d="M4 11 L12 4 L20 11" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10 v9 h12 v-9" fill="#ffffff66"/><rect x="10" y="13" width="4" height="6" fill="#fff"/></svg>`,
+  soundOn:`<svg viewBox="0 0 24 24" width="26" height="26" fill="none"><path d="M4 9 h4 l5 -4 v14 l-5 -4 H4 z" fill="#FFB13C"/><path d="M16 9 q3 3 0 6 M18.5 6.5 q6 5.5 0 11" stroke="#FF8F2E" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>`,
+  soundOff:`<svg viewBox="0 0 24 24" width="26" height="26" fill="none"><path d="M4 9 h4 l5 -4 v14 l-5 -4 H4 z" fill="#C2BBAE"/><path d="M16 9 l6 6 M22 9 l-6 6" stroke="#8A8377" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+  replay:`<svg viewBox="0 0 24 24" width="22" height="22" fill="none"><path d="M5 9 h3 l4 -3 v12 l-4 -3 H5 z" fill="#E0701E"/><path d="M15 8 q3.5 4 0 8" stroke="#E0701E" stroke-width="2.2" stroke-linecap="round" fill="none"/><path d="M17.5 19 a8 8 0 1 0 -6 -14" stroke="#E0701E" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M11 4 l1 2 l-2 1 z" fill="#E0701E"/></svg>`,
+  replayS:`<svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M12 5 a7 7 0 1 0 7 7" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M12 2 l3 3 l-3 3 z" fill="#fff"/></svg>`,
+  arrow:`<svg viewBox="0 0 24 24" width="22" height="22" fill="none"><path d="M5 12 h12 M13 7 l5 5 -5 5" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  maru:`<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="22" stroke="#fff" stroke-width="9"/></svg>`,
+  batsu:`<svg viewBox="0 0 64 64" fill="none"><path d="M16 16 L48 48 M48 16 L16 48" stroke="#fff" stroke-width="9" stroke-linecap="round"/></svg>`,
+  star:(f)=>`<svg viewBox="0 0 24 24"><path d="M12 2 l2.9 6.3 6.8 .6 -5.2 4.5 1.6 6.7 -6.1 -3.6 -6.1 3.6 1.6 -6.7 -5.2 -4.5 6.8 -.6 z" fill="${f?'#FFC83D':'#E6DFCF'}" stroke="${f?'#F2A900':'#D9D0BC'}" stroke-width="1"/></svg>`,
+  stampMaru:`<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="40" fill="none" stroke="#37C98E" stroke-width="16"/></svg>`,
+  stampBatsu:`<svg viewBox="0 0 120 120"><path d="M34 34 L86 86 M86 34 L34 86" stroke="#FF6F6B" stroke-width="16" stroke-linecap="round"/></svg>`
+};
+
+/* ============================ QUESTION DATA ============================ */
+const QUESTIONS = [
+  {cat:"walk", scene:"redlight",  a:false, q:"しんごうが あかの ときは、わたっても いいかな？",
+   e:"あかは『とまれ』の あいず。あおに なるまで、とまって まとうね。"},
+  {cat:"walk", scene:"greenlight",a:true,  q:"あおに なったら、みぎと ひだりを よく みてから わたるよ。",
+   e:"そうだね！あおでも くるまが こないか、みぎ・ひだりを みてから わたろう。"},
+  {cat:"walk", scene:"holdhands", a:true,  q:"みちの ちかくでは、おとなの ひとと てを つなぐよ。",
+   e:"えらい！てを つなぐと あんしんだね。ひとりで みちに でないようにね。"},
+  {cat:"walk", scene:"ball",      a:false, q:"ボールが どうろに ころがったら、すぐに じぶんで とりに いく？",
+   e:"あぶないよ！くるまが くるかも。とまって、おとなの ひとを よぼうね。"},
+  {cat:"walk", scene:"crosswalk", a:true,  q:"みちを わたるときは、しましまの『おうだんほどう』を わたるよ。",
+   e:"ピンポーン！しましまの ところを わたると あんぜんだよ。"},
+  {cat:"car",  scene:"carseat",   a:true,  q:"くるまに のったら、チャイルドシートで シートベルトを するよ。",
+   e:"ぴったり！シートベルトは、みんなを まもる だいじな ベルトだよ。"},
+  {cat:"car",  scene:"window",    a:false, q:"はしっている くるまの まどから、てや かおを だしても いい？",
+   e:"あぶない！まどから てや かおは ださないでね。けがを しちゃうよ。"},
+  {cat:"car",  scene:"standing",  a:false, q:"くるまが うごいて いるとき、ベルトを はずして たちあがる？",
+   e:"すわって いようね。うごく くるまで たつと、ころんで あぶないよ。"},
+  {cat:"car",  scene:"exit",      a:true,  q:"くるまから おりるときは、おとなと いっしょに まわりを みてから おりるよ。",
+   e:"いいね！いきなり あけないで、そとを みてから ゆっくり おりようね。"},
+  {cat:"car",  scene:"noisy",     a:false, q:"うんてんする ひとの ちかくで、おおごえで さわいでも いい？",
+   e:"しずかに しようね。うんてんちゅうに さわぐと あぶないよ。"},
+
+  {cat:"walk", scene:"sidewalk",  a:true,  q:"あるくときは、どうろの はじっこの『ほどう』を あるくよ。",
+   e:"そのとおり！くるまの とおる ところを あるかないで、はじを あるこうね。"},
+  {cat:"walk", scene:"parkedcar", a:false, q:"とまっている くるまの あいだから、ぱっと とびだしても いい？",
+   e:"あぶないよ！くるまの かげは みえにくいの。とまって、まわりを みてからね。"},
+  {cat:"walk", scene:"rainyroad", a:false, q:"あめの ひ、ぬれた みちを はしって わたっても だいじょうぶ？",
+   e:"つるつる すべって ころぶよ。あめの ひは、ゆっくり あるこうね。"},
+  {cat:"walk", scene:"bicycle",   a:true,  q:"うしろから じてんしゃの『チリン』が きこえたら、はしに よけるよ。",
+   e:"えらい！おとが したら、はしに よって、じてんしゃを とおして あげようね。"},
+  {cat:"car",  scene:"doorlock",  a:false, q:"くるまが はしって いるとき、ドアの とってで あそんでも いい？",
+   e:"だめだよ。はしって いるときは ドアを さわらないでね。あぶないよ。"},
+  {cat:"car",  scene:"feelsick",  a:true,  q:"くるまで きもちが わるく なったら、おとなの ひとに おしえるよ。",
+   e:"いいね！がまんしないで、すぐに『きもち わるい』って いってね。"},
+  {cat:"car",  scene:"sleepy",    a:true,  q:"くるまで ねむくなっても、シートベルトは つけたままに するよ。",
+   e:"そうだね。ねちゃっても、ベルトは はずさないでね。ねんねしても あんしんだよ。"},
+  {cat:"car",  scene:"backseat",  a:true,  q:"ちいさい こどもは、うしろの せきに のるよ。",
+   e:"せいかい！こどもは うしろの せきが あんぜんだよ。まえには のらないでね。"},
+];
+
+/* ============================ GAME STATE ============================ */
+let soundOn = true;
+let queue = [], idx = 0, results = [];
+let answered = false;
+
+/* ============================ AUDIO ============================ */
+let actx = null;
+function initAudio(){ if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(actx&&actx.state==="suspended") actx.resume(); }
+function tone(freq, t0, dur, type="sine", vol=0.18){
+  if(!actx) return;
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type=type; o.frequency.value=freq;
+  o.connect(g); g.connect(actx.destination);
+  const now=actx.currentTime+t0;
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(vol, now+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, now+dur);
+  o.start(now); o.stop(now+dur+0.05);
+}
+function chime(kind){
+  if(!soundOn||!actx) return;
+  if(kind==="good"){ tone(660,0,.18,"triangle",.2); tone(880,.10,.20,"triangle",.2); tone(1175,.20,.28,"triangle",.18); }
+  else if(kind==="bad"){ tone(330,0,.18,"sine",.16); tone(247,.12,.26,"sine",.16); }
+  else { tone(520,0,.06,"square",.08); }
+}
+/* ---- speech ---- */
+let jaVoice=null;
+function pickVoice(){ try{ const vs=speechSynthesis.getVoices(); jaVoice=vs.find(v=>/ja|JP/i.test(v.lang))||null; }catch(e){} }
+if("speechSynthesis" in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
+function speak(text){
+  if(!soundOn||!("speechSynthesis" in window)) return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text.replace(/[『』]/g,""));
+    u.lang="ja-JP"; u.rate=0.92; u.pitch=1.12; if(jaVoice) u.voice=jaVoice;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function stopSpeak(){ try{ speechSynthesis.cancel(); }catch(e){} }
+
+/* ============================ CONFETTI ============================ */
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function confetti(){
+  if(reduceMotion) return;
+  const host=document.getElementById("confetti");
+  const colors=["#FFD23F","#FF6F91","#37C98E","#5CC8F0","#7C5CFF","#FF8F2E"];
+  const N=46;
+  for(let i=0;i<N;i++){
+    const b=document.createElement("div");
+    b.className="confetti-bit";
+    const size=8+Math.random()*8;
+    b.style.width=size+"px"; b.style.height=(size*0.6)+"px";
+    b.style.background=colors[i%colors.length];
+    b.style.left=(48+Math.random()*4)+"%"; b.style.top="22%";
+    if(Math.random()<.4) b.style.borderRadius="50%";
+    host.appendChild(b);
+    const ang=Math.random()*Math.PI*2, dist=120+Math.random()*220;
+    const dx=Math.cos(ang)*dist, dy=Math.sin(ang)*dist*0.6+260+Math.random()*120;
+    const rot=(Math.random()*720-360);
+    b.animate(
+      [{transform:"translate(0,0) rotate(0)", opacity:1},
+       {transform:`translate(${dx}px,${dy}px) rotate(${rot}deg)`, opacity:0}],
+      {duration:1100+Math.random()*500, easing:"cubic-bezier(.2,.6,.3,1)", fill:"forwards"}
+    );
+    setTimeout(()=>b.remove(),1700);
+  }
+}
+
+/* ============================ RENDER / FLOW ============================ */
+const $=id=>document.getElementById(id);
+function show(screen){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active")); $("screen-"+screen).classList.add("active"); }
+
+function buildTitle(){
+  $("title-mascot").innerHTML = shibaFull("happy");
+  $("ico-walk").innerHTML=ICON.walk; $("ico-car").innerHTML=ICON.car; $("ico-all").innerHTML=ICON.all;
+  $("ico-ear").innerHTML=ICON.ear;
+  $("gly-maru").innerHTML=ICON.maru; $("gly-batsu").innerHTML=ICON.batsu;
+  $("btn-home").innerHTML=ICON.home; $("btn-replay").innerHTML=ICON.replay; $("btn-replay2").innerHTML=ICON.replay;
+  $("ico-replay-s").innerHTML=ICON.replayS; $("ico-home-s").innerHTML=ICON.homeW;
+  updateSoundIcon();
+}
+function updateSoundIcon(){ $("btn-sound").innerHTML = soundOn?ICON.soundOn:ICON.soundOff; }
+
+function startMode(mode){
+  initAudio();
+  let pool;
+  if(mode==="walk") pool=QUESTIONS.filter(q=>q.cat==="walk").map(q=>QUESTIONS.indexOf(q));
+  else if(mode==="car") pool=QUESTIONS.filter(q=>q.cat==="car").map(q=>QUESTIONS.indexOf(q));
+  else pool=QUESTIONS.map((q,i)=>i);
+  // light shuffle
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+  queue=pool; idx=0; results=new Array(queue.length).fill(null); window._lastMode=mode;
+  show("quiz"); renderQuestion();
+}
+
+function renderStars(){
+  const host=$("stars"); host.innerHTML="";
+  for(let i=0;i<queue.length;i++){
+    const span=document.createElement("span");
+    span.style.opacity = (results[i]===null && i!==idx) ? ".4" : "1";
+    span.innerHTML = ICON.star(results[i]===true);
+    host.appendChild(span);
+  }
+}
+
+function renderQuestion(){
+  answered=false;
+  const q=QUESTIONS[queue[idx]];
+  $("scene").innerHTML = `<div class="stamp" id="stamp"></div>` + SCENES[q.scene]();
+  // re-grab stamp (innerHTML replaced)
+  $("q-text").textContent = q.q;
+  const ans=$("answers"); ans.classList.remove("locked");
+  ans.querySelectorAll(".ans").forEach(b=>{ b.disabled=false; b.classList.remove("picked"); });
+  $("explain").classList.remove("show");
+  renderStars();
+  // read the question aloud
+  setTimeout(()=>speak(q.q), 350);
+}
+
+function onAnswer(choice){
+  if(answered) return; answered=true;
+  const q=QUESTIONS[queue[idx]];
+  const correct = (choice===q.a);
+  results[idx]=correct;
+  // lock buttons
+  const ans=$("answers"); ans.classList.add("locked");
+  ans.querySelectorAll(".ans").forEach(b=>{ b.disabled=true; if((b.dataset.choice==="true")===choice) b.classList.add("picked"); });
+  // stamp
+  const st=$("stamp");
+  st.innerHTML = correct?ICON.stampMaru:ICON.stampBatsu;
+  void st.offsetWidth; st.classList.add("show");
+  // sound + confetti
+  if(correct){ chime("good"); confetti(); } else { chime("bad"); }
+  renderStars();
+  // explanation
+  $("ex-badge").innerHTML = shibaBadge(correct?"happy":"gentle");
+  const head=$("ex-head");
+  head.textContent = correct?"せいかい！🎉".replace("🎉","")+" やったね！" : "おしいっ！いっしょに おぼえよう";
+  head.className = "ex-head " + (correct?"ok":"no");
+  $("ex-text").textContent = q.e;
+  const isLast = idx===queue.length-1;
+  $("btn-next").innerHTML = (isLast?"けっかを みる":"つぎへ") + ` <span style="display:inline-flex">${ICON.arrow}</span>`;
+  $("explain").classList.add("show");
+  // speak explanation after a beat
+  setTimeout(()=>speak((correct?"せいかい！":"おしいっ。")+q.e), 650);
+  // scroll explanation into view on small screens
+  setTimeout(()=>$("explain").scrollIntoView({behavior:"smooth", block:"end"}), 200);
+}
+
+function nextQuestion(){
+  stopSpeak();
+  if(idx<queue.length-1){ idx++; renderQuestion(); window.scrollTo({top:0,behavior:"smooth"}); }
+  else renderResult();
+}
+
+function renderResult(){
+  stopSpeak();
+  const score=results.filter(r=>r===true).length, total=queue.length;
+  $("result-mascot").innerHTML = shibaFull("cheer");
+  $("res-title").textContent = "よく がんばったね！";
+  const rs=$("res-stars"); rs.innerHTML="";
+  for(let i=0;i<total;i++){ const s=document.createElement("span"); s.style.animationDelay=(i*0.08)+"s"; s.innerHTML=ICON.star(i<score); rs.appendChild(s); }
+  let line;
+  if(score===total) line=`ぜんぶ せいかい！ ${total}こ ぜんぶ できたよ！すごい！`;
+  else if(score>=Math.ceil(total/2)) line=`${total}もん ちゅう ${score}もん せいかい！ もういちど やってみよう。`;
+  else line=`${total}もん ちゅう ${score}もん せいかい。 だいじょうぶ、また あそべば おぼえられるよ！`;
+  $("res-line").textContent=line;
+  show("result");
+  setTimeout(()=>speak("よく がんばったね。"+line), 500);
+}
+
+function goHome(){ stopSpeak(); show("title"); window.scrollTo({top:0}); }
+
+/* ============================ EVENTS ============================ */
+document.querySelectorAll(".mode").forEach(b=> b.addEventListener("click",()=>{ initAudio(); startMode(b.dataset.mode); }));
+$("answers").addEventListener("click", e=>{ const b=e.target.closest(".ans"); if(!b) return; chime("tap"); onAnswer(b.dataset.choice==="true"); });
+$("btn-next").addEventListener("click", nextQuestion);
+$("btn-home").addEventListener("click", goHome);
+$("btn-home2").addEventListener("click", goHome);
+$("btn-again").addEventListener("click", ()=>startMode(window._lastMode||"all"));
+$("btn-sound").addEventListener("click", ()=>{ soundOn=!soundOn; updateSoundIcon(); if(!soundOn) stopSpeak(); else initAudio(); });
+$("btn-replay").addEventListener("click", ()=>{ initAudio(); speak(QUESTIONS[queue[idx]].q); });
+$("btn-replay2").addEventListener("click", ()=>{ initAudio(); const q=QUESTIONS[queue[idx]]; speak((results[idx]?"せいかい！":"おしいっ。")+q.e); });
+
+buildTitle();
+</script>
+</body>
+</html>
