@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#03040a" />
+<title>星をさがして — 四季の星空</title>
+<style>
+  :root{
+    --ink:#eaf0ff; --gold:#ffe39a; --cyan:#bfe0ff;
+    --panel:rgba(12,16,30,0.5); --stroke:rgba(180,205,255,0.22);
+    --font:"Hiragino Mincho ProN","Yu Mincho",serif;
+    --font-ui:"Hiragino Sans","Yu Gothic",-apple-system,sans-serif;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; height:100%; overflow:hidden; background:#03040a; }
+  body{ font-family:var(--font-ui); color:var(--ink); -webkit-user-select:none; user-select:none; touch-action:none; }
+  #scene{ position:fixed; inset:0; display:block; }
+  #grain{ position:fixed; inset:0; pointer-events:none; z-index:4; opacity:.02;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  #hud{ position:fixed; inset:0; z-index:10; pointer-events:none; }
+  .panel{ background:var(--panel); border:1px solid var(--stroke); border-radius:14px;
+    backdrop-filter:blur(9px) saturate(1.05); -webkit-backdrop-filter:blur(9px) saturate(1.05); }
+  #quest{ position:absolute; top:calc(env(safe-area-inset-top) + 14px); left:14px; padding:10px 15px 11px; max-width:62vw; opacity:0; transition:opacity .8s; }
+  #quest .label{ font-size:10.5px; letter-spacing:.22em; color:var(--gold); opacity:.85; }
+  #quest .obj{ font-family:var(--font); font-size:15.5px; margin-top:3px; line-height:1.4; }
+  #status{ position:absolute; top:calc(env(safe-area-inset-top) + 14px); right:14px; padding:10px 14px; text-align:right; opacity:0; transition:opacity .8s; }
+  #count{ font-size:15px; display:flex; align-items:center; gap:7px; justify-content:flex-end; }
+  #count .star{ color:var(--gold); font-size:16px; }
+  #compass{ position:absolute; top:calc(env(safe-area-inset-top) + 16px); left:50%; transform:translateX(-50%); z-index:11; opacity:0; transition:opacity .8s;
+    font-size:13px; letter-spacing:.3em; color:var(--cyan); text-shadow:0 1px 8px rgba(0,0,0,.8); pointer-events:none; }
+  #compass b{ color:#fff; font-size:17px; }
+  #reticle{ position:absolute; left:50%; top:50%; width:54px; height:54px; transform:translate(-50%,-50%); z-index:11; pointer-events:none; opacity:0; transition:opacity .3s; }
+  #reticle svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  #reticle .ring{ fill:none; stroke:rgba(190,224,255,.3); stroke-width:2; }
+  #reticle .prog{ fill:none; stroke:var(--gold); stroke-width:3; stroke-linecap:round; transition:stroke-dashoffset .08s linear; }
+  #reticle .dot{ fill:rgba(255,255,255,.85); }
+  #clabel{ position:absolute; z-index:11; transform:translate(-50%,-140%); pointer-events:none; opacity:0; transition:opacity .35s; text-align:center; white-space:nowrap; }
+  #clabel .jp{ font-family:var(--font); font-size:19px; color:#fff; text-shadow:0 0 14px rgba(120,180,255,.7),0 2px 8px #000; letter-spacing:.06em; }
+  #clabel .rom{ font-size:10px; letter-spacing:.3em; color:var(--cyan); opacity:.8; margin-top:2px; }
+  #guide{ position:absolute; z-index:11; pointer-events:none; opacity:0; transition:opacity .4s; transform:translate(-50%,-50%);
+    font-size:11px; letter-spacing:.12em; color:var(--gold); text-shadow:0 1px 6px #000; text-align:center; }
+  #guide .arrow{ font-size:22px; display:block; line-height:1; }
+  #toast{ position:absolute; left:50%; bottom:calc(env(safe-area-inset-bottom) + 92px); transform:translateX(-50%);
+    font-family:var(--font); font-size:17px; line-height:1.7; text-align:center; padding:14px 24px; max-width:80vw; letter-spacing:.05em;
+    color:#fdf9ec; background:rgba(10,14,26,0.72); border:1px solid rgba(190,224,255,0.22); border-radius:16px;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); box-shadow:0 10px 40px rgba(0,0,0,.5); opacity:0; transition:opacity .5s; pointer-events:none; }
+  #joybase{ position:absolute; width:118px; height:118px; border-radius:50%; border:1.5px solid rgba(190,224,255,0.3); background:rgba(20,26,44,0.22);
+    z-index:12; opacity:0; transition:opacity .2s; pointer-events:none; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+  #joystick{ position:absolute; width:54px; height:54px; border-radius:50%;
+    background:radial-gradient(circle at 38% 35%, rgba(235,242,255,.95), rgba(150,190,255,.65)); box-shadow:0 0 16px rgba(150,200,255,.5);
+    z-index:13; opacity:0; transition:opacity .2s; pointer-events:none; transform:translate(-50%,-50%); }
+  #hint{ position:absolute; left:50%; bottom:calc(env(safe-area-inset-bottom) + 18px); transform:translateX(-50%); z-index:11; opacity:.6; transition:opacity .6s;
+    font-size:11.5px; letter-spacing:.16em; color:var(--ink); text-align:center; pointer-events:none; text-shadow:0 1px 8px rgba(0,0,0,.8); }
+  #topbtns{ position:absolute; bottom:calc(env(safe-area-inset-bottom) + 16px); right:14px; z-index:12; display:flex; gap:9px; pointer-events:none; opacity:0; transition:opacity .8s; }
+  .iconbtn{ pointer-events:auto; height:40px; min-width:40px; padding:0 13px; border-radius:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; letter-spacing:.06em; color:var(--ink); }
+  .iconbtn:active{ transform:scale(.92); }
+
+  #title{ position:fixed; inset:0; z-index:30; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+    background:radial-gradient(130% 100% at 50% 24%, #141a33 0%, #0a0e1f 50%, #03040a 100%); transition:opacity 1.4s ease; }
+  #title .kanji{ font-family:var(--font); font-size:clamp(44px,13vw,86px); font-weight:400; letter-spacing:.16em; color:#f3f7ff; text-indent:.16em;
+    text-shadow:0 0 44px rgba(150,190,255,.5), 0 4px 30px rgba(0,0,0,.6); animation:rise 2s cubic-bezier(.2,.7,.2,1) both; }
+  #title .romaji{ font-size:12px; letter-spacing:.5em; color:var(--cyan); margin-top:10px; text-indent:.5em; opacity:.85; animation:rise 2s .15s cubic-bezier(.2,.7,.2,1) both; }
+  #title .sub{ font-family:var(--font); font-size:14.5px; color:rgba(234,240,255,.78); margin-top:26px; line-height:1.9; letter-spacing:.06em; animation:fade 2.4s .5s both; }
+  #seasons{ display:flex; gap:12px; margin-top:34px; animation:fade 2.4s .9s both; flex-wrap:wrap; justify-content:center; }
+  .seasonbtn{ cursor:pointer; width:88px; padding:16px 0 13px; border-radius:18px; font-family:var(--font); text-align:center; border:1px solid rgba(255,255,255,.25);
+    color:#0d1020; box-shadow:0 8px 26px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.5); transition:transform .15s; }
+  .seasonbtn:active{ transform:scale(.94); }
+  .seasonbtn .k{ font-size:30px; display:block; line-height:1; }
+  .seasonbtn .e{ font-size:9.5px; letter-spacing:.22em; margin-top:8px; opacity:.7; }
+  .s-spring{ background:linear-gradient(180deg,#ffd9e8,#ffb6cf); }
+  .s-summer{ background:linear-gradient(180deg,#bfeaff,#8fd0ff); }
+  .s-autumn{ background:linear-gradient(180deg,#ffd9a6,#f3a85a); }
+  .s-winter{ background:linear-gradient(180deg,#eaf2ff,#bcd4ff); }
+  #loadnote{ position:absolute; bottom:30px; font-size:11px; letter-spacing:.2em; color:rgba(234,240,255,.45); }
+  #star-deco{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+  .ds{ position:absolute; width:3px; height:3px; border-radius:50%; background:#fff; box-shadow:0 0 8px 2px rgba(190,220,255,.8); animation:tw 3s ease-in-out infinite; }
+  @keyframes rise{ from{opacity:0;transform:translateY(26px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fade{ from{opacity:0} to{opacity:1} }
+  @keyframes tw{ 0%,100%{opacity:.25} 50%{opacity:1} }
+  #err{ position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:#06070f; color:#eaf0ff; font-family:var(--font); font-size:16px; text-align:center; padding:30px; line-height:1.9; }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="grain"></div>
+
+<div id="hud">
+  <div id="quest" class="panel"><div class="label">星をさがして</div><div class="obj" id="quest-text">夜空を見上げて、星座をさがそう</div></div>
+  <div id="status" class="panel"><div id="count"><span class="star">★</span><span id="ccount">0 / 0</span></div></div>
+  <div id="compass">— <b>北</b> —</div>
+  <div id="reticle"><svg viewBox="0 0 54 54"><circle class="ring" cx="27" cy="27" r="22"/><circle class="prog" cx="27" cy="27" r="22"/><circle class="dot" cx="27" cy="27" r="2.2"/></svg></div>
+  <div id="clabel"><div class="jp"></div><div class="rom"></div></div>
+  <div id="guide"><span class="arrow">↑</span><span id="guide-name"></span></div>
+  <div id="toast"></div>
+  <div id="joybase"></div><div id="joystick"></div>
+  <div id="topbtns"><div class="iconbtn panel" id="seasonBtn">季節</div><div class="iconbtn panel" id="muteBtn">♪</div></div>
+  <div id="hint">左で歩く ・ 右をなぞって空を見上げる</div>
+</div>
+
+<div id="err">お使いの環境では 3D 表示（WebGL）が利用できないようです。<br>別のブラウザでお試しください。</div>
+
+<div id="title">
+  <div id="star-deco"></div>
+  <div class="kanji">星をさがして</div>
+  <div class="romaji">UNDER THE COUNTRY SKY</div>
+  <div class="sub">街の灯りのない、田舎の夜道。<br>季節をえらんで、星座をさがしに出かけよう。</div>
+  <div id="seasons">
+    <div class="seasonbtn s-spring" data-s="spring"><span class="k">春</span><span class="e">SPRING</span></div>
+    <div class="seasonbtn s-summer" data-s="summer"><span class="k">夏</span><span class="e">SUMMER</span></div>
+    <div class="seasonbtn s-autumn" data-s="autumn"><span class="k">秋</span><span class="e">AUTUMN</span></div>
+    <div class="seasonbtn s-winter" data-s="winter"><span class="k">冬</span><span class="e">WINTER</span></div>
+  </div>
+  <div id="loadnote">読み込み中…</div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+
+/* ============================================================
+   星をさがして — 四季の田舎の星空
+   ============================================================ */
+let renderer, scene, camera, composer, gradePass, bloomPass;
+const clock = new THREE.Clock();
+const U = { uTime:{ value:0 } };
+const IS_MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (('ontouchstart' in window) && Math.min(innerWidth,innerHeight)<820);
+const DPR = Math.min(devicePixelRatio, 2);
+
+const PHI = THREE.MathUtils.degToRad(35.5);   // 緯度（日本）
+let LST = 18.6;                                // 地方恒星時（季節で変わる）
+const SKY_R = 480;
+
+const player = { pos:new THREE.Vector3(0,1.6,18), yaw:Math.PI, pitch:0.35, speed:3.4, bob:0, moveX:0, moveZ:0 };
+const EYE = 1.6;
+let started=false;
+
+let skyGroup, seasonGroup;
+const constellations = [];
+let found = 0, ending=false;
+let curSeason='summer';
+
+/* 色 */
+const BLUE=0xcfe0ff, WHITE=0xfff4e8, GOLD=0xffd9a0, ORANGE=0xffc07a, RED=0xff7a55;
+
+/* ============================================================
+   星座データ（実在の 赤経h・赤緯deg・等級・色?）
+   ============================================================ */
+const CONS = {
+ lyra:{ jp:'こと座', rom:'Lyra', note:'夏の大三角の一角。織姫星ベガが青く輝く。',
+  stars:[[18.615,38.78,0.03,BLUE],[18.746,37.60,4.3],[18.835,33.36,3.5],[18.982,32.69,3.25],[18.908,36.90,4.3]],
+  lines:[[0,1],[1,4],[4,3],[3,2],[2,1],[0,2]] },
+ cygnus:{ jp:'はくちょう座', rom:'Cygnus', note:'天の川を渡る白鳥。十字に見えて「北十字」とも。',
+  stars:[[20.690,45.28,1.25,BLUE],[20.370,40.26,2.23],[20.770,33.97,2.48],[19.749,45.13,2.87],[19.512,27.96,3.05,GOLD]],
+  lines:[[0,1],[1,4],[1,3],[1,2]] },
+ aquila:{ jp:'わし座', rom:'Aquila', note:'夏の大三角の一角。彦星アルタイルが目印。',
+  stars:[[19.846,8.87,0.76,WHITE],[19.771,10.61,2.72],[19.922,6.41,3.71],[19.425,3.11,3.36],[19.090,13.86,2.99],[20.188,-0.82,3.24],[19.064,-4.88,3.43]],
+  lines:[[1,0],[0,2],[0,4],[0,5],[5,6],[3,0]] },
+ scorpius:{ jp:'さそり座', rom:'Scorpius', note:'南の低空。心臓に赤い一等星アンタレス。',
+  stars:[[16.090,-19.81,2.6],[16.005,-22.62,2.3],[15.981,-26.11,2.9],[16.490,-26.43,1.06,RED],[16.598,-28.22,2.8],[16.836,-34.29,2.3],[16.864,-38.05,3.0],[16.910,-42.36,3.6],[17.203,-43.24,3.3],[17.622,-42.99,1.86],[17.793,-40.13,3.0],[17.708,-39.03,2.4],[17.560,-37.10,1.62],[17.512,-37.30,2.7]],
+  lines:[[0,1],[1,2],[1,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13]] },
+ sagittarius:{ jp:'いて座', rom:'Sagittarius', note:'南天。星々が「ティーポット」の形に並ぶ。',
+  stars:[[18.097,-30.42,2.99],[18.350,-29.83,2.7],[18.403,-34.38,1.85],[18.466,-25.42,2.8],[18.766,-26.99,3.17],[18.921,-26.30,2.05],[19.115,-27.67,3.32],[19.044,-29.88,2.6]],
+  lines:[[3,1],[1,0],[3,4],[4,5],[5,6],[6,7],[7,2],[2,1],[4,7]] },
+ bootes:{ jp:'うしかい座', rom:'Boötes', note:'オレンジの一等星アークトゥルス。凧の形。',
+  stars:[[14.261,19.18,-0.05,ORANGE],[14.750,27.07,2.35],[15.258,33.31,3.5],[15.032,40.39,3.5],[14.534,38.31,3.0],[14.530,30.37,3.6],[13.911,18.40,2.68]],
+  lines:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6]] },
+ crb:{ jp:'かんむり座', rom:'Corona Borealis', note:'半円に並ぶ、小さな冠。',
+  stars:[[15.547,31.36,4.1],[15.464,29.10,3.66],[15.578,26.71,2.22],[15.711,26.30,3.8],[15.825,26.07,4.6],[15.958,26.88,4.1]],
+  lines:[[0,1],[1,2],[2,3],[3,4],[4,5]] },
+ hercules:{ jp:'ヘルクレス座', rom:'Hercules', note:'四角い「キーストーン」が胴体の英雄。',
+  stars:[[16.688,31.60,2.81],[16.715,38.92,3.48],[17.251,36.81,3.16],[17.005,30.93,3.92],[16.504,21.49,2.78],[16.365,19.15,3.7],[17.250,24.84,3.12],[17.244,14.39,3.35]],
+  lines:[[0,1],[1,2],[2,3],[3,0],[0,4],[4,5],[3,6],[6,7]] },
+ draco:{ jp:'りゅう座', rom:'Draco', note:'北の空をうねる竜。頭は小さな四角形。',
+  stars:[[17.507,52.30,2.79],[17.943,51.49,2.23],[17.892,56.87,3.75],[17.689,55.18,4.9],[19.209,67.66,3.07],[17.146,65.72,3.17],[16.399,61.51,2.74],[15.415,58.97,3.29],[14.073,64.38,3.65],[12.558,69.79,3.87],[11.314,69.33,3.84]],
+  lines:[[0,1],[1,2],[2,3],[3,0],[1,5],[5,6],[6,7],[7,8],[8,9],[9,10]] },
+ uma:{ jp:'おおぐま座', rom:'Ursa Major', note:'「北斗七星」。ひしゃくの形でおなじみ。',
+  stars:[[11.062,61.75,1.79],[11.031,56.38,2.37],[11.897,53.69,2.44],[12.257,57.03,3.31],[12.900,55.96,1.77],[13.399,54.93,2.27],[13.792,49.31,1.86]],
+  lines:[[0,1],[1,2],[2,3],[3,0],[3,4],[4,5],[5,6]] },
+ umi:{ jp:'こぐま座', rom:'Ursa Minor', note:'柄の先に北極星ポラリス。小さなひしゃく。',
+  stars:[[2.530,89.26,1.98,GOLD],[17.537,86.59,4.36],[16.766,82.04,4.21],[15.734,77.79,4.32],[14.845,74.16,2.07],[15.345,71.83,3.0],[16.292,75.76,4.95]],
+  lines:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,3]] },
+ cassiopeia:{ jp:'カシオペヤ座', rom:'Cassiopeia', note:'北の空に輝く「W」。北極星さがしの目印。',
+  stars:[[0.153,59.15,2.27],[0.675,56.54,2.24],[0.945,60.72,2.15],[1.430,60.24,2.68],[1.906,63.67,3.35]],
+  lines:[[0,1],[1,2],[2,3],[3,4]] },
+ cepheus:{ jp:'ケフェウス座', rom:'Cepheus', note:'五角形の屋根のような形。王さまの星座。',
+  stars:[[21.310,62.59,2.45],[21.477,70.56,3.2],[23.656,77.63,3.2],[22.829,58.42,4.0],[22.181,58.20,3.35],[22.250,57.04,4.2],[22.828,66.20,3.5]],
+  lines:[[0,1],[1,6],[6,2],[6,3],[0,4],[4,3],[0,5]] },
+ pegasus:{ jp:'ペガスス座', rom:'Pegasus', note:'「秋の四辺形」。翼ある天馬。',
+  stars:[[23.079,15.21,2.49],[23.063,28.08,2.42],[0.140,29.09,2.06],[0.221,15.18,2.83],[21.736,9.875,2.39],[22.717,30.22,2.94],[22.169,33.18,2.84]],
+  lines:[[0,1],[1,2],[2,3],[3,0],[1,6],[6,5],[0,4]] },
+ delphinus:{ jp:'いるか座', rom:'Delphinus', note:'天の川のほとり。小さな菱形のイルカ。',
+  stars:[[20.626,15.91,3.77],[20.626,14.60,3.63],[20.776,16.12,3.9],[20.727,15.07,4.4],[20.554,11.30,4.03]],
+  lines:[[0,2],[2,3],[3,1],[1,0],[1,4]] },
+ andromeda:{ jp:'アンドロメダ座', rom:'Andromeda', note:'四辺形から伸びる姫。大銀河が潜む。',
+  stars:[[0.140,29.09,2.06],[0.655,30.86,3.3],[1.162,35.62,2.06],[2.065,42.33,2.1],[1.157,38.50,3.9],[0.830,41.08,4.5]],
+  lines:[[0,1],[1,2],[2,3],[2,4],[4,5]] },
+ perseus:{ jp:'ペルセウス座', rom:'Perseus', note:'英雄ペルセウス。変光星アルゴルを持つ。',
+  stars:[[3.405,49.86,1.79],[3.136,40.96,2.1],[3.080,53.51,2.9],[3.715,47.79,3.0],[3.964,40.01,2.9],[3.902,31.88,2.85],[3.086,38.84,3.3]],
+  lines:[[2,0],[0,3],[3,4],[4,5],[0,1],[1,6]] },
+ cetus:{ jp:'くじら座', rom:'Cetus', note:'秋の南天に横たわる、大きな鯨。',
+  stars:[[0.726,-17.99,2.0],[3.038,4.09,2.5],[2.722,3.24,3.5],[2.657,0.33,4.0],[2.322,-2.98,3.0],[1.857,-10.33,3.7],[1.734,-15.94,3.5],[1.401,-8.18,3.6],[1.143,-10.18,3.4]],
+  lines:[[1,2],[2,3],[3,4],[4,5],[5,6],[6,0],[0,8],[8,7],[7,5]] },
+ aquarius:{ jp:'みずがめ座', rom:'Aquarius', note:'水瓶から水を注ぐ姿。秋の星座。',
+  stars:[[21.526,-5.57,2.9],[22.096,-0.32,2.95],[22.911,-15.82,3.3],[22.361,-1.39,3.8],[22.481,-0.02,3.6],[22.587,-0.12,4.0],[22.877,-7.58,3.7],[23.236,-6.05,4.2]],
+  lines:[[0,1],[1,3],[3,4],[4,5],[1,6],[6,2],[6,7]] },
+ capricornus:{ jp:'やぎ座', rom:'Capricornus', note:'三角形に近い、海ヤギの星座。',
+  stars:[[20.301,-12.51,3.6],[20.351,-14.78,3.1],[21.784,-16.13,2.85],[21.668,-16.66,3.7],[21.444,-22.41,3.7],[20.864,-26.92,4.1],[20.768,-25.27,4.1]],
+  lines:[[0,1],[1,6],[6,5],[5,4],[4,3],[3,2],[2,0]] },
+ pisces:{ jp:'うお座', rom:'Pisces', note:'二匹の魚をひもで結んだ、秋の星座。',
+  stars:[[1.524,15.35,3.6],[23.286,3.28,3.7],[2.034,2.76,3.8],[23.992,6.86,4.0],[0.811,7.58,4.4],[1.045,7.89,4.3],[1.221,7.57,4.9]],
+  lines:[[1,3],[3,4],[4,5],[5,6],[6,2],[2,0]] },
+ aries:{ jp:'おひつじ座', rom:'Aries', note:'小さな くの字。黄金の羊。',
+  stars:[[2.119,23.46,2.0],[1.911,20.81,2.6],[1.892,19.29,3.9],[2.832,27.26,3.6]],
+  lines:[[2,1],[1,0],[0,3]] },
+ triangulum:{ jp:'さんかく座', rom:'Triangulum', note:'そのまま、細い三角形。',
+  stars:[[1.884,29.58,3.4],[2.159,34.99,3.0],[2.288,33.85,4.0]],
+  lines:[[0,1],[1,2],[2,0]] },
+ orion:{ jp:'オリオン座', rom:'Orion', note:'冬の主役。三つ星と、赤いベテルギウス。',
+  stars:[[5.919,7.41,0.5,RED],[5.242,-8.20,0.18,BLUE],[5.418,6.35,1.6],[5.796,-9.67,2.1],[5.679,-1.94,1.7],[5.604,-1.20,1.7],[5.533,-0.30,2.2],[5.585,9.93,3.5]],
+  lines:[[0,2],[2,6],[6,5],[5,4],[4,0],[4,3],[3,1],[1,6],[7,0],[7,2]] },
+ taurus:{ jp:'おうし座', rom:'Taurus', note:'赤い目アルデバラン。すばる（プレアデス）も。',
+  stars:[[4.599,16.51,0.85,ORANGE],[5.438,28.61,1.65],[5.627,21.14,3.0],[4.330,15.63,3.6],[4.382,17.54,3.8],[4.477,19.18,3.5],[4.011,12.49,3.4]],
+  lines:[[0,5],[5,4],[4,3],[0,2],[2,1],[0,6]] },
+ gemini:{ jp:'ふたご座', rom:'Gemini', note:'仲よく並ぶカストルとポルックス。',
+  stars:[[7.755,28.03,1.14,GOLD],[7.577,31.89,1.58,BLUE],[6.629,16.40,1.9],[6.383,22.51,2.9],[6.732,25.13,3.0],[6.755,12.90,3.4],[7.335,21.98,3.5],[7.068,20.57,3.9],[7.431,16.54,3.6]],
+  lines:[[1,4],[4,3],[0,6],[6,8],[8,2],[4,6],[3,5]] },
+ canismajor:{ jp:'おおいぬ座', rom:'Canis Major', note:'全天一の輝星シリウスを抱く犬。',
+  stars:[[6.752,-16.72,-1.46,BLUE],[6.977,-28.97,1.5],[7.140,-26.39,1.8],[6.378,-17.96,2.0],[7.402,-29.30,2.4],[6.339,-30.06,3.0],[7.050,-23.83,3.0]],
+  lines:[[3,0],[0,6],[6,2],[2,1],[1,4],[1,5]] },
+ canisminor:{ jp:'こいぬ座', rom:'Canis Minor', note:'プロキオン。冬の大三角の一角。',
+  stars:[[7.655,5.22,0.4,WHITE],[7.452,8.29,2.9]],
+  lines:[[0,1]] },
+ auriga:{ jp:'ぎょしゃ座', rom:'Auriga', note:'黄色いカペラ。五角形の御者。',
+  stars:[[5.278,46.00,0.08,GOLD],[5.992,44.95,1.9],[5.995,37.21,2.6],[4.950,33.17,2.7],[5.033,43.82,3.0]],
+  lines:[[0,1],[1,2],[2,3],[3,4],[4,0]] },
+ lepus:{ jp:'うさぎ座', rom:'Lepus', note:'オリオンの足元にうずくまる兎。',
+  stars:[[5.546,-17.82,2.6],[5.471,-20.76,2.8],[5.744,-22.45,3.6],[5.855,-20.88,3.8],[5.091,-22.37,3.2],[5.213,-16.21,3.3],[5.787,-14.82,3.5]],
+  lines:[[4,1],[1,0],[0,5],[1,2],[2,3],[0,6]] },
+ leo:{ jp:'しし座', rom:'Leo', note:'「ししの大鎌」が頭。一等星レグルス。',
+  stars:[[10.139,11.97,1.35,WHITE],[10.122,16.76,3.5],[10.333,19.84,2.0],[10.278,23.42,3.4],[9.879,26.01,3.9],[9.764,23.77,2.98],[11.235,20.52,2.56],[11.237,15.43,3.3],[11.818,14.57,2.14]],
+  lines:[[0,1],[1,2],[2,3],[3,4],[4,5],[2,6],[6,8],[8,7],[7,0],[6,7]] },
+ virgo:{ jp:'おとめ座', rom:'Virgo', note:'白い一等星スピカを持つ乙女。',
+  stars:[[13.420,-11.16,0.98,BLUE],[12.694,-1.45,2.7],[13.036,10.96,2.8],[12.927,3.40,3.4],[13.578,-0.60,3.4],[11.845,1.76,3.6],[12.333,-0.67,3.9]],
+  lines:[[0,4],[4,3],[3,1],[1,6],[6,5],[3,2]] },
+ cancer:{ jp:'かに座', rom:'Cancer', note:'淡い星のY字。中央に星団プレセペ。',
+  stars:[[8.275,9.19,3.5],[8.745,18.15,3.9],[8.721,21.47,4.7],[8.975,11.86,4.2],[8.778,28.76,4.0]],
+  lines:[[0,1],[1,2],[2,4],[1,3]] },
+ corvus:{ jp:'からす座', rom:'Corvus', note:'春の南天、小さな四角形のカラス。',
+  stars:[[12.263,-17.54,2.6],[12.573,-23.40,2.65],[12.498,-16.52,2.95],[12.168,-22.62,3.0],[12.140,-24.73,4.0]],
+  lines:[[3,0],[0,2],[2,1],[1,3],[3,4]] },
+ hydra:{ jp:'うみへび座', rom:'Hydra', note:'全天最長。頭からオレンジのアルファルド。',
+  stars:[[9.460,-8.66,1.98,ORANGE],[8.628,5.70,4.1],[8.779,6.42,3.4],[8.925,5.95,3.1],[8.720,3.40,4.3],[10.827,-16.19,3.1],[13.315,-23.17,3.0]],
+  lines:[[3,2],[2,1],[1,4],[4,0],[0,5],[5,6]] },
+ ophiuchus:{ jp:'へびつかい座', rom:'Ophiuchus', note:'大きな将棋駒形。蛇を持つ医神。',
+  stars:[[17.582,12.56,2.1],[17.724,4.57,2.8],[16.239,-3.69,2.7],[16.304,-4.69,3.2],[16.620,-10.57,2.6],[17.173,-15.72,2.4],[16.961,9.38,3.2]],
+  lines:[[0,6],[6,2],[2,3],[3,4],[4,5],[5,1],[1,0]] },
+};
+
+/* 季節ごとの設定 */
+const SEASONS = {
+ spring:{ jp:'春', lst:13.7, headline:'北斗からの「春の大曲線」と、しし座',
+   fog:0x0b0a14, dens:0.018, hor:0x1a1630, fx:'petal', home:0xffd0c0,
+   keys:['leo','virgo','bootes','crb','uma','umi','hercules','draco','corvus','hydra','cancer','lyra'] },
+ summer:{ jp:'夏', lst:18.6, headline:'夏の大三角と、天の川',
+   fog:0x06070f, dens:0.02, hor:0x16203c, fx:'firefly', home:0xffcaa0,
+   keys:['lyra','cygnus','aquila','scorpius','sagittarius','bootes','crb','hercules','draco','uma','umi','cassiopeia','ophiuchus','delphinus'] },
+ autumn:{ jp:'秋', lst:22.6, headline:'ペガススの「秋の四辺形」',
+   fog:0x080a12, dens:0.017, hor:0x161c2e, fx:'leaf', home:0xffc080,
+   keys:['pegasus','andromeda','cassiopeia','cepheus','perseus','pisces','aquarius','capricornus','aries','triangulum','cetus','cygnus','delphinus','umi'] },
+ winter:{ jp:'冬', lst:5.2, headline:'冬の大三角と、にぎやかな冬の星々',
+   fog:0x080b14, dens:0.012, hor:0x101a30, fx:'snow', home:0xcfe0ff,
+   keys:['orion','taurus','gemini','canismajor','canisminor','auriga','perseus','cassiopeia','lepus','andromeda','uma','umi'] },
+};
+
+/* 赤経赤緯 → 方向ベクトル */
+function eqToDir(raH, decDeg){
+  const H=THREE.MathUtils.degToRad((LST-raH)*15);
+  const dec=THREE.MathUtils.degToRad(decDeg);
+  const sinAlt=Math.sin(dec)*Math.sin(PHI)+Math.cos(dec)*Math.cos(PHI)*Math.cos(H);
+  const alt=Math.asin(THREE.MathUtils.clamp(sinAlt,-1,1));
+  const A=Math.atan2(-Math.cos(dec)*Math.sin(H), Math.sin(dec)*Math.cos(PHI)-Math.cos(dec)*Math.sin(PHI)*Math.cos(H));
+  const ce=Math.cos(alt);
+  return new THREE.Vector3(ce*Math.sin(A), Math.sin(alt), -ce*Math.cos(A));
+}
+
+/* ============================================================
+   テクスチャ
+   ============================================================ */
+function cv(s){ const c=document.createElement('canvas'); c.width=c.height=s; return c; }
+const TEX={};
+function buildTextures(){
+  (function(){ const S=64,c=cv(S),x=c.getContext('2d'); const g=x.createRadialGradient(32,32,0,32,32,32);
+    g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(0.18,'rgba(255,255,255,0.9)'); g.addColorStop(0.45,'rgba(255,255,255,0.35)'); g.addColorStop(1,'rgba(255,255,255,0)');
+    x.fillStyle=g; x.fillRect(0,0,S,S); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; TEX.star=t; })();
+  (function(){ const S=256,c=cv(S),x=c.getContext('2d'); x.clearRect(0,0,S,S);
+    for(let i=0;i<24;i++){ const px=64+Math.random()*128,py=64+Math.random()*128,r=30+Math.random()*70; const g=x.createRadialGradient(px,py,0,px,py,r); g.addColorStop(0,'rgba(255,255,255,.4)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.beginPath(); x.arc(px,py,r,0,7); x.fill(); }
+    const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; TEX.cloud=t; })();
+  (function(){ const S=256,c=cv(S),x=c.getContext('2d'); x.fillStyle='#0d1410'; x.fillRect(0,0,S,S);
+    for(let i=0;i<3000;i++){ const v=Math.random(); x.fillStyle=`rgba(${20+v*30|0},${30+v*30|0},${22+v*22|0},.4)`; x.fillRect(Math.random()*S,Math.random()*S,2,2); }
+    const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.wrapS=t.wrapT=THREE.RepeatWrapping; TEX.ground=t; })();
+  (function(){ const S=64,c=cv(S),x=c.getContext('2d'); x.clearRect(0,0,S,S); // 花びら型
+    x.fillStyle='#fff'; x.beginPath(); x.ellipse(32,32,11,20,0,0,7); x.fill(); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; TEX.petal=t; })();
+}
+
+/* ============================================================
+   初期化
+   ============================================================ */
+function init(){
+  const canvas=document.getElementById('scene');
+  try{ renderer=new THREE.WebGLRenderer({ canvas, antialias:false, powerPreference:'high-performance' }); }
+  catch(e){ document.getElementById('err').style.display='flex'; return false; }
+  renderer.setPixelRatio(DPR); renderer.setSize(innerWidth,innerHeight);
+  renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+
+  buildTextures();
+  scene=new THREE.Scene();
+  scene.fog=new THREE.FogExp2(0x06070f, 0.02);
+  camera=new THREE.PerspectiveCamera(66, innerWidth/innerHeight, 0.1, 2000);
+
+  buildNightSky();
+  buildGround();
+  buildHorizonScenery();
+  buildSkyBase();        // 背景星 + 季節グループ枠
+  buildComposer();
+
+  addEventListener('resize', onResize);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) clock.getDelta(); });
+  return true;
+}
+
+function buildComposer(){
+  composer=new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene,camera));
+  bloomPass=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 0.9, 0.6, 0.55);
+  composer.addPass(bloomPass);
+  composer.addPass(new OutputPass());
+  try{ composer.addPass(new SMAAPass(innerWidth,innerHeight)); }catch(e){}
+  gradePass=new ShaderPass({
+    uniforms:{ tDiffuse:{value:null}, uTime:{value:0}, uRes:{value:new THREE.Vector2(innerWidth,innerHeight)} },
+    vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`uniform sampler2D tDiffuse; uniform float uTime; uniform vec2 uRes; varying vec2 vUv;
+      float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+      void main(){ vec2 uv=vUv; vec3 col=texture2D(tDiffuse,uv).rgb; col.b*=1.05; col.r*=0.98; col=(col-0.5)*1.06+0.5;
+        float r2=dot(uv-0.5,uv-0.5); col*=mix(0.72,1.0,smoothstep(1.0,0.18,r2*2.2));
+        float g=hash(uv*uRes+fract(uTime)*vec2(53.0,97.0)); col+=(g-0.5)*0.012;
+        gl_FragColor=vec4(clamp(col,0.0,1.0),1.0); }`
+  });
+  composer.addPass(gradePass);
+  composer.setSize(innerWidth,innerHeight);
+}
+
+let skyMat;
+function buildNightSky(){
+  skyMat=new THREE.ShaderMaterial({ side:THREE.BackSide, depthWrite:false, fog:false,
+    uniforms:{ top:{value:new THREE.Color(0x05070f)}, mid:{value:new THREE.Color(0x0a1024)}, hor:{value:new THREE.Color(0x16203c)} },
+    vertexShader:`varying vec3 vD; void main(){ vD=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`varying vec3 vD; uniform vec3 top,mid,hor;
+      void main(){ float h=normalize(vD).y; vec3 c=mix(hor,mid,smoothstep(-0.05,0.35,h)); c=mix(c,top,smoothstep(0.25,0.8,h)); gl_FragColor=vec4(c,1.0);}`
+  });
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(900,32,20), skyMat));
+}
+
+function buildGround(){
+  TEX.ground.repeat.set(40,40);
+  const g=new THREE.Mesh(new THREE.PlaneGeometry(800,800), new THREE.MeshStandardMaterial({ map:TEX.ground, color:0x10160f, roughness:1 }));
+  g.rotation.x=-Math.PI/2; g.position.y=-0.02; scene.add(g);
+  const road=new THREE.Mesh(new THREE.PlaneGeometry(4.2,200), new THREE.MeshStandardMaterial({ color:0x1c1d22, roughness:1 }));
+  road.rotation.x=-Math.PI/2; road.position.y=0.01; scene.add(road);
+  scene.add(new THREE.HemisphereLight(0x2a3450, 0x05060a, 0.5));
+  scene.add(new THREE.AmbientLight(0x223047,0.25));
+}
+
+let homeLights=[], foreTreeCanopy=new THREE.Vector3(-7,3.6,5);
+function buildHorizonScenery(){
+  const seg=70, radius=360, pos=[], base=-8;
+  for(let i=0;i<seg;i++){ const a0=i/seg*7,a1=(i+1)/seg*7; const h=20+Math.sin(i*1.6)*10+Math.sin(i*0.5)*14+Math.random()*6;
+    const x0=Math.cos(a0)*radius,z0=Math.sin(a0)*radius,x1=Math.cos(a1)*radius,z1=Math.sin(a1)*radius,mx=Math.cos((a0+a1)/2)*radius,mz=Math.sin((a0+a1)/2)*radius;
+    pos.push(x0,base,z0,x1,base,z1,mx,h,mz); }
+  const mg=new THREE.BufferGeometry(); mg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  scene.add(new THREE.Mesh(mg,new THREE.MeshBasicMaterial({color:0x0a0e18,fog:true,side:THREE.DoubleSide})));
+  const tg=new THREE.PlaneGeometry(1,1), tm=new THREE.MeshBasicMaterial({color:0x070b12,fog:true,side:THREE.DoubleSide,transparent:true});
+  const tim=new THREE.InstancedMesh(tg,tm,60), d=new THREE.Object3D();
+  for(let i=0;i<60;i++){ const a=Math.random()*7,r=40+Math.random()*120; d.position.set(Math.cos(a)*r,4+Math.random()*5,Math.sin(a)*r); d.scale.set(5+Math.random()*7,10+Math.random()*9,1); d.lookAt(0,d.position.y,0); d.updateMatrix(); tim.setMatrixAt(i,d.matrix); }
+  scene.add(tim);
+  for(let z=20; z>=-30; z-=12){ makePole(2.5,z); makePole(-2.5,z); }
+  // 遠くの家明かり
+  for(let i=0;i<5;i++){ const a=Math.random()*7,r=60+Math.random()*80;
+    const lm=new THREE.SpriteMaterial({map:TEX.star,color:0xffcaa0,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending,depthWrite:false,fog:true});
+    const s=new THREE.Sprite(lm); s.scale.setScalar(2.2); s.position.set(Math.cos(a)*r,1.2+Math.random()*2,Math.sin(a)*r); scene.add(s); homeLights.push(lm); }
+  // 手前の一本の木（季節の彩りを乗せる土台）
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.28,3.4,8), new THREE.MeshStandardMaterial({color:0x0b0f16,roughness:1})); trunk.position.set(-7,1.7,5); scene.add(trunk);
+  for(let i=0;i<6;i++){ const c=new THREE.Mesh(new THREE.SphereGeometry(0.9+Math.random()*0.5,8,6), new THREE.MeshStandardMaterial({color:0x0a0f12,roughness:1})); c.position.set(-7+(Math.random()-0.5)*2.2,3.4+Math.random()*1.4,5+(Math.random()-0.5)*2.2); scene.add(c); }
+}
+function makePole(x,z){
+  const g=new THREE.Group();
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.14,7,8), new THREE.MeshStandardMaterial({color:0x0c0f16,roughness:1})); pole.position.y=3.5; g.add(pole);
+  const arm=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.12,0.12), new THREE.MeshStandardMaterial({color:0x0c0f16,roughness:1})); arm.position.y=6.3; g.add(arm);
+  g.position.set(x,0,z); scene.add(g);
+}
+
+/* ============================================================
+   星（背景 + 星座）
+   ============================================================ */
+let starPositions;
+function buildSkyBase(){
+  skyGroup=new THREE.Group(); scene.add(skyGroup);
+  // 背景の微光星（上半球）
+  const BN = IS_MOBILE ? 1100 : 1900;
+  const bpos=new Float32Array(BN*3), bsz=new Float32Array(BN), bph=new Float32Array(BN), bcol=new Float32Array(BN*3); const tmp=new THREE.Color();
+  for(let i=0;i<BN;i++){ let v; do{ v=new THREE.Vector3(Math.random()*2-1,Math.random(),Math.random()*2-1); }while(v.lengthSq()<0.02); v.normalize();
+    if(v.y<0.015) v.y=0.015+Math.random()*0.05; v.multiplyScalar(SKY_R*0.99);
+    bpos[i*3]=v.x; bpos[i*3+1]=v.y; bpos[i*3+2]=v.z; bsz[i]=0.8+Math.random()*1.6; bph[i]=Math.random()*7;
+    const t=Math.random(); tmp.setRGB(0.8+t*0.2,0.85+t*0.12,1.0); bcol[i*3]=tmp.r; bcol[i*3+1]=tmp.g; bcol[i*3+2]=tmp.b; }
+  addStarPoints(bpos,bsz,bph,bcol,0.6,skyGroup);
+  seasonGroup=new THREE.Group(); skyGroup.add(seasonGroup);
+}
+function addStarPoints(pos,sz,ph,col,bright,parent){
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  g.setAttribute('aSize',new THREE.BufferAttribute(sz,1));
+  g.setAttribute('aPhase',new THREE.BufferAttribute(ph,1));
+  g.setAttribute('aColor',new THREE.BufferAttribute(col,3));
+  const mat=new THREE.ShaderMaterial({ transparent:true, depthWrite:false, depthTest:true, fog:false, blending:THREE.AdditiveBlending,
+    uniforms:{ uTime:U.uTime, uTex:{value:TEX.star}, uDpr:{value:DPR}, uBright:{value:bright} },
+    vertexShader:`attribute float aSize; attribute float aPhase; attribute vec3 aColor; uniform float uTime,uDpr; varying vec3 vC; varying float vT;
+      void main(){ vC=aColor; float tw=0.7+0.3*sin(uTime*1.8+aPhase)+0.12*sin(uTime*5.3+aPhase*2.0); vT=tw;
+        vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=aSize*uDpr*tw; gl_Position=projectionMatrix*mv; }`,
+    fragmentShader:`uniform sampler2D uTex; uniform float uBright; varying vec3 vC; varying float vT;
+      void main(){ vec4 t=texture2D(uTex,gl_PointCoord); gl_FragColor=vec4(vC,1.0)*t.a*vT*uBright; }`
+  });
+  const pts=new THREE.Points(g,mat); pts.frustumCulled=false; parent.add(pts);
+  return { pts, mat };
+}
+
+/* 季節の星座を構築（切替時は前のを破棄） */
+function clearSeason(){
+  for(let i=seasonGroup.children.length-1;i>=0;i--){ const o=seasonGroup.children[i]; seasonGroup.remove(o); if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose(); }
+}
+function buildSeason(key){
+  curSeason=key; const S=SEASONS[key]; LST=S.lst;
+  scene.fog.color.set(S.fog); scene.fog.density=S.dens; skyMat.uniforms.hor.value.set(S.hor);
+  homeLights.forEach(m=>m.color.set(S.home));
+  clearSeason(); constellations.length=0; found=0; ending=false;
+
+  const allPos=[],allSz=[],allPh=[],allCol=[];
+  S.keys.forEach(k=>{ const cdef=CONS[k]; if(!cdef) return; const dirs=[];
+    cdef.stars.forEach(st=>{ const dir=eqToDir(st[0],st[1]); dirs.push(dir); const p=dir.clone().multiplyScalar(SKY_R);
+      const size=THREE.MathUtils.clamp((6.4-st[2])*1.7+1.6,2.0,13.0); const col=new THREE.Color(st[3]!==undefined?st[3]:WHITE);
+      allPos.push(p.x,p.y,p.z); allSz.push(size); allPh.push(Math.random()*7); allCol.push(col.r,col.g,col.b); });
+    const c=new THREE.Vector3(); dirs.forEach(d=>c.add(d)); c.normalize();
+    const lpos=[]; cdef.lines.forEach(([a,b])=>{ const pa=dirs[a].clone().multiplyScalar(SKY_R*0.992),pb=dirs[b].clone().multiplyScalar(SKY_R*0.992); lpos.push(pa.x,pa.y,pa.z,pb.x,pb.y,pb.z); });
+    const lg=new THREE.BufferGeometry(); lg.setAttribute('position',new THREE.Float32BufferAttribute(lpos,3));
+    const lm=new THREE.LineBasicMaterial({color:0x9fd0ff,transparent:true,opacity:0,fog:false,blending:THREE.AdditiveBlending,depthWrite:false});
+    const lines=new THREE.LineSegments(lg,lm); seasonGroup.add(lines);
+    constellations.push({def:cdef,centroid:c,lines,lm,opacity:0,found:false}); });
+  starPositions=addStarPoints(new Float32Array(allPos),new Float32Array(allSz),new Float32Array(allPh),new Float32Array(allCol),1.0,seasonGroup);
+  starPositions._base=null;
+
+  buildMilkyWay(seasonGroup);
+
+  document.getElementById('ccount').textContent=`0 / ${constellations.length}`;
+  setQuest('星をさがして ・ '+S.jp, S.headline);
+}
+
+function buildMilkyWay(parent){
+  const path=[[20.69,45.3],[20.3,38],[19.8,20],[19.4,8],[18.9,-12],[18.4,-29],[17.8,-35]];
+  const total = IS_MOBILE ? 44 : 70, per=Math.ceil(total/(path.length-1));
+  for(let s=0;s<path.length-1;s++){ for(let k=0;k<per;k++){ const t=k/per;
+    const ra=path[s][0]+(path[s+1][0]-path[s][0])*t, dec=path[s][1]+(path[s+1][1]-path[s][1])*t;
+    const dir=eqToDir(ra,dec); if(dir.y<0.02) continue;
+    const m=new THREE.SpriteMaterial({map:TEX.cloud,color:0x9fb4e0,transparent:true,opacity:0.05+Math.random()*0.05,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
+    const sp=new THREE.Sprite(m); const sc=60+Math.random()*70; sp.scale.set(sc,sc,1);
+    sp.position.copy(dir.multiplyScalar(SKY_R*0.985)); sp.position.x+=(Math.random()-0.5)*30; sp.position.z+=(Math.random()-0.5)*30; parent.add(sp); } }
+}
+
+
+/* ============================================================
+   星座さがし
+   ============================================================ */
+const _fwd=new THREE.Vector3(), _proj=new THREE.Vector3();
+const RING_LEN = 2*Math.PI*22;
+let focusIdx=-1, focusT=0;
+const FOCUS_NEED=0.75, FIND_ANGLE=THREE.MathUtils.degToRad(7.5), HINT_ANGLE=THREE.MathUtils.degToRad(15);
+let highlightI=-1, highlightAmt=0;
+
+function updateConstellations(dt){
+  camera.getWorldDirection(_fwd);
+  let bestUnseen=-1,bU=999, bestSeen=-1,bS=999;
+  for(let i=0;i<constellations.length;i++){ const c=constellations[i]; const ang=Math.acos(THREE.MathUtils.clamp(_fwd.dot(c.centroid),-1,1));
+    if(!c.found && ang<bU){ bU=ang; bestUnseen=i; } if(c.found && ang<bS){ bS=ang; bestSeen=i; }
+    const tgt = c.found ? (ang<HINT_ANGLE?0.85:0.30) : 0.0; c.opacity+=(tgt-c.opacity)*Math.min(dt*3,1); c.lm.opacity=c.opacity; }
+
+  const reticle=document.getElementById('reticle'), prog=reticle.querySelector('.prog');
+  if(bestUnseen>=0 && bU<FIND_ANGLE){ if(focusIdx!==bestUnseen){ focusIdx=bestUnseen; focusT=0; } focusT+=dt; reticle.style.opacity='1';
+    const pr=Math.min(focusT/FOCUS_NEED,1); prog.style.strokeDasharray=RING_LEN; prog.style.strokeDashoffset=RING_LEN*(1-pr); highlightStars(bestUnseen,0.5+0.5*pr);
+    if(focusT>=FOCUS_NEED) discover(bestUnseen); }
+  else { focusIdx=-1; focusT=0; prog.style.strokeDashoffset=RING_LEN; const hint=(bestUnseen>=0&&bU<HINT_ANGLE); reticle.style.opacity=hint?'0.7':'0.25'; if(hint) highlightStars(bestUnseen,0.35); }
+
+  updateLabel(bestSeen,bS); updateGuide(bestUnseen);
+}
+function highlightStars(i,amt){ highlightI=i; highlightAmt=amt; }
+function discover(i){ const c=constellations[i]; if(c.found) return; c.found=true; found++;
+  document.getElementById('ccount').textContent=`${found} / ${constellations.length}`; audio&&audio.chime();
+  showToast(`「${c.def.jp}」を見つけた\n${c.def.note}`); focusIdx=-1; focusT=0;
+  document.getElementById('reticle').querySelector('.prog').style.strokeDashoffset=RING_LEN;
+  if(found>=constellations.length && !ending) triggerEnding(); }
+
+const clabel=document.getElementById('clabel');
+function updateLabel(seenIdx,ang){
+  if(seenIdx>=0 && constellations[seenIdx].found && ang<HINT_ANGLE){ const c=constellations[seenIdx];
+    _proj.copy(c.centroid).multiplyScalar(SKY_R).add(camera.position).project(camera);
+    if(_proj.z<1){ clabel.style.left=(_proj.x*0.5+0.5)*innerWidth+'px'; clabel.style.top=(-_proj.y*0.5+0.5)*innerHeight+'px';
+      clabel.querySelector('.jp').textContent=c.def.jp; clabel.querySelector('.rom').textContent=c.def.rom; clabel.style.opacity='1'; return; } }
+  clabel.style.opacity='0';
+}
+const guide=document.getElementById('guide');
+function updateGuide(unseenIdx){
+  if(unseenIdx<0||ending){ guide.style.opacity='0'; return; }
+  const c=constellations[unseenIdx]; document.getElementById('guide-name').textContent=' '+c.def.jp;
+  _proj.copy(c.centroid).multiplyScalar(SKY_R).add(camera.position).project(camera);
+  const behind=_proj.z>1; let x=(_proj.x*0.5+0.5)*innerWidth, y=(-_proj.y*0.5+0.5)*innerHeight; const cx=innerWidth/2,cy=innerHeight/2;
+  if(!behind && x>40 && x<innerWidth-40 && y>90 && y<innerHeight-120){ guide.style.opacity='0'; return; }
+  let dx=x-cx,dy=y-cy; if(behind){ dx=-dx; dy=-dy; } const len=Math.hypot(dx,dy)||1; dx/=len; dy/=len;
+  const rr=Math.min(innerWidth,innerHeight)*0.32; guide.style.left=(cx+dx*rr)+'px'; guide.style.top=(cy+dy*rr)+'px';
+  guide.querySelector('.arrow').style.transform=`rotate(${Math.atan2(dy,dx)*180/Math.PI+90}deg)`; guide.style.opacity='0.9';
+}
+function applyHighlight(){
+  if(!starPositions) return; const sizes=starPositions.pts.geometry.getAttribute('aSize');
+  if(!starPositions._base){ starPositions._base=Float32Array.from(sizes.array); }
+  const base=starPositions._base; for(let i=0;i<sizes.array.length;i++) sizes.array[i]=base[i];
+  if(highlightI>=0){ let start=0; for(let k=0;k<highlightI;k++) start+=constellations[k].def.stars.length; const n=constellations[highlightI].def.stars.length;
+    for(let k=0;k<n;k++){ const idx=start+k; if(idx<sizes.array.length) sizes.array[idx]=base[idx]*(1.0+highlightAmt*1.4); } }
+  sizes.needsUpdate=true; highlightI=-1; highlightAmt=0;
+}
+
+/* ============================================================
+   プレイヤー
+   ============================================================ */
+const fwd=new THREE.Vector3(), right=new THREE.Vector3(); const keys={};
+function updatePlayer(dt){
+  let mx=player.moveX, mz=player.moveZ;
+  if(keys['KeyW']) mz+=1; if(keys['KeyS']) mz-=1; if(keys['KeyA']) mx-=1; if(keys['KeyD']) mx+=1;
+  if(keys['ArrowLeft']) player.yaw+=dt*1.4; if(keys['ArrowRight']) player.yaw-=dt*1.4;
+  if(keys['ArrowUp']) player.pitch=Math.min(player.pitch+dt*1.2,1.5); if(keys['ArrowDown']) player.pitch=Math.max(player.pitch-dt*1.2,-0.35);
+  const len=Math.hypot(mx,mz), moving=len>0.06;
+  if(moving){ if(len>1){ mx/=len; mz/=len; } fwd.set(Math.sin(player.yaw),0,Math.cos(player.yaw)); right.set(-Math.cos(player.yaw),0,Math.sin(player.yaw));
+    let px=player.pos.x+(fwd.x*mz+right.x*mx)*player.speed*dt, pz=player.pos.z+(fwd.z*mz+right.z*mx)*player.speed*dt;
+    px=THREE.MathUtils.clamp(px,-90,90); pz=THREE.MathUtils.clamp(pz,-90,90); player.pos.x=px; player.pos.z=pz; player.bob+=dt*8; }
+  else player.bob+=dt*1.6;
+  const bobY=moving?Math.sin(player.bob)*0.04:Math.sin(player.bob*0.5)*0.008;
+  camera.position.set(player.pos.x,EYE+bobY,player.pos.z);
+  const d=new THREE.Vector3(Math.sin(player.yaw)*Math.cos(player.pitch),Math.sin(player.pitch),Math.cos(player.yaw)*Math.cos(player.pitch));
+  camera.lookAt(camera.position.x+d.x,camera.position.y+d.y,camera.position.z+d.z);
+  if(skyGroup) skyGroup.position.set(camera.position.x,0,camera.position.z);
+  updateCompass();
+}
+function updateCompass(){
+  const az=(Math.atan2(Math.sin(player.yaw),-Math.cos(player.yaw))*180/Math.PI+360)%360;
+  const dirs=[['北',0],['北東',45],['東',90],['南東',135],['南',180],['南西',225],['西',270],['北西',315]];
+  let best='北',bd=999; for(const [n,a] of dirs){ const dd=Math.abs(((az-a+540)%360)-180); if(dd<bd){bd=dd;best=n;} }
+  document.getElementById('compass').innerHTML=`— <b>${best}</b> —`;
+}
+
+/* ============================================================
+   UI
+   ============================================================ */
+let toastTimer=null;
+function showToast(t){ const el=document.getElementById('toast'); el.textContent=t; el.style.opacity='1'; clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.style.opacity='0',4200); }
+function setQuest(label,obj){ document.querySelector('#quest .label').textContent=label; document.getElementById('quest-text').textContent=obj; }
+function triggerEnding(){ ending=true; const S=SEASONS[curSeason]; setQuest('星をさがして ・ '+S.jp,'この季節の星座を、すべて見つけた'); showToast('見上げた夜空の星座を、すべて見つけ出した。\n\n季節がめぐれば、また新しい星が昇る。'); document.getElementById('guide').style.opacity='0'; }
+
+/* 入力 */
+const joybase=document.getElementById('joybase'), joystick=document.getElementById('joystick');
+let moveId=null, moveOrigin={x:0,y:0}, lookId=null, lookLast={x:0,y:0};
+function isUI(t){ return t.closest && t.closest('.iconbtn'); }
+function onDown(e){ if(!started||isUI(e.target)) return; const x=e.clientX,y=e.clientY;
+  if(x<innerWidth*0.5 && moveId===null){ moveId=e.pointerId; moveOrigin={x,y}; joybase.style.left=(x-59)+'px'; joybase.style.top=(y-59)+'px'; joybase.style.opacity='1'; joystick.style.left=x+'px'; joystick.style.top=y+'px'; joystick.style.opacity='1'; }
+  else if(lookId===null){ lookId=e.pointerId; lookLast={x,y}; } }
+function onMove(e){ if(!started) return; const x=e.clientX,y=e.clientY;
+  if(e.pointerId===moveId){ let dx=x-moveOrigin.x,dy=y-moveOrigin.y; const max=52,l=Math.hypot(dx,dy); if(l>max){dx*=max/l;dy*=max/l;} joystick.style.left=(moveOrigin.x+dx)+'px'; joystick.style.top=(moveOrigin.y+dy)+'px'; player.moveX=dx/max; player.moveZ=-dy/max; }
+  else if(e.pointerId===lookId){ const dx=x-lookLast.x,dy=y-lookLast.y; lookLast={x,y}; player.yaw-=dx*0.004; player.pitch=THREE.MathUtils.clamp(player.pitch-dy*0.004,-0.35,1.5); } }
+function onUp(e){ if(e.pointerId===moveId){ moveId=null; player.moveX=0; player.moveZ=0; joybase.style.opacity='0'; joystick.style.opacity='0'; } if(e.pointerId===lookId) lookId=null; }
+addEventListener('pointerdown',onDown,{passive:false}); addEventListener('pointermove',onMove,{passive:false}); addEventListener('pointerup',onUp); addEventListener('pointercancel',onUp);
+addEventListener('keydown',e=>keys[e.code]=true); addEventListener('keyup',e=>keys[e.code]=false);
+
+/* 季節切替 */
+const ORDER=['spring','summer','autumn','winter'];
+document.getElementById('seasonBtn').addEventListener('click',()=>{ if(!started) return; const i=(ORDER.indexOf(curSeason)+1)%4; const k=ORDER[i]; buildSeason(k); showToast(SEASONS[k].jp+'の星空へ'); });
+
+/* オーディオ */
+let audio=null;
+class AudioM{
+  constructor(){ const C=window.AudioContext||window.webkitAudioContext; this.ctx=new C(); this.master=this.ctx.createGain(); this.master.gain.value=0.2; this.master.connect(this.ctx.destination); this.muted=false; this._insects(); this._wind(); }
+  _noise(){ const len=this.ctx.sampleRate*2,b=this.ctx.createBuffer(1,len,this.ctx.sampleRate),d=b.getChannelData(0); for(let i=0;i<len;i++) d[i]=Math.random()*2-1; const s=this.ctx.createBufferSource(); s.buffer=b; s.loop=true; s.start(); return s; }
+  _insects(){ const s=this._noise(),bp=this.ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=4600; bp.Q.value=11; const g=this.ctx.createGain(); g.gain.value=0.45;
+    const lfo=this.ctx.createOscillator(); lfo.frequency.value=5; const lg=this.ctx.createGain(); lg.gain.value=0.4; lfo.connect(lg); lg.connect(g.gain); lfo.start(); s.connect(bp); bp.connect(g); g.connect(this.master); this.insG=g.gain; this.insLfo=lfo; }
+  _wind(){ const s=this._noise(),lp=this.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=320; const g=this.ctx.createGain(); g.gain.value=0.1;
+    const lfo=this.ctx.createOscillator(); lfo.frequency.value=0.1; const lg=this.ctx.createGain(); lg.gain.value=0.05; lfo.connect(lg); lg.connect(g.gain); lfo.start(); s.connect(lp); lp.connect(g); g.connect(this.master); }
+  season(key){ if(!this.insG) return; const t=this.ctx.currentTime;
+    // 夏=虫が賑やか / 冬=静かで風 / 春秋=ほどほど
+    const lv = key==='summer'?0.55 : key==='winter'?0.12 : 0.35; this.insG.setTargetAtTime(lv,t,1.0);
+    const fr = key==='summer'?5.5 : key==='winter'?2.5 : 4.0; this.insLfo.frequency.setTargetAtTime(fr,t,1.0); }
+  chime(){ const t=this.ctx.currentTime; [784,1175,1568].forEach((f,i)=>{ const o=this.ctx.createOscillator(); o.type='sine'; o.frequency.value=f; const g=this.ctx.createGain(); g.gain.setValueAtTime(0,t+i*0.06); g.gain.linearRampToValueAtTime(0.16,t+i*0.06+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+i*0.06+0.7); o.connect(g); g.connect(this.master); o.start(t+i*0.06); o.stop(t+i*0.06+0.8); }); }
+  toggle(){ this.muted=!this.muted; this.master.gain.setTargetAtTime(this.muted?0:0.2,this.ctx.currentTime,0.2); return this.muted; }
+}
+document.getElementById('muteBtn').addEventListener('click',()=>{ if(!audio) return; const m=audio.toggle(); const b=document.getElementById('muteBtn'); b.textContent=m?'♪ オフ':'♪'; b.style.opacity=m?'0.5':'1'; });
+
+/* ループ */
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05); U.uTime.value+=dt;
+  if(gradePass) gradePass.uniforms.uTime.value=U.uTime.value;
+  if(started){ updatePlayer(dt); updateConstellations(dt); applyHighlight(); }
+  composer.render();
+}
+function onResize(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); composer.setSize(innerWidth,innerHeight); if(gradePass) gradePass.uniforms.uRes.value.set(innerWidth,innerHeight); if(bloomPass) bloomPass.setSize(innerWidth,innerHeight); }
+
+/* タイトル → 季節選択 */
+(function(){ const d=document.getElementById('star-deco'); for(let i=0;i<60;i++){ const e=document.createElement('div'); e.className='ds'; e.style.left=Math.random()*100+'vw'; e.style.top=Math.random()*70+'vh'; e.style.animationDelay=(Math.random()*3)+'s'; e.style.transform=`scale(${0.5+Math.random()*1.2})`; d.appendChild(e); } })();
+
+function startGame(seasonKey){
+  if(started) return; started=true;
+  try{ audio=new AudioM(); if(audio.ctx.state==='suspended') audio.ctx.resume(); audio.season(seasonKey); }catch(e){}
+  buildSeason(seasonKey);
+  const title=document.getElementById('title'); title.style.opacity='0'; setTimeout(()=>title.style.display='none',1500);
+  ['quest','status','compass','topbtns'].forEach(id=>document.getElementById(id).style.opacity='1');
+  document.getElementById('reticle').style.opacity='0.25';
+  setTimeout(()=>document.getElementById('hint').style.opacity='0',9000);
+}
+document.querySelectorAll('.seasonbtn').forEach(b=> b.addEventListener('click',()=>startGame(b.dataset.s)) );
+// 季節切替ボタンでも音色を更新
+document.getElementById('seasonBtn').addEventListener('click',()=>{ if(audio) audio.season(curSeason); });
+
+if(init()){ document.getElementById('loadnote').textContent='季節をえらんで はじめる'; animate(); }
+</script>
+</body>
+</html>
