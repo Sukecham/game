@@ -42,9 +42,13 @@
     color:#fff; margin:2px 0 4px; text-shadow:0 2px 5px rgba(150,50,130,.35); }
 
   .grid-wrap{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px 14px 28px; }
-  .chest-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:16px; max-width:560px; margin:0 auto; }
-  @media(min-width:560px){ .chest-grid{ grid-template-columns:repeat(3,1fr); } }
-  .chest-card{ position:relative; aspect-ratio:1/1; border-radius:26px; cursor:pointer;
+  /* ホーム画面の宝箱一覧：iPhone縦1画面にスクロールなしで収める */
+  .chest-wrap{ flex:1; min-height:0; overflow:hidden; padding:6px 16px 14px;
+    display:flex; align-items:center; justify-content:center; }
+  .chest-grid{ display:grid; grid-template-columns:repeat(3,1fr); grid-auto-rows:1fr;
+    gap:clamp(10px,3vw,18px); width:100%; aspect-ratio:3/3.4; max-width:520px;
+    max-height:100%; margin:0 auto; }
+  .chest-card{ position:relative; border-radius:clamp(16px,4.5vw,24px); cursor:pointer; min-height:0;
     background:linear-gradient(170deg, rgba(255,255,255,.42), rgba(255,255,255,.12));
     border:3px solid rgba(255,255,255,.6);
     display:flex; align-items:center; justify-content:center;
@@ -139,7 +143,7 @@
     <button class="icon-btn" id="to-coll">👑 たからもの</button>
   </div>
   <div class="subtitle">すきな はこを えらんでね</div>
-  <div class="grid-wrap"><div class="chest-grid" id="chest-grid"></div></div>
+  <div class="chest-wrap"><div class="chest-grid" id="chest-grid"></div></div>
 </section>
 
 <section id="open-screen" class="screen">
@@ -524,7 +528,7 @@ function bigChestSvg(skin){
 
 let currentSkin = CHEST_SKINS[0];
 
-const NUM_CHESTS=12;
+const NUM_CHESTS=9;
 function buildChestGrid(){
   const grid=$("#chest-grid"); grid.innerHTML="";
   for(let i=0;i<NUM_CHESTS;i++){
