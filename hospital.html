@@ -38,6 +38,8 @@
   #clock{ font-family:var(--font); font-size:12px; letter-spacing:.2em; color:var(--sick); }
   #keys{ margin-top:5px; font-size:14px; display:flex; align-items:center; gap:7px; justify-content:flex-end; }
   #keys .k{ width:9px; height:9px; border-radius:2px; background:#3a3f44; box-shadow:inset 0 0 3px #000; transition:background .4s, box-shadow .4s; }
+  #keys .klabel{ font-size:10px; letter-spacing:.22em; color:var(--sick); opacity:.85; }
+  #keys #kcount{ font-size:13px; color:#e9eef2; letter-spacing:.04em; margin-right:2px; }
   #keys .k.on{ background:#e8c659; box-shadow:0 0 8px 2px rgba(232,198,89,.8); }
 
   #toast{ position:absolute; left:50%; top:62%; transform:translate(-50%,-50%);
@@ -53,6 +55,11 @@
     z-index:12; opacity:0; transition:opacity .2s; pointer-events:none; transform:translate(-50%,-50%); }
   #hint{ position:absolute; left:50%; bottom:calc(env(safe-area-inset-bottom) + 18px); transform:translateX(-50%); z-index:11; opacity:.5; transition:opacity .6s;
     font-size:11px; letter-spacing:.18em; color:var(--ink); text-align:center; pointer-events:none; text-shadow:0 1px 8px rgba(0,0,0,.9); }
+  #wp{ position:absolute; z-index:11; pointer-events:none; display:none; align-items:center; gap:6px; padding:5px 11px; border-radius:999px;
+    font-size:12px; letter-spacing:.06em; color:#c4f7d6; white-space:nowrap; transform:translate(-50%,-50%);
+    background:rgba(7,18,11,0.5); border:1px solid rgba(80,220,140,0.42); box-shadow:0 0 14px rgba(57,255,134,.25);
+    backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+  #wp .ico{ display:inline-block; color:#43ff90; font-size:13px; line-height:1; text-shadow:0 0 8px rgba(67,255,144,.8); }
 
   #action{ position:absolute; left:50%; bottom:calc(env(safe-area-inset-bottom) + 56px); transform:translateX(-50%) scale(.9); z-index:13;
     padding:12px 28px; border-radius:999px; pointer-events:auto; font-family:var(--font); font-size:16px; letter-spacing:.08em; color:#0a0c0e;
@@ -102,12 +109,13 @@
 
 <div id="hud">
   <div id="quest" class="panel"><div class="label">深夜0時 ・ 旧病棟</div><div class="obj" id="quest-text">出口の鍵を 3つ 探す</div></div>
-  <div id="status" class="panel"><div id="clock">00:00</div><div id="keys"><span class="k" id="k0"></span><span class="k" id="k1"></span><span class="k" id="k2"></span></div></div>
+  <div id="status" class="panel"><div id="clock">00:00</div><div id="keys"><span class="klabel">鍵</span><span id="kcount">0 / 3</span><span class="k" id="k0"></span><span class="k" id="k1"></span><span class="k" id="k2"></span></div></div>
   <div id="topbtns"><div class="iconbtn panel" id="qualityBtn">画質 高</div><div class="iconbtn panel" id="muteBtn">♪</div></div>
   <div id="toast"></div>
   <div id="joybase"></div><div id="joystick"></div>
   <button id="action"></button>
   <div id="hint">左で歩く ・ 右をなぞって見まわす ・ 懐中電灯で照らす</div>
+  <div id="wp"><span class="ico">▲</span><span class="txt">正面玄関</span></div>
 </div>
 
 <div id="fade"></div>
@@ -533,11 +541,12 @@ function fixWardOpenings(){
 }
 
 function buildReception(){
-  // L字カウンター
+  // カウンター（中央に通路を開ける）
   const m=new THREE.MeshStandardMaterial({ map:TEX.wallMap, normalMap:TEX.wallNrm, color:0x8c8f86, roughness:0.8 });
-  const c1=new THREE.Mesh(new THREE.BoxGeometry(5,1.1,0.6), m); c1.position.set(0,0.55,16.8); c1.castShadow=c1.receiveShadow=true; scene.add(c1); box(-2.5,2.5,16.5,17.1);
+  const cL=new THREE.Mesh(new THREE.BoxGeometry(1.8,1.1,0.6), m); cL.position.set(-1.6,0.55,16.8); cL.castShadow=cL.receiveShadow=true; scene.add(cL); box(-2.5,-0.7,16.5,17.1);
+  const cR=cL.clone(); cR.position.set(1.6,0.55,16.8); scene.add(cR); box(0.7,2.5,16.5,17.1);
   // 死んだモニタ
-  for(const px of [-1.4,1.4]){ const mon=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.5,0.1), new THREE.MeshStandardMaterial({color:0x0a0d10, roughness:0.4, metalness:0.3})); mon.position.set(px,1.45,16.9); scene.add(mon); }
+  for(const px of [-1.6,1.6]){ const mon=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.5,0.1), new THREE.MeshStandardMaterial({color:0x0a0d10, roughness:0.4, metalness:0.3})); mon.position.set(px,1.45,16.9); scene.add(mon); }
   // 緑の非常口サイン
   const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.0,0.36), new THREE.MeshStandardMaterial({ color:0x0a1a0a, emissive:0x2bff6a, emissiveIntensity:0.9, roughness:0.4 }));
   sign.position.set(0,2.65,18.2); scene.add(sign);
@@ -545,8 +554,8 @@ function buildReception(){
   // 案内板
   const board=new THREE.Mesh(new THREE.PlaneGeometry(1.4,0.8), new THREE.MeshStandardMaterial({color:0xbfc4b6, roughness:0.9})); board.position.set(-6,2.0,18.2); board.rotation.y=0; scene.add(board);
   interactables.push({ type:'note', x:-6, z:17.4, r:2.2, label:'院内案内を読む', action:()=>showToast('〈 旧病棟 案内図 〉\n\n１階 廊下の先 … 一般病室\n各室の鍵で、正面玄関が開く。\n――三本、揃えること。') });
-  // 受付メモ
-  interactables.push({ type:'note', x:0, z:16.2, r:2.0, label:'受付のメモを見る', action:()=>showToast('当直日誌より：\n\n「301号の患者、また廊下を歩いている。\n　何度連れ戻しても、また――」\n\nそこで、字が乱れて読めない。') });
+  // 受付メモ（中央を避けて脇に）
+  interactables.push({ type:'note', x:-1.6, z:16.3, r:1.5, label:'受付のメモを見る', action:()=>showToast('当直日誌より：\n\n「301号の患者、また廊下を歩いている。\n　何度連れ戻しても、また――」\n\nそこで、字が乱れて読めない。') });
 }
 
 /* ---------------- 廊下の点滅灯 ---------------- */
@@ -639,27 +648,31 @@ function chair(x,z){
 
 // 鍵
 const keyMeshes=[];
-function placeKey(x,y,z, label){
-  const g=new THREE.Group();
-  const bow=new THREE.Mesh(new THREE.TorusGeometry(0.06,0.02,8,16), new THREE.MeshStandardMaterial({color:0xe8c659, emissive:0x4a3a10, emissiveIntensity:0.4, roughness:0.4, metalness:0.7}));
-  bow.rotation.x=Math.PI/2; g.add(bow);
-  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.18,8), bow.material); shaft.position.y=-0.12; g.add(shaft);
-  const bit=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.04,0.012), bow.material); bit.position.set(0.03,-0.2,0); g.add(bit);
-  g.position.set(x,y,z); scene.add(g);
-  // ふわっと光る目印
-  const halo=new THREE.PointLight(0xffd76a, 0.0, 3, 2); halo.position.set(x,y,z); scene.add(halo);
-  const o={ g, halo, x, z, taken:false, phase:Math.random()*7 };
+function placeKey(x,y,z, label, opts){
+  opts=opts||{};
+  const inner=new THREE.Group();
+  const gold=new THREE.MeshStandardMaterial({color:0xd8be78, emissive:0x141008, emissiveIntensity:0.12, roughness:0.32, metalness:0.95});
+  const bow=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.016,10,18), gold); bow.position.y=0.085; inner.add(bow);
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.18,8), gold); shaft.position.y=-0.03; inner.add(shaft);
+  const bit1=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.04,0.014), gold); bit1.position.set(0.03,-0.1,0); inner.add(bit1);
+  const bit2=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.04,0.014), gold); bit2.position.set(0.026,-0.045,0); inner.add(bit2);
+  inner.rotation.x=-Math.PI/2;                 // 寝かせて天面に置く
+  const g=new THREE.Group(); g.add(inner);
+  g.rotation.y = opts.yaw!==undefined?opts.yaw:(Math.random()*Math.PI);
+  g.position.set(x, y+0.018, z); scene.add(g);
+  if(opts.hidden) g.visible=false;
+  const o={ g, x, z, taken:false };
   keyMeshes.push(o);
-  interactables.push({ type:'key', x, z, r:1.8, label:label||'鍵を拾う', _key:o, action:()=>takeKey(o) });
+  interactables.push({ type:'key', x, z, r:1.4, label:label||'鍵を拾う', _key:o, action:()=>takeKey(o) });
 }
 function takeKey(o){
-  if(o.taken) return; o.taken=true; o.g.visible=false; o.halo.intensity=0;
+  if(o.taken) return; o.taken=true; o.g.visible=false;
   keysFound++; updateKeyHUD();
   audio&&audio.pickup();
   if(keysFound>=KEY_GOAL){ setQuest('深夜0時 ・ 旧病棟','正面玄関へ戻る ―― 鍵がすべて揃った'); showToast('鍵が、3本そろった。\n玄関へ戻ろう。'); }
   else { setQuest('深夜0時 ・ 旧病棟', `出口の鍵 ―― あと ${KEY_GOAL-keysFound} 本`); showToast(`鍵を手に入れた。（${keysFound} / ${KEY_GOAL}）`); }
 }
-function updateKeyHUD(){ for(let i=0;i<KEY_GOAL;i++){ const el=document.getElementById('k'+i); if(el) el.classList.toggle('on', i<keysFound); } }
+function updateKeyHUD(){ const c=document.getElementById('kcount'); if(c) c.textContent=keysFound+' / '+KEY_GOAL; for(let i=0;i<KEY_GOAL;i++){ const el=document.getElementById('k'+i); if(el) el.classList.toggle('on', i<keysFound); } }
 
 /* ---------------- ドア ---------------- */
 function makeDoor(wallX, gapZ, openInto, opts){
@@ -795,7 +808,7 @@ function buildRooms(){
   // ===== 左 Room A (z 7..16) 病室303：鍵1 =====
   bed(-7.6,12.5,0); bed(-5.2,9.5,0); ivStand(-8.4,12.5);
   cabinet(-4.0,13.2,-Math.PI/2);
-  placeKey(-4.0,0.95,13.2,'鍵を拾う（１本目）');
+  placeKey(-4.0,1.2,13.2,'鍵を拾う（１本目）');
   makeDoor(-2.7,12,-1); roomSign(-2.7,13.0,-1,'303','病室');
   roomNote(-8.5,14.8,'壁の落書き：\n「かえして」「かえして」「かえして」\n……同じ字が、何百も。');
 
@@ -815,7 +828,7 @@ function buildRooms(){
   for(let i=0;i<4;i++){ bed(-8.2,-16-i*3.2, 0); }
   for(let i=0;i<3;i++){ bed(-5.6,-17-i*3.6, Math.PI); }
   gurney(-6.4,-27, 0.0);
-  placeKey(-6.4,1.0,-27,'鍵を拾う（奥の病棟）');
+  placeKey(-6.4,0.92,-27,'鍵を拾う（奥の病棟）');
   ivStand(-8.6,-15); wheelchair(-8.4,-22, 1.0);
   makeDoor(-2.7,-21,-1); roomSign(-2.7,-20.0,-1,'病室棟');
   roamerSpawn(-6.3,-24);
@@ -833,7 +846,7 @@ function buildRooms(){
   // ===== 右 Room E (z -3..7) 薬品庫：鍵2（ロッカー） =====
   lockers(4.0,-1.6,0,4);
   cabinet(9.0,4.5,Math.PI/2); cabinet(9.0,0.0,Math.PI/2);
-  placeKey(4.5,1.1,-1.2,'ロッカーを開ける');
+  placeKey(4.5,1.1,-1.2,'ロッカーを開ける',{hidden:true});
   (function(){ const last=interactables[interactables.length-1]; const ko=last._key;
     last.label='ロッカーを開ける'; last.r=1.8; last.action=()=>{ jumpScare(); fear=1; setTimeout(()=>{ takeKey(ko); }, 700); }; })();
   makeDoor(2.7,2,1,{slam:true}); roomSign(2.7,3.0,1,'薬品庫');
@@ -854,9 +867,38 @@ function buildRooms(){
 
   // ===== 廊下端に立つ人影（最初から） =====
   endFigure(0,-29.4);
+
+  // ===== 配置物の観察コメント =====
+  buildExaminePoints();
 }
 
 function roomNote(x,z,text){ interactables.push({ type:'note', x, z, r:1.8, label:'調べる', action:()=>showToast(text) }); }
+function examine(x,z,label,text,r){ interactables.push({ type:'note', x, z, r:r||1.4, label, action:()=>showToast(text) }); }
+function buildExaminePoints(){
+  // 303号室
+  examine(-7.6,12.5,'ベッドを調べる','枕に、頭の形のくぼみが残っている。\nまだ、ほんのり 温かい。');
+  examine(-8.4,12.5,'点滴を調べる','袋は空のはずなのに、\n一定の間隔で、ぽたり、と落ちている。');
+  // 処置室
+  examine(-4.0,5.0,'車椅子を調べる','ひじ掛けに、爪で引っ掻いたような跡。\n座面が、まだ かすかに揺れている。');
+  examine(-6.5,2.0,'ストレッチャーを調べる','拘束ベルトが、内側から引きちぎられている。');
+  // 301号室
+  examine(-7.6,-8.0,'ベッドを調べる','シーツがめくれ、人がいた形に へこんでいる。\n――たった今まで、誰かが寝ていたように。');
+  examine(-9.3,-8.0,'窓の外を見る','外はただ暗い。\nなのに自分の顔のとなりに、\nもう一つ、白い顔が映っている。');
+  // 病室棟
+  examine(-8.2,-19.2,'ベッドを調べる','ネームプレートは全部 空白。\n…一枚だけ、自分の名前が書いてある気がした。');
+  examine(-8.4,-22.0,'車椅子を調べる','タイヤに、点々と黒い足あと。\nこちらへ向かって、続いている。');
+  // ナース室
+  examine(6.5,12.0,'モニターを見る','消えた画面に、立っている人影が うっすら映る。\n振り返っても、誰もいない。');
+  // 薬品庫
+  examine(9.0,4.5,'薬棚を調べる','鎮静剤の棚が、空っぽ。\n誰かが、ありったけ 持ち出したらしい。');
+  // 洗面所
+  examine(5.4,-12.4,'洗面台を調べる','蛇口から、赤錆色の水がしたたる。\n排水口の奥で、髪が ひとふさ 揺れた。');
+  examine(8.0,-6.0,'個室をのぞく','いちばん奥だけ、内側から鍵がかかっている。\nコツ、コツ、と低くノックが返ってきた。');
+  // 手術室
+  examine(6.3,-21.8,'手術台を調べる','布の下が、人の形に盛り上がっている。\n…めくる勇気は、出なかった。');
+  examine(8.4,-23.6,'麻酔器を調べる','呼吸バッグが、ひとりでに ふくらんでは しぼむ。\n誰も、繋がれていないのに。');
+  examine(4.7,-23.0,'器械台を調べる','メスが一本、足りない。\nガーゼは、まだ濡れている。');
+}
 
 /* ---------------- 窓（外に霊） ---------------- */
 function window3d(x,z,ry, id){
@@ -1008,6 +1050,16 @@ function buildExitDoor(){
   // ガラス（夜の外）
   const glass=new THREE.Mesh(new THREE.PlaneGeometry(1.2,1.6), new THREE.MeshStandardMaterial({color:0x0a0e12, roughness:0.1, metalness:0.3, transparent:true, opacity:0.5}));
   glass.position.set(0,1.6,18.36); scene.add(glass);
+  // 発光する「出口」サイン（遠くからでも分かる）
+  const ec=document.createElement('canvas'); ec.width=256; ec.height=96; const ex=ec.getContext('2d');
+  ex.fillStyle='#06150c'; ex.fillRect(0,0,256,96);
+  ex.fillStyle='#43ff90'; ex.textAlign='center'; ex.textBaseline='middle';
+  ex.font='bold 54px "Hiragino Sans","Yu Gothic",sans-serif'; ex.fillText('出口', 92, 50);
+  ex.font='bold 24px Arial,sans-serif'; ex.fillText('EXIT', 188, 36); ex.font='28px Arial'; ex.fillText('↓', 188, 70);
+  const eTex=new THREE.CanvasTexture(ec); eTex.colorSpace=THREE.SRGBColorSpace;
+  const signMat=new THREE.MeshStandardMaterial({ map:eTex, emissive:0xffffff, emissiveMap:eTex, emissiveIntensity:1.3, roughness:0.5 });
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.56), signMat); sign.position.set(0,2.55,18.06); sign.rotation.y=Math.PI; scene.add(sign);
+  const xl=new THREE.PointLight(0x39ff86, 1.4, 16, 2); xl.position.set(0,2.4,17.2); scene.add(xl);
   interactables.push({ type:'exit', x:0, z:17.4, r:2.4, label:'玄関から出る', action:()=>tryEscape() });
 }
 function tryEscape(){
@@ -1192,10 +1244,14 @@ function updateProps(dt){
    ============================================================ */
 const actionBtn=document.getElementById('action'); let currentAction=null;
 function updateInteract(){
-  let best=null, bd=999;
-  for(const it of interactables){ const d=Math.hypot(it.x-player.pos.x, it.z-player.pos.z); if(d<it.r && d<bd){
+  let best=null, bd=999, bestPri=-1;
+  for(const it of interactables){
     if(it._key && it._key.taken) continue;
-    bd=d; best=it; } }
+    const d=Math.hypot(it.x-player.pos.x, it.z-player.pos.z);
+    if(d>=it.r) continue;
+    const pri = (it.type==='note') ? 0 : 1; // 玄関・鍵・扉をメモより優先
+    if(pri>bestPri || (pri===bestPri && d<bd)){ bestPri=pri; bd=d; best=it; }
+  }
   if(best) showAction(best.label,()=>best.action()); else hideAction();
 }
 function showAction(label,fn){ if(currentAction!==label){ actionBtn.textContent=label; currentAction=label; } actionBtn.classList.add('show'); actionBtn._fn=fn; }
@@ -1299,6 +1355,36 @@ document.getElementById('qualityBtn').addEventListener('click',()=>{
 });
 
 /* ============================================================
+   出口ナビ（方向＋距離の画面表示）
+   ============================================================ */
+const EXIT_POS=new THREE.Vector3(0,1.7,17.6);
+const _ndc=new THREE.Vector3(), _cs=new THREE.Vector3();
+function updateWaypoint(){
+  const wp=document.getElementById('wp');
+  if(!started || escaped || keysFound<KEY_GOAL){ wp.style.display='none'; return; } // 鍵が3本そろってから表示
+  const dist=Math.hypot(EXIT_POS.x-player.pos.x, EXIT_POS.z-player.pos.z);
+  if(dist<3.0){ wp.style.display='none'; return; } // 目の前なら消す
+  camera.updateMatrixWorld();
+  _cs.copy(EXIT_POS).applyMatrix4(camera.matrixWorldInverse); const inFront=_cs.z<0;
+  _ndc.copy(EXIT_POS).project(camera);
+  const W=innerWidth, Hh=innerHeight, cx=W/2, cy=Hh/2;
+  const ico=wp.querySelector('.ico'), txt=wp.querySelector('.txt');
+  txt.textContent='正面玄関  '+Math.round(dist)+'m';
+  let sx,sy; const onScreen = inFront && Math.abs(_ndc.x)<=0.94 && Math.abs(_ndc.y)<=0.9;
+  if(onScreen){
+    sx=(_ndc.x*0.5+0.5)*W; sy=(-_ndc.y*0.5+0.5)*Hh;
+    ico.textContent='◇'; ico.style.transform='rotate(0deg)';
+  } else {
+    let dx=_ndc.x, dy=_ndc.y; if(!inFront){ dx=-dx; dy=-dy; }
+    const a=Math.atan2(-dy, dx), ex=Math.cos(a), ey=Math.sin(a);
+    const mx=W/2-46, my=Hh/2-120, t=Math.min(mx/(Math.abs(ex)||1e-3), my/(Math.abs(ey)||1e-3));
+    sx=cx+ex*t; sy=cy+ey*t;
+    ico.textContent='▲'; ico.style.transform='rotate('+(a*180/Math.PI+90)+'deg)';
+  }
+  wp.style.left=sx+'px'; wp.style.top=sy+'px'; wp.style.display='flex';
+}
+
+/* ============================================================
    ループ
    ============================================================ */
 function animate(){
@@ -1309,6 +1395,7 @@ function animate(){
     updatePlayer(dt); updateFlicker(dt); updateGhosts(dt); updateRoamers(dt); updateProps(dt); updateDust(dt); updateInteract();
     if(audio) audio.setFear();
   } else if(escaped){ updateDust(dt); }
+  updateWaypoint();
   for(const d of doors){ const cur=d.hinge.rotation.y; d.hinge.rotation.y = cur + (d.target - cur)*0.12; } // ドア開閉補間
   if(gradePass) gradePass.uniforms.uFear.value += (fear - gradePass.uniforms.uFear.value)*Math.min(dt*4,1);
   composer.render();
