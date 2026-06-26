@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Othello tiny</title>
+<style>
+  :root{
+    /* 筐体カラー */
+    --case-light:#e8e8e6;
+    --case-mid:#d2d2cf;
+    --case-dark:#b8b8b4;
+    --case-shadow:#9a9a96;
+    /* ベゼル */
+    --bezel-black:#1a1a1a;
+    --bezel-red:#c0392b;
+    --bezel-red-dark:#922b21;
+    /* LCD */
+    --lcd-bg:#8fb88a;
+    --lcd-bg2:#7fae7a;
+    --lcd-edge:#a8c9a0;
+    --lcd-ink:#2c3a2a;
+    --lcd-ink-soft:#3d4f3a;
+    --lcd-ghost:rgba(44,58,42,0.10);
+    /* ボタン */
+    --btn-black:#222;
+    --btn-yellow:#e8dca0;
+    --btn-yellow-dark:#ccb968;
+    --btn-red:#cc2e22;
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:
+      repeating-linear-gradient(115deg,#5a4332 0px,#5a4332 14px,#6b5240 14px,#6b5240 30px,#4a3528 30px,#4a3528 46px);
+    display:flex;align-items:center;justify-content:center;
+    font-family:Arial,Helvetica,sans-serif;
+    overflow:auto;
+    padding:24px 12px;
+  }
+
+  /* ===== 筐体 ===== */
+  .device{
+    width:min(96vw,860px);
+    background:linear-gradient(160deg,var(--case-light) 0%,var(--case-mid) 45%,var(--case-dark) 100%);
+    border-radius:22px;
+    padding:26px 24px 20px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.7) inset,
+      0 -2px 6px rgba(0,0,0,0.15) inset,
+      0 18px 40px rgba(0,0,0,0.45),
+      0 6px 14px rgba(0,0,0,0.3);
+    position:relative;
+  }
+
+  /* 上部のリブ装飾 */
+  .device::before{
+    content:"";
+    position:absolute;top:14px;right:24px;
+    width:34%;height:14px;
+    background:repeating-linear-gradient(90deg,
+      var(--case-shadow) 0px,var(--case-shadow) 2px,
+      var(--case-light) 2px,var(--case-light) 5px);
+    border-radius:3px;opacity:0.55;
+  }
+
+  .top-row{display:flex;gap:18px;align-items:stretch;}
+
+  /* ===== 左：ロゴ + メイン表示部 ===== */
+  .main-col{flex:1;display:flex;flex-direction:column;min-width:0;}
+
+  .logo{
+    font-weight:800;font-size:clamp(22px,4.4vw,40px);
+    color:#1c1c1c;letter-spacing:-1px;
+    display:flex;align-items:baseline;gap:10px;
+    margin:2px 0 14px 4px;
+    font-family:Arial,Helvetica,sans-serif;
+  }
+  .logo .tiny{
+    font-style:italic;font-weight:700;font-size:0.55em;letter-spacing:0;
+    color:#2a2a2a;
+  }
+
+  /* 黒ベゼル */
+  .bezel{
+    background:linear-gradient(180deg,#000 0%,#1c1c1c 100%);
+    border-radius:14px;
+    padding:18px;
+    flex:1;display:flex;
+    box-shadow:0 2px 5px rgba(0,0,0,0.5) inset,0 1px 0 rgba(255,255,255,0.06);
+    position:relative;
+  }
+
+  /* 赤い内枠 */
+  .red-frame{
+    border:5px solid var(--bezel-red);
+    border-radius:10px;
+    background:#f4f1e8;
+    padding:0;
+    flex:1;display:flex;flex-direction:column;
+    box-shadow:0 0 0 1px var(--bezel-red-dark);
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* LCD 内側の白フレーム */
+  .lcd-wrap{
+    flex:1;display:flex;
+    background:#f6f3ea;
+    padding:10px;
+  }
+
+  /* LCDパネル本体 */
+  .lcd{
+    flex:1;
+    position:relative;
+    background:
+      radial-gradient(120% 120% at 30% 20%,var(--lcd-edge) 0%,var(--lcd-bg) 40%,var(--lcd-bg2) 100%);
+    border:1px solid #5f7a5a;
+    aspect-ratio:430/470;
+    box-shadow:
+      0 0 16px rgba(60,90,55,0.5) inset,
+      0 1px 2px rgba(0,0,0,0.2);
+  }
+  /* LCDのガラス反射 */
+  .lcd::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(135deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0) 35%);
+    z-index:30;
+  }
+
+  /* SVGボード */
+  #board{display:block;width:100%;height:100%;position:relative;z-index:10;cursor:pointer;}
+
+  /* ===== 右：コントロールパネル ===== */
+  .ctrl{
+    width:clamp(96px,15vw,140px);
+    background:linear-gradient(180deg,#0d0d0d,#1f1f1f);
+    border-radius:12px;
+    padding:14px 10px;
+    display:flex;flex-direction:column;align-items:center;gap:12px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.5) inset;
+  }
+
+  /* スライドスイッチ */
+  .switch-group{width:100%;display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .slide{
+    width:54px;height:24px;border-radius:5px;
+    background:linear-gradient(180deg,#3a3a3a,#222);
+    border:1px solid #000;position:relative;cursor:pointer;
+    box-shadow:0 1px 2px rgba(0,0,0,0.6) inset;
+  }
+  .slide .knob{
+    position:absolute;top:2px;width:22px;height:18px;border-radius:3px;
+    background:linear-gradient(180deg,#e0392b,#a82518);
+    box-shadow:0 1px 0 rgba(255,255,255,0.3) inset,0 2px 3px rgba(0,0,0,0.4);
+    transition:left 0.18s cubic-bezier(.4,1.4,.6,1);
+  }
+  .slide.off .knob{left:2px;}
+  .slide.on  .knob{left:30px;}
+  .slide-labels{
+    width:54px;display:flex;justify-content:space-between;
+    font-size:8px;font-weight:700;color:#cfcfcf;letter-spacing:0.5px;
+  }
+  .ctrl .label{
+    font-size:clamp(9px,1.5vw,12px);font-weight:700;color:#f0f0f0;
+    letter-spacing:1px;margin-top:-2px;
+  }
+
+  /* 黄色ボタン */
+  .ybtn{
+    width:clamp(54px,8.5vw,78px);height:clamp(26px,4vw,34px);
+    border-radius:6px;
+    background:linear-gradient(180deg,var(--btn-yellow),var(--btn-yellow-dark));
+    border:1px solid #8a7a3e;cursor:pointer;
+    box-shadow:0 2px 3px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.5) inset;
+    transition:transform 0.05s,box-shadow 0.05s;
+  }
+  .ybtn:active{transform:translateY(2px);box-shadow:0 0 2px rgba(0,0,0,0.4);}
+  .ctrl .btn-cell{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;}
+
+  /* ===== 下部：操作ボタン列 ===== */
+  .keypad{
+    margin-top:18px;
+    display:flex;gap:clamp(6px,1.4vw,16px);align-items:center;justify-content:space-between;
+    padding:0 4px;
+  }
+  .key{
+    width:clamp(42px,7vw,68px);height:clamp(42px,7vw,68px);
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#3a3a3a,#1a1a1a 70%);
+    color:#fff;border:1px solid #000;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:clamp(13px,2.2vw,22px);
+    box-shadow:0 3px 5px rgba(0,0,0,0.45),0 1px 0 rgba(255,255,255,0.15) inset;
+    transition:transform 0.05s,box-shadow 0.05s;
+    user-select:none;flex-shrink:0;
+  }
+  .key:active{transform:translateY(2px);box-shadow:0 1px 2px rgba(0,0,0,0.45);}
+  .key .frac{display:flex;align-items:baseline;}
+  .key .frac .a{font-size:1em;}
+  .key .frac .s{font-size:0.62em;opacity:0.85;}
+  .key .frac .b{font-size:0.78em;}
+
+  .set-key{
+    width:clamp(70px,12vw,120px);height:clamp(42px,7vw,60px);
+    border-radius:9px;
+    background:linear-gradient(180deg,#e0392b,#b02418);
+    color:#fff;font-weight:700;letter-spacing:2px;
+    font-size:clamp(12px,2vw,18px);
+    border:1px solid #7a1810;cursor:pointer;flex-shrink:0;
+    box-shadow:0 3px 5px rgba(0,0,0,0.45),0 1px 0 rgba(255,255,255,0.25) inset;
+    transition:transform 0.05s,box-shadow 0.05s;
+  }
+  .set-key:active{transform:translateY(2px);box-shadow:0 1px 2px rgba(0,0,0,0.45);}
+
+  /* SVG内要素の点滅 */
+  .blink{animation:bk 0.8s steps(1) infinite;}
+  @keyframes bk{50%{opacity:0.25;}}
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important;}
+  }
+</style>
+</head>
+<body>
+  <div class="device">
+    <div class="top-row">
+      <!-- 左カラム -->
+      <div class="main-col">
+        <div class="logo">Othello<span class="tiny">tiny</span></div>
+        <div class="bezel">
+          <div class="red-frame">
+            <div class="lcd-wrap">
+              <div class="lcd">
+                <svg id="board" viewBox="0 0 430 470" preserveAspectRatio="xMidYMid meet"></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右コントロール -->
+      <div class="ctrl">
+        <div class="switch-group">
+          <div class="slide off" id="powerSwitch"><div class="knob"></div></div>
+          <div class="slide-labels"><span>OFF</span><span>ON</span></div>
+        </div>
+        <div class="switch-group">
+          <div class="slide on" id="soundSwitch"><div class="knob"></div></div>
+          <div class="label">SOUND</div>
+        </div>
+        <div class="btn-cell">
+          <div class="ybtn" id="levelBtn"></div>
+          <div class="label">LEVEL</div>
+        </div>
+        <div class="btn-cell">
+          <div class="ybtn" id="scoreBtn"></div>
+          <div class="label">SCORE</div>
+        </div>
+        <div class="btn-cell">
+          <div class="ybtn" id="passBtn"></div>
+          <div class="label">PASS</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 下部キー -->
+    <div class="keypad">
+      <div class="key" data-col="0"><span class="frac"><span class="a">A</span><span class="s">/</span><span class="b">1</span></span></div>
+      <div class="key" data-col="1"><span class="frac"><span class="a">B</span><span class="s">/</span><span class="b">2</span></span></div>
+      <div class="key" data-col="2"><span class="frac"><span class="a">C</span><span class="s">/</span><span class="b">3</span></span></div>
+      <div class="key" data-col="3"><span class="frac"><span class="a">D</span><span class="s">/</span><span class="b">4</span></span></div>
+      <div class="key" data-col="4"><span class="frac"><span class="a">E</span><span class="s">/</span><span class="b">5</span></span></div>
+      <div class="key" data-col="5"><span class="frac"><span class="a">F</span><span class="s">/</span><span class="b">6</span></span></div>
+      <div class="key" data-col="6"><span class="frac"><span class="a">G</span><span class="s">/</span><span class="b">7</span></span></div>
+      <div class="key" data-col="7"><span class="frac"><span class="a">H</span><span class="s">/</span><span class="b">8</span></span></div>
+      <div class="set-key" id="setKey">SET</div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ====== 定数 ======
+  const N = 8;
+  const EMPTY = 0, BLACK = 1, WHITE = 2;
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  // viewBox 430×470。盤面は (OX,OY) を左上に 400×400。
+  // 左30px=行ラベル, 上30px=列ラベル, 下40px=情報バー。
+  const OX = 30;                  // 盤面左オフセット
+  const OY = 30;                  // 盤面上オフセット
+  const BOARD = 400;              // 盤面の一辺
+  const CELL = BOARD / N;         // セルサイズ = 50
+  const BOARD_R = OX + BOARD;     // 盤面右端 = 430
+  const BOARD_B = OY + BOARD;     // 盤面下端 = 430
+  const BAR_MID = (BOARD_B + 470)/2 + 2; // 情報バー中央Y
+  const DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+
+  // 位置評価重み（角を最重視）
+  const WEIGHTS = [
+    [120,-20, 20,  5,  5, 20,-20,120],
+    [-20,-40, -5, -5, -5, -5,-40,-20],
+    [ 20, -5, 15,  3,  3, 15, -5, 20],
+    [  5, -5,  3,  3,  3,  3, -5,  5],
+    [  5, -5,  3,  3,  3,  3, -5,  5],
+    [ 20, -5, 15,  3,  3, 15, -5, 20],
+    [-20,-40, -5, -5, -5, -5,-40,-20],
+    [120,-20, 20,  5,  5, 20,-20,120]
+  ];
+
+  // ====== 状態 ======
+  let board = [];
+  let current = BLACK;
+  let moveNo = 1;
+  let powerOn = false;
+  let soundOn = true;
+  let level = 2;           // 1..3 探索深さ
+  let busy = false;        // 着手アニメ/AI思考中
+  let gameOver = false;
+  let timer = null;
+  let statusText = "";     // 情報バーの一時メッセージ
+  let statusBlink = false;
+
+  const HUMAN = BLACK;     // プレイヤーは黒
+  const CPU   = WHITE;     // コンピューターは白
+
+  // ====== DOM ======
+  const svg = document.getElementById("board");
+
+  // ====== オーディオ（簡易ビープ） ======
+  let actx = null;
+  function beep(freq, dur, type, vol){
+    if(!soundOn || !powerOn) return;
+    try{
+      if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+      const o = actx.createOscillator();
+      const g = actx.createGain();
+      o.type = type || "square";
+      o.frequency.value = freq;
+      g.gain.value = vol || 0.04;
+      o.connect(g); g.connect(actx.destination);
+      const t = actx.currentTime;
+      o.start(t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (dur||0.08));
+      o.stop(t + (dur||0.08) + 0.02);
+    }catch(e){}
+  }
+  const sndPlace = ()=>beep(660,0.06,"square",0.05);
+  const sndFlip  = ()=>beep(880,0.04,"square",0.03);
+  const sndPass  = ()=>{beep(330,0.12,"sawtooth",0.05);};
+  const sndEnd   = ()=>{beep(523,0.12);setTimeout(()=>beep(659,0.12),130);setTimeout(()=>beep(784,0.2),260);};
+
+  // ====== ボードロジック ======
+  function initBoard(){
+    board = Array.from({length:N},()=>Array(N).fill(EMPTY));
+    board[3][3]=WHITE; board[3][4]=BLACK;
+    board[4][3]=BLACK; board[4][4]=WHITE;
+    current = BLACK;
+    moveNo = 1;
+    gameOver = false;
+  }
+
+  function inBounds(r,c){return r>=0&&r<N&&c>=0&&c<N;}
+
+  // (r,c) に player が打ったときに裏返る石のリスト
+  function flipsFor(bd, r, c, player){
+    if(bd[r][c]!==EMPTY) return [];
+    const opp = player===BLACK?WHITE:BLACK;
+    const out = [];
+    for(const [dr,dc] of DIRS){
+      const line = [];
+      let nr=r+dr, nc=c+dc;
+      while(inBounds(nr,nc) && bd[nr][nc]===opp){
+        line.push([nr,nc]); nr+=dr; nc+=dc;
+      }
+      if(line.length && inBounds(nr,nc) && bd[nr][nc]===player){
+        out.push(...line);
+      }
+    }
+    return out;
+  }
+
+  function legalMoves(bd, player){
+    const moves = [];
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+      if(bd[r][c]!==EMPTY) continue;
+      if(flipsFor(bd,r,c,player).length>0) moves.push([r,c]);
+    }
+    return moves;
+  }
+
+  function applyMove(bd, r, c, player){
+    const flips = flipsFor(bd,r,c,player);
+    bd[r][c]=player;
+    for(const [fr,fc] of flips) bd[fr][fc]=player;
+    return flips;
+  }
+
+  function cloneBoard(bd){return bd.map(row=>row.slice());}
+
+  function countDiscs(bd){
+    let b=0,w=0;
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+      if(bd[r][c]===BLACK)b++; else if(bd[r][c]===WHITE)w++;
+    }
+    return {b,w};
+  }
+
+  // ====== AI（ミニマックス + αβ） ======
+  function evaluate(bd, player){
+    const opp = player===BLACK?WHITE:BLACK;
+    let score=0, pc=0, oc=0;
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+      if(bd[r][c]===player){score+=WEIGHTS[r][c];pc++;}
+      else if(bd[r][c]===opp){score-=WEIGHTS[r][c];oc++;}
+    }
+    // 着手可能数（機動力）
+    const mob = legalMoves(bd,player).length - legalMoves(bd,opp).length;
+    const total = pc+oc;
+    if(total>=58){ // 終盤は石差重視
+      score += (pc-oc)*15;
+    }else{
+      score += mob*8;
+    }
+    return score;
+  }
+
+  function minimax(bd, player, depth, alpha, beta, rootPlayer){
+    const moves = legalMoves(bd, player);
+    const opp = player===BLACK?WHITE:BLACK;
+
+    if(depth===0){
+      return {score: evaluate(bd, rootPlayer), move:null};
+    }
+    if(moves.length===0){
+      // パス：相手も打てなければ終局
+      if(legalMoves(bd,opp).length===0){
+        const {b,w}=countDiscs(bd);
+        const diff = rootPlayer===BLACK?(b-w):(w-b);
+        return {score: diff>0?100000+diff:(diff<0?-100000+diff:0), move:null};
+      }
+      const r = minimax(bd, opp, depth-1, alpha, beta, rootPlayer);
+      return {score:r.score, move:null};
+    }
+
+    let best = null;
+    if(player===rootPlayer){ // maximize
+      let value = -Infinity;
+      for(const [r,c] of moves){
+        const nb = cloneBoard(bd);
+        applyMove(nb,r,c,player);
+        const res = minimax(nb, opp, depth-1, alpha, beta, rootPlayer);
+        if(res.score>value){value=res.score;best=[r,c];}
+        alpha=Math.max(alpha,value);
+        if(beta<=alpha) break;
+      }
+      return {score:value, move:best};
+    }else{ // minimize
+      let value = Infinity;
+      for(const [r,c] of moves){
+        const nb = cloneBoard(bd);
+        applyMove(nb,r,c,player);
+        const res = minimax(nb, opp, depth-1, alpha, beta, rootPlayer);
+        if(res.score<value){value=res.score;best=[r,c];}
+        beta=Math.min(beta,value);
+        if(beta<=alpha) break;
+      }
+      return {score:value, move:best};
+    }
+  }
+
+  function chooseMove(bd, player){
+    const moves = legalMoves(bd, player);
+    if(moves.length===0) return null;
+    const depth = level+1; // LEVEL1=深さ2, 2=3, 3=4
+    const res = minimax(bd, player, depth, -Infinity, Infinity, player);
+    return res.move || moves[Math.floor(Math.random()*moves.length)];
+  }
+
+  // ====== 描画 ======
+  const COLS = ["A","B","C","D","E","F","G","H"];
+  function buildGrid(){
+    svg.innerHTML="";
+    // 座標ラベル：列(A-H)を上、行(1-8)を左に
+    for(let i=0;i<N;i++){
+      const cx = OX + i*CELL + CELL/2;
+      svg.appendChild(svgText(cx, OY-15, COLS[i], 18, "middle", {fill:"#1a1a1a","font-family":"Arial,sans-serif"}));
+      const cy = OY + i*CELL + CELL/2;
+      svg.appendChild(svgText(OX-16, cy, String(i+1), 18, "middle", {fill:"#1a1a1a","font-family":"Arial,sans-serif"}));
+    }
+    // グリッド線（盤面 OX..BOARD_R, OY..BOARD_B）
+    for(let i=0;i<=N;i++){
+      const x = OX + i*CELL;
+      line(x, OY, x, BOARD_B);          // 縦
+      const y = OY + i*CELL;
+      line(OX, y, BOARD_R, y);          // 横
+    }
+    // 4つの基準点
+    [[2,2],[2,6],[6,2],[6,6]].forEach(([r,c])=>{
+      const dot = document.createElementNS(SVG_NS,"circle");
+      dot.setAttribute("cx", OX+c*CELL);
+      dot.setAttribute("cy", OY+r*CELL);
+      dot.setAttribute("r", 2.6);
+      dot.setAttribute("fill","#2c3a2a");
+      svg.appendChild(dot);
+    });
+    // 盤面と情報バーを分ける区切り線
+    const sep = document.createElementNS(SVG_NS,"line");
+    sep.setAttribute("x1",OX);sep.setAttribute("y1",BOARD_B+8);
+    sep.setAttribute("x2",BOARD_R);sep.setAttribute("y2",BOARD_B+8);
+    sep.setAttribute("stroke","#2c3a2a");sep.setAttribute("stroke-width","2");
+    svg.appendChild(sep);
+
+    // ヒントレイヤー → 石より下
+    const hints = document.createElementNS(SVG_NS,"g");
+    hints.setAttribute("id","hints");
+    svg.appendChild(hints);
+    // 石レイヤー
+    const layer = document.createElementNS(SVG_NS,"g");
+    layer.setAttribute("id","discs");
+    svg.appendChild(layer);
+    // 情報バーレイヤー
+    const info = document.createElementNS(SVG_NS,"g");
+    info.setAttribute("id","infobar");
+    svg.appendChild(info);
+  }
+
+  function line(x1,y1,x2,y2){
+    const l = document.createElementNS(SVG_NS,"line");
+    l.setAttribute("x1",x1);l.setAttribute("y1",y1);
+    l.setAttribute("x2",x2);l.setAttribute("y2",y2);
+    l.setAttribute("stroke","#2c3a2a");
+    l.setAttribute("stroke-width","1.4");
+    l.setAttribute("stroke-opacity","0.85");
+    svg.appendChild(l);
+    return l;
+  }
+
+  function cellCenter(r,c){
+    return [OX + c*CELL + CELL/2, OY + r*CELL + CELL/2];
+  }
+
+  // 石の描画
+  function renderDiscs(){
+    const layer = document.getElementById("discs");
+    if(!layer) return;
+    layer.innerHTML="";
+    const radius = CELL*0.36;
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+      const v = board[r][c];
+      if(v===EMPTY) continue;
+      const [cx,cy]=cellCenter(r,c);
+      const circ = document.createElementNS(SVG_NS,"circle");
+      circ.setAttribute("cx",cx);circ.setAttribute("cy",cy);
+      circ.setAttribute("r",radius);
+      if(v===BLACK){
+        circ.setAttribute("fill","#2c3a2a");
+        circ.setAttribute("stroke","#2c3a2a");
+        circ.setAttribute("stroke-width","1");
+      }else{
+        circ.setAttribute("fill","none");
+        circ.setAttribute("stroke","#2c3a2a");
+        circ.setAttribute("stroke-width","2.4");
+      }
+      circ.dataset.rc = r+"-"+c;
+      layer.appendChild(circ);
+    }
+  }
+
+  // プレイヤー手番のとき、打てるマスに小さな点を表示
+  function renderHints(){
+    const hints = document.getElementById("hints");
+    if(!hints) return;
+    hints.innerHTML="";
+    if(gameOver || !powerOn || busy) return;
+    if(current!==HUMAN) return;
+    for(const [r,c] of legalMoves(board, HUMAN)){
+      const [cx,cy]=cellCenter(r,c);
+      const dot = document.createElementNS(SVG_NS,"circle");
+      dot.setAttribute("cx",cx);dot.setAttribute("cy",cy);
+      dot.setAttribute("r",CELL*0.10);
+      dot.setAttribute("fill","#2c3a2a");
+      dot.setAttribute("fill-opacity","0.45");
+      hints.appendChild(dot);
+    }
+  }
+
+  // 情報バー（スコア・手数・手番）をSVG内に描画
+  function svgText(x,y,str,size,anchor,extra){
+    const t = document.createElementNS(SVG_NS,"text");
+    t.setAttribute("x",x);t.setAttribute("y",y);
+    t.setAttribute("font-size",size);
+    t.setAttribute("font-family","'Courier New',monospace");
+    t.setAttribute("font-weight","700");
+    t.setAttribute("fill","#2c3a2a");
+    t.setAttribute("text-anchor",anchor||"start");
+    t.setAttribute("dominant-baseline","middle");
+    if(extra) for(const k in extra) t.setAttribute(k,extra[k]);
+    t.textContent = str;
+    return t;
+  }
+  function renderInfoBar(){
+    const info = document.getElementById("infobar");
+    if(!info) return;
+    info.innerHTML="";
+    const midY = BAR_MID;
+    const cx = OX + BOARD/2;       // 盤面中央X = 230
+    const {b,w}=countDiscs(board);
+
+    if(statusText){
+      // 一時メッセージ（中央表示）
+      const t = svgText(cx, midY, statusText, 26, "middle");
+      if(statusBlink) t.setAttribute("class","blink");
+      info.appendChild(t);
+      return;
+    }
+
+    // 左：黒石アイコン＋数（プレイヤー）
+    const bc = document.createElementNS(SVG_NS,"circle");
+    bc.setAttribute("cx",OX+8);bc.setAttribute("cy",midY);bc.setAttribute("r",11);
+    bc.setAttribute("fill","#2c3a2a");
+    info.appendChild(bc);
+    info.appendChild(svgText(OX+26, midY, String(b), 24, "start"));
+
+    // 右：白石アイコン＋数（CPU）
+    const wc = document.createElementNS(SVG_NS,"circle");
+    wc.setAttribute("cx",BOARD_R-8);wc.setAttribute("cy",midY);wc.setAttribute("r",11);
+    wc.setAttribute("fill","none");wc.setAttribute("stroke","#2c3a2a");wc.setAttribute("stroke-width","3");
+    info.appendChild(wc);
+    info.appendChild(svgText(BOARD_R-26, midY, String(w), 24, "end"));
+
+    // 中央：手番表示（▶＋誰の番か）
+    const label = current===HUMAN ? "YOU" : "CPU";
+    info.appendChild(svgText(cx, midY, label, 22, "middle"));
+    // 手番マーカー（小三角を文字の左に）
+    const tri = document.createElementNS(SVG_NS,"polygon");
+    const tx = cx - 36;
+    tri.setAttribute("points", tx+","+(midY-7)+" "+tx+","+(midY+7)+" "+(tx+11)+","+midY);
+    tri.setAttribute("fill","#2c3a2a");
+    info.appendChild(tri);
+  }
+
+  // 着手＋裏返しをアニメーション込みで反映
+  function placeWithAnim(r,c,player,done){
+    busy = true;
+    const flips = flipsFor(board, r, c, player);
+    // まず石を置く
+    board[r][c]=player;
+    renderDiscs();
+    renderHints();        // 着手中はヒントを消す
+    renderInfoBar();
+    sndPlace();
+    blinkCell(r,c);
+
+    // 裏返しを順番に
+    let i=0;
+    const stepFlip = ()=>{
+      if(i>=flips.length){
+        busy=false;
+        if(done) done();
+        return;
+      }
+      const [fr,fc]=flips[i];
+      board[fr][fc]=player;
+      renderDiscs();
+      renderInfoBar();    // スコアをリアルタイム更新
+      sndFlip();
+      i++;
+      setTimeout(stepFlip, 90);
+    };
+    setTimeout(stepFlip, 110);
+  }
+
+  function blinkCell(r,c){
+    const layer = document.getElementById("discs");
+    if(!layer) return;
+    const el = layer.querySelector('[data-rc="'+r+'-'+c+'"]');
+    if(el){
+      el.classList.add("blink");
+      setTimeout(()=>el && el.classList.remove("blink"), 500);
+    }
+  }
+
+  // 画面更新（スコア・手番・ヒント）
+  function updateHUD(){
+    renderInfoBar();
+    renderHints();
+  }
+
+  // 情報バーに一時メッセージを点滅表示
+  function flashStatus(text, keep){
+    statusText = text;
+    statusBlink = true;
+    renderInfoBar();
+    if(!keep){
+      clearTimeout(flashStatus._t);
+      flashStatus._t = setTimeout(()=>{
+        statusText=""; statusBlink=false;
+        renderInfoBar();
+      }, 1000);
+    }
+  }
+
+  // ====== ゲーム進行 ======
+  function nextTurn(){
+    if(!powerOn || gameOver) return;
+    updateHUD();
+
+    const myMoves = legalMoves(board, current);
+    if(myMoves.length===0){
+      const opp = current===BLACK?WHITE:BLACK;
+      if(legalMoves(board, opp).length===0){
+        endGame();
+        return;
+      }
+      // パス
+      sndPass();
+      const who = current===HUMAN ? "YOU PASS" : "CPU PASS";
+      flashStatus(who);
+      current = opp;
+      moveNo++;
+      setTimeout(()=>{ updateHUD(); driveTurn(); }, 1000);
+      return;
+    }
+    driveTurn();
+  }
+
+  // 現在の手番がCPUなら自動で打つ。プレイヤーなら入力待ち。
+  function driveTurn(){
+    if(!powerOn || gameOver) return;
+    if(current===CPU){
+      busy = true;            // プレイヤー操作を一時ブロック
+      renderHints();
+      flashStatus("THINKING", true);
+      schedule(()=>{
+        statusText=""; statusBlink=false;
+        const mv = chooseMove(board, CPU);
+        busy = false;
+        if(!mv){ nextTurn(); return; }
+        playMove(mv[0], mv[1]);
+      }, 600);
+    }else{
+      // プレイヤーの番：ヒント表示して待つ
+      updateHUD();
+    }
+  }
+
+  function playMove(r,c){
+    if(busy || gameOver || !powerOn) return;
+    const flips = flipsFor(board, r, c, current);
+    if(flips.length===0){
+      beep(180,0.1,"sawtooth",0.05);
+      return;
+    }
+    placeWithAnim(r,c,current,()=>{
+      current = current===BLACK?WHITE:BLACK;
+      moveNo++;
+      updateHUD();
+      nextTurn();
+    });
+  }
+
+  function endGame(){
+    gameOver = true;
+    const {b,w}=countDiscs(board);
+    renderHints();
+    sndEnd();
+    let msg;
+    if(b>w) msg="YOU WIN";
+    else if(w>b) msg="CPU WIN";
+    else msg="DRAW";
+    flashStatus(msg, true);
+  }
+
+  function schedule(fn, ms){
+    clearTimeout(timer);
+    timer = setTimeout(fn, ms);
+  }
+
+  // ====== 電源・コントロール ======
+  function powerToggle(on){
+    powerOn = on;
+    const sw = document.getElementById("powerSwitch");
+    sw.classList.toggle("on", on);
+    sw.classList.toggle("off", !on);
+    if(on){
+      startGame();
+    }else{
+      clearTimeout(timer);
+      svg.style.opacity="0";
+    }
+  }
+
+  function startGame(){
+    clearTimeout(timer);
+    initBoard();
+    busy = false;
+    gameOver = false;
+    statusText=""; statusBlink=false;
+    buildGrid();
+    svg.style.opacity="1";
+    renderDiscs();
+    updateHUD();
+    beep(440,0.08);setTimeout(()=>beep(660,0.1),90);
+    // 黒（プレイヤー）の番から開始
+    driveTurn();
+  }
+
+  // ====== イベント ======
+  // 電源スイッチ
+  document.getElementById("powerSwitch").addEventListener("click",()=>{
+    powerToggle(!powerOn);
+  });
+  // サウンドスイッチ
+  document.getElementById("soundSwitch").addEventListener("click",function(){
+    soundOn=!soundOn;
+    this.classList.toggle("on",soundOn);
+    this.classList.toggle("off",!soundOn);
+  });
+
+  // LEVEL：1→2→3循環（CPUの強さ）
+  document.getElementById("levelBtn").addEventListener("click",()=>{
+    if(!powerOn) return;
+    level = level>=3?1:level+1;
+    flashStatus("LEVEL "+level);
+    beep(400+level*120,0.1);
+  });
+
+  // SCORE：石数を一時表示
+  document.getElementById("scoreBtn").addEventListener("click",()=>{
+    if(!powerOn) return;
+    const {b,w}=countDiscs(board);
+    flashStatus(b+" - "+w);
+    beep(560,0.08);
+  });
+
+  // PASS：プレイヤーが打てないときに手番を飛ばす
+  document.getElementById("passBtn").addEventListener("click",()=>{
+    if(!powerOn || gameOver || busy) return;
+    if(current!==HUMAN) return;
+    if(legalMoves(board,HUMAN).length>0){
+      beep(180,0.1,"sawtooth",0.05);
+      flashStatus("CANT PASS");
+      return;
+    }
+    sndPass();
+    flashStatus("YOU PASS");
+    current = CPU;
+    moveNo++;
+    setTimeout(()=>{ updateHUD(); driveTurn(); }, 1000);
+  });
+
+  // SET：新しいゲームを開始（リセット）
+  const setKey = document.getElementById("setKey");
+  setKey.addEventListener("click",()=>{
+    if(!powerOn){ powerToggle(true); return; }
+    beep(700,0.06);setTimeout(()=>beep(900,0.08),70);
+    startGame();
+  });
+
+  // 盤面タッチで着手（プレイヤーの番のみ）
+  function tapBoard(clientX, clientY){
+    if(!powerOn || busy || gameOver) return;
+    if(current!==HUMAN) return;
+    const rect = svg.getBoundingClientRect();
+    // viewBox 430×470 を実寸にマッピング
+    const x = (clientX-rect.left)/rect.width*430;
+    const y = (clientY-rect.top)/rect.height*470;
+    // 盤面領域外（ラベル・情報バー）は無視
+    if(x<OX || x>BOARD_R || y<OY || y>BOARD_B) return;
+    const c = Math.floor((x-OX)/CELL);
+    const r = Math.floor((y-OY)/CELL);
+    if(!inBounds(r,c)) return;
+    if(board[r][c]!==EMPTY) return;
+    playMove(r,c);
+  }
+  svg.addEventListener("click",(e)=>tapBoard(e.clientX, e.clientY));
+  svg.addEventListener("touchstart",(e)=>{
+    if(e.touches && e.touches.length){
+      e.preventDefault();
+      tapBoard(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  },{passive:false});
+
+  // 列キー（A-H）：補助操作。その列で打てるマスが1つなら即着手、
+  // 複数あるときはプレイヤーに盤面タッチを促す。
+  document.querySelectorAll(".key").forEach(k=>{
+    k.addEventListener("click",()=>{
+      if(!powerOn || busy || gameOver) return;
+      if(current!==HUMAN) return;
+      const col = parseInt(k.dataset.col,10);
+      const opts = legalMoves(board,HUMAN).filter(m=>m[1]===col);
+      if(opts.length===0){
+        beep(180,0.1,"sawtooth",0.05);
+        return;
+      }
+      if(opts.length===1){
+        playMove(opts[0][0], opts[0][1]);
+      }else{
+        // 複数候補：一番上に打つ（盤面タッチでも選べる）
+        opts.sort((a,b)=>a[0]-b[0]);
+        playMove(opts[0][0], opts[0][1]);
+      }
+    });
+  });
+
+  // 初期状態：電源OFF、画面は薄く
+  svg.style.transition="opacity 0.3s";
+  svg.style.opacity="0";
+
+  // 起動時に電源ON（すぐ遊べるように）
+  powerToggle(true);
+
+})();
+</script>
+</body>
+</html>
