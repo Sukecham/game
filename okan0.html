@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>あめちゃん配り歩き ～浪速のおばちゃん、大阪を征く～</title>
+<style>
+  :root{
+    --gold:#f5c542; --neon-magenta:#ff2d95; --neon-cyan:#20e0d6;
+    --royal-purple:#5b2a86;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;overflow:hidden;font-family:"Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",sans-serif;background:#000;}
+  #game{position:relative;width:100vw;height:100vh;max-width:520px;margin:0 auto;overflow:hidden;user-select:none;background:#0a0a14;}
+
+  /* ===== 背景の層 ===== */
+  #sky{position:absolute;inset:0;transition:background 1.5s ease;}
+  #skyGlow{position:absolute;inset:0;pointer-events:none;transition:opacity 1.5s;}
+  .celestial{position:absolute;pointer-events:none;}
+  .star{position:absolute;background:#fff;border-radius:50%;pointer-events:none;animation:twinkle 3s infinite;}
+  @keyframes twinkle{0%,100%{opacity:.3}50%{opacity:1}}
+  .cloud{position:absolute;border-radius:50%;filter:blur(4px);pointer-events:none;}
+
+  #farLayer,#midLayer,#propLayer{position:absolute;left:0;will-change:transform;pointer-events:none;}
+  #farLayer{bottom:23%;height:44%;}
+  #midLayer{bottom:22.5%;height:66%;}
+  #propLayer{bottom:22.5%;height:38%;z-index:8;}
+  #farLayer svg,#midLayer svg,#propLayer svg{position:absolute;bottom:0;overflow:visible;}
+
+  /* ===== 通り ===== */
+  #ground{position:absolute;bottom:0;left:0;width:100%;height:23%;z-index:5;}
+  #streetDeco{position:absolute;bottom:0;left:0;height:23%;width:100%;will-change:transform;z-index:6;pointer-events:none;}
+
+  /* ===== おばちゃん ===== */
+  #obachan{position:absolute;bottom:22%;left:50%;width:132px;height:214px;z-index:40;transform:translateX(-50%);}
+  #obachan svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 12px 10px rgba(0,0,0,.5));}
+  #obachan.facing-left{transform:translateX(-50%) scaleX(-1);}
+  #obachan.walking{animation:bob .44s infinite;}
+  #obachan.facing-left.walking{animation:bobL .44s infinite;}
+  @keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-6px)}}
+  @keyframes bobL{0%,100%{transform:translateX(-50%) scaleX(-1) translateY(0)}50%{transform:translateX(-50%) scaleX(-1) translateY(-6px)}}
+  #obachan.walking .leg-l{animation:stepL .44s infinite;transform-origin:top center;}
+  #obachan.walking .leg-r{animation:stepR .44s infinite;transform-origin:top center;}
+  @keyframes stepL{0%,100%{transform:rotate(17deg)}50%{transform:rotate(-17deg)}}
+  @keyframes stepR{0%,100%{transform:rotate(-17deg)}50%{transform:rotate(17deg)}}
+  #obachan.walking .arm-bag{animation:swing .44s infinite;transform-origin:top center;}
+  @keyframes swing{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(9deg)}}
+
+  /* ===== NPC ===== */
+  .npc{position:absolute;bottom:22%;width:80px;height:154px;z-index:35;will-change:transform;}
+  .npc svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 7px 6px rgba(0,0,0,.45));}
+  .npc .marker{position:absolute;top:-28px;left:50%;transform:translateX(-50%);font-size:25px;animation:hop .8s infinite;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));}
+  @keyframes hop{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-8px)}}
+
+  .candy-fly{position:absolute;z-index:60;font-size:30px;pointer-events:none;filter:drop-shadow(0 0 6px var(--gold));}
+  .pop{position:absolute;z-index:70;pointer-events:none;font-weight:900;animation:popup 1.1s ease-out forwards;}
+  @keyframes popup{0%{transform:translateY(0) scale(.5);opacity:0}20%{opacity:1;transform:translateY(-8px) scale(1.15)}100%{transform:translateY(-64px) scale(1);opacity:0}}
+
+  /* ===== HUD ===== */
+  #hud{position:absolute;top:0;left:0;width:100%;z-index:100;display:flex;justify-content:space-between;padding:12px;pointer-events:none;}
+  .panel{background:linear-gradient(135deg,rgba(91,42,134,.94),rgba(40,15,55,.94));border:2px solid var(--gold);border-radius:14px;padding:7px 14px;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.5);backdrop-filter:blur(4px);}
+  .panel .label{font-size:10px;color:var(--gold);letter-spacing:.1em;font-weight:700;}
+  .panel .val{font-size:23px;font-weight:900;line-height:1;text-shadow:0 0 10px var(--neon-magenta);}
+  #placeName{position:absolute;top:68px;left:50%;transform:translateX(-50%);z-index:100;background:rgba(20,12,28,.9);border:2px solid var(--neon-cyan);border-radius:30px;color:var(--neon-cyan);font-weight:900;font-size:14px;padding:5px 22px;text-shadow:0 0 8px var(--neon-cyan);white-space:nowrap;transition:opacity .5s;letter-spacing:.1em;}
+
+  #bubble{position:absolute;left:50%;bottom:50%;transform:translateX(-50%);z-index:80;background:#fff;color:#2c1e10;border-radius:20px;padding:11px 18px;max-width:72%;font-weight:800;font-size:15px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.4);opacity:0;transition:opacity .25s,transform .25s;border:3px solid var(--neon-magenta);}
+  #bubble.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
+  #bubble::after{content:"";position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);border:12px solid transparent;border-top-color:#fff;}
+
+  /* ===== 操作 ===== */
+  #controls{position:absolute;bottom:14px;width:100%;z-index:100;display:flex;justify-content:space-between;align-items:flex-end;padding:0 18px;}
+  .dpad{display:flex;gap:14px;}
+  .btn{width:64px;height:64px;border-radius:50%;border:3px solid var(--gold);background:radial-gradient(circle at 35% 30%,#7b3aa6,#3a1a4a);color:#fff;font-size:28px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 0 #2a1240,0 8px 14px rgba(0,0,0,.4);cursor:pointer;transition:transform .07s,box-shadow .07s;}
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 #2a1240,0 3px 8px rgba(0,0,0,.4);}
+  #candyBtn{width:94px;height:94px;font-size:14px;font-weight:900;flex-direction:column;line-height:1.1;background:radial-gradient(circle at 35% 30%,var(--neon-magenta),#8a1454);border-color:#fff;text-shadow:0 0 8px #fff;box-shadow:0 5px 0 #5a0e38,0 8px 18px rgba(255,45,149,.5);}
+  #candyBtn:active{box-shadow:0 1px 0 #5a0e38,0 3px 10px rgba(255,45,149,.5);}
+  #candyBtn .emoji{font-size:28px;}
+  #candyBtn.pulse{animation:pulse .6s infinite;}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+
+  /* 駅アクションボタン */
+  #trainBtn{position:absolute;left:50%;bottom:30%;transform:translateX(-50%);z-index:90;
+    background:linear-gradient(#20a0d8,#1060a0);border:3px solid #fff;border-radius:16px;
+    color:#fff;font-weight:900;font-size:16px;padding:12px 24px;box-shadow:0 6px 20px rgba(32,160,216,.6);
+    cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s;text-shadow:0 0 6px rgba(0,0,0,.4);animation:pulse 1s infinite;}
+  #trainBtn.show{opacity:1;pointer-events:auto;}
+  #trainBtn .sub{font-size:11px;font-weight:700;opacity:.9;}
+
+  /* ===== 電車移動オーバーレイ ===== */
+  #trainScreen{position:absolute;inset:0;z-index:300;background:#0a0a14;opacity:0;pointer-events:none;transition:opacity .4s;overflow:hidden;}
+  #trainScreen.show{opacity:1;pointer-events:auto;}
+  #trainWindow{position:absolute;top:14%;left:8%;width:84%;height:52%;background:linear-gradient(#0a1428,#1a2a4a);border:8px solid #2a3548;border-radius:18px;overflow:hidden;box-shadow:inset 0 0 40px rgba(0,0,0,.6),0 10px 30px rgba(0,0,0,.5);}
+  #trainScenery{position:absolute;bottom:0;left:0;height:100%;display:flex;align-items:flex-end;}
+  #trainScreen .frame{position:absolute;top:12%;left:6%;width:88%;height:56%;border:3px solid #4a5568;border-radius:22px;pointer-events:none;box-shadow:0 0 0 6px #1a2028;}
+  #trainInfo{position:absolute;top:72%;left:0;width:100%;text-align:center;color:#fff;}
+  #trainRoute{font-size:15px;color:var(--neon-cyan);font-weight:700;margin-bottom:8px;text-shadow:0 0 8px var(--neon-cyan);}
+  #trainProgress{width:70%;max-width:340px;height:8px;background:rgba(255,255,255,.15);border-radius:4px;margin:10px auto;overflow:hidden;}
+  #trainProgressBar{height:100%;width:0;background:linear-gradient(90deg,var(--neon-cyan),var(--gold));border-radius:4px;transition:width .1s linear;}
+  #trainStations{display:flex;justify-content:space-between;width:80%;max-width:380px;margin:16px auto 0;position:relative;}
+  .stationDot{display:flex;flex-direction:column;align-items:center;gap:4px;z-index:2;}
+  .stationDot .dot{width:12px;height:12px;border-radius:50%;background:#3a4558;border:2px solid #5a6578;transition:.3s;}
+  .stationDot.active .dot{background:var(--gold);border-color:#fff;box-shadow:0 0 10px var(--gold);transform:scale(1.4);}
+  .stationDot.passed .dot{background:var(--neon-cyan);border-color:var(--neon-cyan);}
+  .stationDot .nm{font-size:10px;color:#aab;font-weight:700;}
+  .stationDot.active .nm{color:var(--gold);}
+  #trainLine{position:absolute;top:5px;left:0;width:100%;height:3px;background:#3a4558;z-index:1;}
+  #trainHint{margin-top:22px;font-size:12px;color:#8899aa;}
+  .train-car{font-size:40px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));animation:trainShake .3s infinite;}
+  @keyframes trainShake{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+
+  /* ===== 路線マップ（俯瞰） ===== */
+  #mapBtn{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:100;background:linear-gradient(135deg,rgba(32,160,216,.9),rgba(16,80,140,.9));border:2px solid #fff;border-radius:20px;color:#fff;font-weight:800;font-size:12px;padding:6px 14px;cursor:pointer;pointer-events:auto;box-shadow:0 3px 10px rgba(0,0,0,.4);}
+  #mapOverlay{position:absolute;inset:0;z-index:250;background:rgba(10,8,16,.96);opacity:0;pointer-events:none;transition:opacity .3s;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+  #mapOverlay.show{opacity:1;pointer-events:auto;}
+  #mapOverlay h2{color:var(--gold);font-size:20px;margin-bottom:6px;text-shadow:0 0 10px var(--gold);}
+  #mapOverlay .mapSub{color:#99a;font-size:12px;margin-bottom:20px;}
+  #mapClose{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid #fff;color:#fff;font-size:22px;cursor:pointer;}
+
+  /* ===== タイトル ===== */
+  #title{position:absolute;inset:0;z-index:200;background:radial-gradient(circle at 50% 28%,#5b2a86,#0a0818);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;}
+  #title h1{color:#fff;font-size:clamp(25px,7.2vw,38px);font-weight:900;line-height:1.15;text-shadow:0 0 18px var(--neon-magenta),3px 3px 0 #3a2410;}
+  #title .leopard-word{color:var(--gold);text-shadow:0 0 16px var(--gold),3px 3px 0 #3a2410;}
+  #title .sub{color:var(--neon-cyan);margin-top:12px;font-size:15px;font-weight:700;text-shadow:0 0 8px var(--neon-cyan);}
+  #title .hint{color:#e7d6f5;margin-top:22px;font-size:12.5px;line-height:1.9;max-width:350px;}
+  #title .hint b{color:var(--gold);}
+  #startBtn{margin-top:24px;padding:15px 42px;border-radius:40px;border:3px solid #fff;background:linear-gradient(var(--neon-magenta),#8a1454);color:#fff;font-size:21px;font-weight:900;text-shadow:0 0 8px #fff;box-shadow:0 6px 20px rgba(255,45,149,.5);cursor:pointer;animation:pulse 1.4s infinite;}
+  #titleGirl{width:118px;height:188px;margin-bottom:2px;}
+  #titleGirl svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 8px 12px rgba(0,0,0,.5));}
+  .fade-hidden{opacity:0!important;pointer-events:none;transition:opacity .4s;}
+
+  #toast{position:absolute;top:112px;left:50%;transform:translateX(-50%) translateY(-20px);z-index:150;background:var(--gold);color:#3a2410;font-weight:900;padding:8px 20px;border-radius:20px;opacity:0;transition:.4s;box-shadow:0 4px 14px rgba(0,0,0,.4);font-size:13.5px;text-align:center;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="sky"></div>
+  <div id="skyGlow"></div>
+  <div id="farLayer"></div>
+  <div id="midLayer"></div>
+  <div id="propLayer"></div>
+  <div id="ground"></div>
+  <div id="streetDeco"></div>
+  <div id="obachan"></div>
+  <div id="bubble"></div>
+
+  <button id="mapBtn">🗺 路線図</button>
+  <div id="hud">
+    <div class="panel"><div class="label">🍬 あめちゃん</div><div class="val" id="candyCount">30</div></div>
+    <div class="panel" style="text-align:right"><div class="label">よろこんだ人</div><div class="val" id="scoreCount">0</div></div>
+  </div>
+  <div id="placeName">道頓堀</div>
+  <div id="toast"></div>
+
+  <button id="trainBtn">🚇 電車にのる<br><span class="sub" id="trainBtnSub">次は 新世界</span></button>
+
+  <div id="controls">
+    <div class="dpad"><div class="btn" id="leftBtn">◀</div><div class="btn" id="rightBtn">▶</div></div>
+    <div class="btn" id="candyBtn"><span class="emoji">🍬</span>あめちゃん<br>あげる</div>
+  </div>
+
+  <!-- 電車移動画面 -->
+  <div id="trainScreen">
+    <div id="trainWindow"><div id="trainScenery"></div></div>
+    <div class="frame"></div>
+    <div id="trainInfo">
+      <div id="trainRoute">🚇 御堂筋線・なかもず行</div>
+      <div class="train-car" id="trainCar">🚃🚃🚃</div>
+      <div id="trainProgress"><div id="trainProgressBar"></div></div>
+      <div id="trainStations"><div id="trainLine"></div></div>
+      <div id="trainHint">まもなく発車します…</div>
+    </div>
+  </div>
+
+  <!-- 路線マップ -->
+  <div id="mapOverlay">
+    <button id="mapClose">✕</button>
+    <h2>大阪 あめちゃんマップ</h2>
+    <div class="mapSub">行きたい駅をタップして移動できるで</div>
+    <div id="mapContent"></div>
+  </div>
+
+  <!-- タイトル -->
+  <div id="title">
+    <div id="titleGirl"></div>
+    <h1>あめちゃん配り歩き<br><span class="leopard-word">～浪速のおばちゃん、大阪を征く～</span></h1>
+    <div class="sub">道頓堀・新世界・鶴橋・梅田…電車で大阪縦断</div>
+    <div class="hint"><b>◀ ▶</b> で街を歩く／人に会たら <b>🍬</b>／駅で <b>🚇電車</b> に乗って次の街へ<br>本物そっくりの大阪をめぐって、ぎょうさん配ってな！</div>
+    <button id="startBtn">歩きはじめる</button>
+  </div>
+</div>
+<script>
+/* ============================================================
+   あめちゃん配り歩き ～浪速のおばちゃん、大阪を征く～
+   最高品質版
+   ============================================================ */
+const gameEl = document.getElementById('game');
+const W = () => gameEl.clientWidth;
+
+/* =========================================================
+   おばちゃん SVG（アップロード画像を精密再現・陰影/質感/発光）
+   ========================================================= */
+function obachanSVG(){
+  return `<svg viewBox="0 0 132 214">
+    <defs>
+      <pattern id="leo" width="16" height="16" patternUnits="userSpaceOnUse">
+        <rect width="16" height="16" fill="#c9a24f"/>
+        <rect width="16" height="16" fill="url(#leoShade)"/>
+        <path d="M3 3 Q7 1.5 6.5 5 Q5.5 7.5 3 6.5 Q1 5.5 3 3Z" fill="#3a2410"/>
+        <path d="M11 10 Q15 8.5 14.5 12 Q13.5 14.5 11 13.5 Q9 12.5 11 10Z" fill="#3a2410"/>
+        <circle cx="4.3" cy="4.3" r="1.2" fill="#7a5220"/><circle cx="12.3" cy="11.3" r="1.2" fill="#7a5220"/>
+        <circle cx="13" cy="3" r="0.9" fill="#2a1808"/><circle cx="2" cy="12" r="0.9" fill="#2a1808"/>
+        <path d="M8 8 Q9 7 9.5 8.2" stroke="#2a1808" stroke-width="0.4" fill="none" opacity="0.5"/>
+      </pattern>
+      <linearGradient id="leoShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e8c878" stop-opacity="0.5"/><stop offset="100%" stop-color="#8a6828" stop-opacity="0.3"/></linearGradient>
+      <linearGradient id="purpleSatin" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#9a4ac8"/><stop offset="35%" stop-color="#5a1a8a"/><stop offset="60%" stop-color="#7a2aa8"/><stop offset="100%" stop-color="#4a1470"/>
+      </linearGradient>
+      <radialGradient id="gem" cx="35%" cy="28%" r="75%"><stop offset="0%" stop-color="#eeb0ff"/><stop offset="45%" stop-color="#b040ff"/><stop offset="100%" stop-color="#5a1a8a"/></radialGradient>
+      <radialGradient id="skinFace" cx="42%" cy="35%" r="72%"><stop offset="0%" stop-color="#ffd9ad"/><stop offset="70%" stop-color="#f0c48a"/><stop offset="100%" stop-color="#e0b078"/></radialGradient>
+      <radialGradient id="hairPurple" cx="40%" cy="30%" r="75%"><stop offset="0%" stop-color="#c060ff"/><stop offset="60%" stop-color="#9b30ff"/><stop offset="100%" stop-color="#6a18b0"/></radialGradient>
+      <linearGradient id="goldBand" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe680"/><stop offset="50%" stop-color="#f5c542"/><stop offset="100%" stop-color="#c89818"/></linearGradient>
+      <filter id="obShadow"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.3"/></filter>
+    </defs>
+
+    <!-- 脚・サンダル -->
+    <g>
+      <rect class="leg-l" x="55" y="160" width="9" height="35" rx="4" fill="#e8b96f"/>
+      <rect class="leg-r" x="67" y="160" width="9" height="35" rx="4" fill="#dcab61"/>
+      <g class="foot"><path d="M49 192 L67 192 L66 199 L50 199 Z" fill="url(#goldBand)" stroke="#8a1454" stroke-width="1"/>
+        <path d="M52 189 Q58 186 64 189 L64 192 L52 192 Z" fill="#d8a838"/>
+        <circle cx="55" cy="191" r="2" fill="url(#gem)"/><circle cx="61" cy="191" r="2" fill="url(#gem)"/></g>
+      <g class="foot"><path d="M63 192 L81 192 L80 199 L64 199 Z" fill="url(#goldBand)" stroke="#8a1454" stroke-width="1"/>
+        <path d="M66 189 Q72 186 78 189 L78 192 L66 192 Z" fill="#d8a838"/>
+        <circle cx="69" cy="191" r="2" fill="url(#gem)"/><circle cx="75" cy="191" r="2" fill="url(#gem)"/></g>
+    </g>
+
+    <!-- 紫サテンのガウン裏地 -->
+    <path d="M22 84 Q5 152 19 196 L40 194 Q34 130 45 98 Z" fill="url(#purpleSatin)" stroke="#3a1050" stroke-width="1.5"/>
+    <path d="M110 84 Q127 152 113 196 L92 194 Q98 130 87 98 Z" fill="url(#purpleSatin)" stroke="#3a1050" stroke-width="1.5"/>
+    <!-- サテンのハイライト -->
+    <path d="M26 92 Q16 150 24 190" stroke="#c880ff" stroke-width="2" fill="none" opacity="0.4"/>
+    <path d="M106 92 Q116 150 108 190" stroke="#c880ff" stroke-width="2" fill="none" opacity="0.4"/>
+
+    <!-- レオ柄ガウン外側 -->
+    <path d="M26 78 Q12 150 26 194 L43 192 Q37 128 47 94 Z" fill="url(#leo)" stroke="#3a2410" stroke-width="1.5"/>
+    <path d="M106 78 Q120 150 106 194 L89 192 Q95 128 85 94 Z" fill="url(#leo)" stroke="#3a2410" stroke-width="1.5"/>
+    <!-- ガウンの宝石帯（縁取り） -->
+    <path d="M47 94 L43 192" stroke="#5b2a86" stroke-width="5" fill="none"/>
+    <path d="M47 94 L43 192" stroke="url(#goldBand)" stroke-width="2" fill="none"/>
+    <g fill="url(#gem)">${[0,1,2,3,4,5,6].map(i=>`<circle cx="${45.5-i*0.4}" cy="${104+i*13}" r="1.6"/>`).join('')}</g>
+    <path d="M85 94 L89 192" stroke="#5b2a86" stroke-width="5" fill="none"/>
+    <path d="M85 94 L89 192" stroke="url(#goldBand)" stroke-width="2" fill="none"/>
+    <g fill="url(#gem)">${[0,1,2,3,4,5,6].map(i=>`<circle cx="${86.5+i*0.4}" cy="${104+i*13}" r="1.6"/>`).join('')}</g>
+
+    <!-- 胴（ヒョウ柄ワンピース） -->
+    <path d="M40 86 Q37 150 46 194 L86 194 Q95 150 92 86 Q66 76 40 86 Z" fill="url(#leo)" stroke="#3a2410" stroke-width="1.5"/>
+    <!-- 裾の宝石ボーダー -->
+    <path d="M46 186 Q66 192 86 186 L88 194 L44 194 Z" fill="url(#goldBand)"/>
+    <g fill="url(#gem)">${[0,1,2,3,4,5].map(i=>`<circle cx="${50+i*7.5}" cy="190" r="2"/>`).join('')}</g>
+
+    <!-- ヒョウの顔プリント（胸〜腹・写実的） -->
+    <g transform="translate(66 134)">
+      <ellipse cx="0" cy="0" rx="25" ry="31" fill="#a67c44" opacity="0.55"/>
+      <ellipse cx="0" cy="-4" rx="20" ry="24" fill="#8a6438" opacity="0.4"/>
+      <!-- 目 -->
+      <ellipse cx="-9.5" cy="-9" rx="5" ry="3.8" fill="#e8d29a"/><ellipse cx="9.5" cy="-9" rx="5" ry="3.8" fill="#e8d29a"/>
+      <circle cx="-9.5" cy="-9" r="2.6" fill="#3a2808"/><circle cx="9.5" cy="-9" r="2.6" fill="#3a2808"/>
+      <ellipse cx="-9.5" cy="-9" rx="1.3" ry="2.4" fill="#1a1004"/><ellipse cx="9.5" cy="-9" rx="1.3" ry="2.4" fill="#1a1004"/>
+      <circle cx="-8.4" cy="-10" r="0.8" fill="#fff"/><circle cx="10.6" cy="-10" r="0.8" fill="#fff"/>
+      <!-- 鼻 -->
+      <path d="M0 1 L-4.5 9 Q0 12 4.5 9 Z" fill="#4a2a18"/><path d="M0 2 L-3 8 Q0 10 3 8 Z" fill="#6a3a20"/>
+      <!-- ひげ -->
+      <g stroke="#3a2410" stroke-width="0.6" fill="none" opacity="0.8"><path d="M-2 9 Q-10 12 -18 10"/><path d="M-2 10 Q-10 15 -16 17"/><path d="M2 9 Q10 12 18 10"/><path d="M2 10 Q10 15 16 17"/></g>
+      <!-- 眉間の縞 -->
+      <g stroke="#3a2410" stroke-width="1.3" fill="none"><path d="M-3 -17 Q0 -24 3 -17"/><path d="M-7 -15 L-9 -22"/><path d="M7 -15 L9 -22"/></g>
+    </g>
+
+    <!-- 首元の紫ジュエリー（V字ネックレス・多層） -->
+    <path d="M48 84 Q66 98 84 84" fill="none" stroke="url(#goldBand)" stroke-width="2.5" opacity="0.9"/>
+    <path d="M50 88 Q66 100 82 88" fill="none" stroke="url(#goldBand)" stroke-width="1.5" opacity="0.7"/>
+    <g>
+      <circle cx="50" cy="84" r="3.2" fill="url(#gem)"/><circle cx="56" cy="88" r="3.8" fill="url(#gem)"/>
+      <circle cx="66" cy="91" r="5" fill="url(#gem)"/><circle cx="76" cy="88" r="3.8" fill="url(#gem)"/>
+      <circle cx="82" cy="84" r="3.2" fill="url(#gem)"/>
+      <circle cx="49" cy="83" r="1" fill="#fff" opacity="0.8"/><circle cx="64.5" cy="89.5" r="1.5" fill="#fff" opacity="0.9"/><circle cx="55" cy="87" r="1" fill="#fff" opacity="0.7"/>
+    </g>
+
+    <!-- 右腕（指さしポーズ） -->
+    <path d="M90 88 Q108 84 114 62 L109 58 Q101 78 85 92 Z" fill="url(#leo)" stroke="#3a2410" stroke-width="1.2"/>
+    <circle cx="111" cy="60" r="6" fill="url(#skinFace)"/>
+    <path d="M111 60 L117 49" stroke="#e8b96f" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M117 49 L118 46" stroke="#c81450" stroke-width="2" stroke-linecap="round"/>
+    <rect x="104" y="66" width="11" height="5" rx="2" fill="url(#goldBand)" stroke="#8a1454" stroke-width="0.8"/>
+    <circle cx="112" cy="58" r="2.2" fill="url(#gem)" stroke="url(#goldBand)" stroke-width="0.6"/>
+
+    <!-- 左腕（バッグを持つ） -->
+    <g class="arm-bag">
+      <path d="M42 88 Q24 92 26 120 L32 118 Q30 98 46 92 Z" fill="url(#leo)" stroke="#3a2410" stroke-width="1.2"/>
+      <circle cx="29" cy="122" r="6.5" fill="url(#skinFace)"/>
+      <rect x="23" y="114" width="12" height="5" rx="2" fill="url(#goldBand)" stroke="#8a1454" stroke-width="0.8"/>
+      <!-- キラキラのハンドバッグ（宝石張り） -->
+      <path d="M22 118 Q29 107 36 118" stroke="url(#goldBand)" stroke-width="2.5" fill="none"/>
+      <rect x="18" y="117" width="22" height="18" rx="3" fill="url(#goldBand)" stroke="#8a1454" stroke-width="1.5"/>
+      <g fill="#fff">${[0,1,2,3].map(c=>[0,1,2].map(r=>`<circle cx="${21+c*5.5}" cy="${121+r*4.5}" r="0.9"/>`).join('')).join('')}</g>
+      <rect x="25" y="122" width="8" height="8" rx="1.5" fill="url(#gem)"/>
+      <circle cx="29" cy="126" r="1.5" fill="#fff" opacity="0.8"/>
+    </g>
+
+    <!-- 首 -->
+    <path d="M59 70 L71 70 L70 82 L60 82 Z" fill="#e0b078"/>
+
+    <!-- 顔 -->
+    <ellipse cx="66" cy="52" rx="24.5" ry="25.5" fill="url(#skinFace)"/>
+    <!-- 笑いジワ -->
+    <path d="M44 52 q3 2.5 3 5.5 M88 52 q-3 2.5 -3 5.5 M46 62 q2 2 4 2 M86 62 q-2 2 -4 2" stroke="#d9a86a" stroke-width="0.7" fill="none" opacity="0.7"/>
+    <!-- ほっぺ -->
+    <circle cx="50" cy="60" r="6" fill="#ff8fb0" opacity=".5"/><circle cx="82" cy="60" r="6" fill="#ff8fb0" opacity=".5"/>
+    <!-- ラインストーンのキャットアイ・メガネ -->
+    <g>
+      <path d="M43 46 Q44 40 54 41 Q64 42 64 48 Q64 54 54 55 Q44 55 43 49 Z" fill="rgba(190,225,255,.4)" stroke="url(#goldBand)" stroke-width="2.5"/>
+      <path d="M68 48 Q68 42 78 41 Q88 40 89 46 Q90 54 79 55 Q69 54 68 48 Z" fill="rgba(190,225,255,.4)" stroke="url(#goldBand)" stroke-width="2.5"/>
+      <!-- キャットアイの跳ね上がり -->
+      <path d="M43 45 Q40 42 37 43" stroke="url(#goldBand)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M89 45 Q92 42 95 43" stroke="url(#goldBand)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <!-- 縁のラインストーン -->
+      <g fill="#fff">${[[45,42],[49,40],[54,40],[59,42],[62,46]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="0.9"/>`).join('')}
+      ${[[70,42],[74,40],[79,40],[84,41],[88,45]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="0.9"/>`).join('')}</g>
+      <line x1="64" y1="48" x2="68" y2="48" stroke="url(#goldBand)" stroke-width="2.5"/>
+    </g>
+    <!-- 目（笑って弧） -->
+    <path d="M48 49 q6 -4.5 11 0" stroke="#3a2410" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M72 49 q6 -4.5 11 0" stroke="#3a2410" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <!-- 眉 -->
+    <path d="M47 40 q6 -2.5 12 0.5" stroke="#5a3418" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <path d="M72 40.5 q6 -3 12 -0.5" stroke="#5a3418" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <!-- 真っ赤なリップ・満面の笑み -->
+    <path d="M53 63 Q66 75 79 63 Q66 70 53 63 Z" fill="#c81450"/>
+    <path d="M53 63 Q66 66 79 63" stroke="#8a0e38" stroke-width="1.2" fill="none"/>
+    <path d="M56 65 Q66 68 76 65" stroke="#fff" stroke-width="1.3" fill="none" opacity="0.7"/>
+    <path d="M53 63 Q66 60 79 63" stroke="#e02868" stroke-width="1" fill="none" opacity="0.6"/>
+
+    <!-- 紫のモコモコ・パーマ髪（立体・つや） -->
+    <g fill="url(#hairPurple)">
+      <circle cx="46" cy="32" r="12.5"/><circle cx="58" cy="23" r="13.5"/><circle cx="73" cy="23" r="13.5"/>
+      <circle cx="85" cy="32" r="12.5"/><circle cx="41" cy="44" r="10.5"/><circle cx="90" cy="44" r="10.5"/>
+      <circle cx="65" cy="19" r="12.5"/><circle cx="38" cy="54" r="7"/><circle cx="93" cy="54" r="7"/>
+    </g>
+    <g fill="#c060ff" opacity=".55">
+      <circle cx="52" cy="27" r="6"/><circle cx="66" cy="21" r="6"/><circle cx="80" cy="27" r="6"/><circle cx="44" cy="40" r="4.5"/><circle cx="87" cy="40" r="4.5"/>
+    </g>
+    <g fill="#e0a0ff" opacity=".55"><circle cx="55" cy="23" r="3"/><circle cx="72" cy="19" r="3"/><circle cx="84" cy="30" r="2.5"/></g>
+    <g fill="#fff" opacity=".4"><circle cx="57" cy="20" r="1.5"/><circle cx="70" cy="17" r="1.5"/></g>
+
+    <!-- 大ぶり紫イヤリング（シャンデリア風） -->
+    <g><circle cx="42" cy="58" r="3" fill="url(#goldBand)"/><path d="M42 61 L42 64" stroke="url(#goldBand)" stroke-width="1.5"/><ellipse cx="42" cy="68" rx="5" ry="8" fill="url(#gem)" stroke="url(#goldBand)" stroke-width="1"/><circle cx="40.5" cy="66" r="1.3" fill="#fff" opacity="0.8"/></g>
+    <g><circle cx="90" cy="58" r="3" fill="url(#goldBand)"/><path d="M90 61 L90 64" stroke="url(#goldBand)" stroke-width="1.5"/><ellipse cx="90" cy="68" rx="5" ry="8" fill="url(#gem)" stroke="url(#goldBand)" stroke-width="1"/><circle cx="88.5" cy="66" r="1.3" fill="#fff" opacity="0.8"/></g>
+  </svg>`;
+}
+
+/* =========================================================
+   NPC SVG（大阪の人々・質感付き）
+   ========================================================= */
+const npcTypes = [
+  {name:'サラリーマン', hair:'#2a2a2a', cloth:'#2f3f5f', cloth2:'#243048', skin:'#f0c48a', tie:'#c02020'},
+  {name:'たこ焼き屋のおっちゃん', hair:'#333', cloth:'#d43535', cloth2:'#b02828', skin:'#e8a860', apron:true, bandana:true},
+  {name:'女子高生', hair:'#3a2418', cloth:'#1a2a4a', cloth2:'#12203a', skin:'#f5cd9a', sailor:true},
+  {name:'おばあちゃん', hair:'#d8d8d8', cloth:'#8a5a7a', cloth2:'#6a4058', skin:'#e8bd8a', perm:true},
+  {name:'外国人観光客', hair:'#c9a84a', cloth:'#3a9a5a', cloth2:'#2a7a45', skin:'#f2d0b0', cam:true},
+  {name:'子ども', hair:'#2a1a0c', cloth:'#f5a020', cloth2:'#d88010', skin:'#f5cd9a', kid:true},
+  {name:'串カツ屋の大将', hair:'#222', cloth:'#ffffff', cloth2:'#e8e8e8', skin:'#e0a060', chef:true},
+  {name:'アメ村の若者', hair:'#e04a8a', cloth:'#1a1a2a', cloth2:'#0a0a18', skin:'#f0c48a', hip:true},
+  {name:'ギャル', hair:'#e8c840', cloth:'#e848a0', cloth2:'#c83080', skin:'#f8d8b0', gyaru:true},
+  {name:'おっちゃん', hair:'#888', cloth:'#6a7a5a', cloth2:'#4a5a40', skin:'#e0a878', cap:true},
+];
+function npcSVG(t){
+  const scale = t.kid?0.72:1;
+  return `<svg viewBox="0 0 80 154" style="transform:scale(${scale});transform-origin:bottom center">
+    <defs>
+      <linearGradient id="npcCloth${t.name}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${t.cloth}"/><stop offset="100%" stop-color="${t.cloth2}"/></linearGradient>
+      <radialGradient id="npcSkin${t.name}" cx="42%" cy="35%" r="70%"><stop offset="0%" stop-color="${t.skin}"/><stop offset="100%" stop-color="${t.skin}" stop-opacity="0.85"/></radialGradient>
+    </defs>
+    <ellipse cx="40" cy="148" rx="20" ry="4" fill="#000" opacity="0.25"/>
+    <rect class="leg-l2" x="30" y="110" width="8" height="32" rx="3" fill="#3a3a3a"/><rect class="leg-r2" x="42" y="110" width="8" height="32" rx="3" fill="#2f2f2f"/>
+    <path d="M25 140 Q28 137 34 138 L34 143 L25 143 Z" fill="#1a1a1a"/><path d="M46 140 Q49 137 55 138 L55 143 L46 143 Z" fill="#1a1a1a"/>
+    <path d="M23 64 Q21 110 29 138 L51 138 Q59 110 57 64 Q40 57 23 64 Z" fill="url(#npcCloth${t.name})" stroke="rgba(0,0,0,0.18)" stroke-width="1"/>
+    ${t.apron?`<path d="M27 78 Q40 74 53 78 L52 132 L28 132 Z" fill="#f4f0e4"/><rect x="27" y="78" width="26" height="11" fill="#d43535"/><text x="40" y="112" font-size="8.5" text-anchor="middle" fill="#d43535" font-weight="bold">たこ焼</text>`:''}
+    ${t.chef?`<path d="M27 74 Q40 70 53 74 L52 132 L28 132 Z" fill="#fff" stroke="#e0e0e0" stroke-width="0.5"/><path d="M28 90 L52 90" stroke="#c02020" stroke-width="2.5"/><text x="40" y="110" font-size="7.5" text-anchor="middle" fill="#c02020" font-weight="bold">串カツ</text>`:''}
+    ${t.sailor?`<path d="M23 64 L57 64 L53 78 L27 78 Z" fill="#0f1f3a"/><path d="M31 64 L49 64 L47 74 L33 74 Z" fill="#fff"/><rect x="36" y="66" width="8" height="16" fill="#c02040"/><path d="M36 66 L44 66 L40 72 Z" fill="#c02040"/>`:''}
+    ${t.tie?`<path d="M37 64 L43 64 L42 84 L38 84 Z" fill="${t.tie}"/><path d="M37 64 L43 64 L40 70 Z" fill="#fff" opacity="0.3"/>`:''}
+    ${t.gyaru?`<circle cx="30" cy="80" r="2" fill="#fff"/><circle cx="50" cy="80" r="2" fill="#fff"/><path d="M30 100 Q40 106 50 100" stroke="#fff" stroke-width="1.5" fill="none"/>`:''}
+    <path d="M23 66 Q11 80 17 108 L23 106 Q19 84 29 72 Z" fill="url(#npcCloth${t.name})"/>
+    <path d="M57 66 Q69 80 63 108 L57 106 Q61 84 51 72 Z" fill="url(#npcCloth${t.name})"/>
+    <circle cx="19" cy="110" r="5" fill="url(#npcSkin${t.name})"/><circle cx="61" cy="110" r="5" fill="url(#npcSkin${t.name})"/>
+    ${t.cam?`<rect x="49" y="57" width="16" height="12" rx="2" fill="#1a1a1a"/><circle cx="57" cy="63" r="4" fill="#3a5a8a"/><circle cx="57" cy="63" r="2" fill="#88b0e0"/><rect x="61" y="59" width="3" height="2" fill="#e04040"/>`:''}
+    <circle cx="40" cy="40" r="20" fill="url(#npcSkin${t.name})"/>
+    <circle cx="31" cy="45" r="3.8" fill="#ff9db5" opacity=".45"/><circle cx="49" cy="45" r="3.8" fill="#ff9db5" opacity=".45"/>
+    <circle cx="33" cy="39" r="2.1" fill="#2a1a0c"/><circle cx="47" cy="39" r="2.1" fill="#2a1a0c"/>
+    <circle cx="33.6" cy="38.4" r="0.7" fill="#fff"/><circle cx="47.6" cy="38.4" r="0.7" fill="#fff"/>
+    <path class="mouth" d="M33 49 q7 4.5 14 0" stroke="#a05028" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    ${t.perm?`<g fill="${t.hair}"><circle cx="26" cy="34" r="8.5"/><circle cx="34" cy="27" r="8.5"/><circle cx="46" cy="27" r="8.5"/><circle cx="54" cy="34" r="8.5"/><circle cx="24" cy="42" r="6"/><circle cx="56" cy="42" r="6"/></g>`:
+      t.gyaru?`<g fill="${t.hair}"><path d="M18 42 Q16 15 40 13 Q64 15 62 42 Q60 25 40 22 Q20 25 18 42 Z"/><path d="M18 40 Q14 58 20 72 L26 68 Q22 52 24 40 Z"/><path d="M62 40 Q66 58 60 72 L54 68 Q58 52 56 40 Z"/></g>`:
+      `<path d="M19 40 Q17 16 40 14 Q63 16 61 40 Q58 26 40 24 Q22 26 19 40 Z" fill="${t.hair}"/>`}
+    ${t.bandana?`<path d="M18 30 Q40 19 62 30 L60 37 Q40 27 20 37 Z" fill="#fff"/><g stroke="#d43535" stroke-width="2" stroke-dasharray="3 2"><line x1="20" y1="33" x2="60" y2="33"/></g><circle cx="40" cy="30" r="2.5" fill="#d43535"/><path d="M58 32 L66 28 L64 36 Z" fill="#fff"/>`:''}
+    ${t.chef?`<path d="M24 16 Q40 8 56 16 L54 26 L26 26 Z" fill="#fff" stroke="#ddd" stroke-width="0.5"/><ellipse cx="40" cy="14" rx="16" ry="7" fill="#fff" stroke="#e8e8e8"/>`:''}
+    ${t.hip?`<path d="M20 24 Q40 16 60 24 L58 32 L22 32 Z" fill="#111"/><rect x="30" y="14" width="20" height="10" rx="2" fill="#111"/>`:''}
+    ${t.cap?`<path d="M20 30 Q40 18 60 30 L60 34 L20 34 Z" fill="#3a5a3a"/><path d="M18 34 Q40 30 44 34 L44 38 L18 38 Z" fill="#2a4a2a"/><circle cx="40" cy="24" r="2" fill="#5a7a5a"/>`:''}
+  </svg>`;
+}
+
+
+/* =========================================================
+   共通の質感defs（各SVGの先頭に差し込む）
+   ========================================================= */
+const COMMON_DEFS = `
+  <filter id="neonGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+`;
+
+/* 灯りのついたビル窓を生成するヘルパー */
+function litWindows(x,y,cols,rows,w,h,gx,gy,litProb=0.6,onCol='#ffdc6a',offCol='#0a1220'){
+  let s='';
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const lit=Math.random()<litProb;
+    s+=`<rect x="${x+c*gx}" y="${y+r*gy}" width="${w}" height="${h}" rx="1" fill="${lit?onCol:offCol}" opacity="${lit?0.9:0.55}"/>`;
+  }
+  return s;
+}
+
+/* =========================================================
+   道頓堀
+   ========================================================= */
+
+// グリコサイン（最高品質・夜景）
+function bldGlico(){
+  return `<svg width="150" height="380" viewBox="0 0 150 380"><defs>${COMMON_DEFS}
+    <linearGradient id="gLedBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0d2d7a"/><stop offset="30%" stop-color="#1550c8"/><stop offset="55%" stop-color="#1a6ae8"/><stop offset="100%" stop-color="#0a2a6a"/></linearGradient>
+    <pattern id="gLedDots" width="3" height="3" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="0.6" fill="#fff" opacity="0.08"/></pattern>
+    <linearGradient id="gBldgMetal" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#0a0e1c"/><stop offset="15%" stop-color="#1a2236"/><stop offset="50%" stop-color="#141c30"/><stop offset="85%" stop-color="#1a2236"/><stop offset="100%" stop-color="#080c18"/></linearGradient>
+    <linearGradient id="gRedGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff3a3a"/><stop offset="45%" stop-color="#e01515"/><stop offset="55%" stop-color="#c00808"/><stop offset="100%" stop-color="#e01515"/></linearGradient>
+    <radialGradient id="gSkin" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#ffd8a8"/><stop offset="100%" stop-color="#e8b478"/></radialGradient>
+    </defs>
+    <rect x="20" y="8" width="110" height="372" fill="url(#gBldgMetal)"/>
+    <rect x="20" y="8" width="3" height="372" fill="#2a3550" opacity="0.6"/><rect x="127" y="8" width="3" height="372" fill="#000" opacity="0.5"/>
+    <rect x="30" y="20" width="90" height="232" rx="6" fill="#04122e"/>
+    <rect x="30" y="20" width="90" height="232" rx="6" fill="none" stroke="#2a6ad8" stroke-width="2" opacity="0.7"/>
+    <rect x="33" y="23" width="84" height="226" rx="4" fill="#1550c8" opacity="0.25" filter="url(#softGlow)"/>
+    <rect x="33" y="23" width="84" height="226" rx="4" fill="url(#gLedBlue)"/>
+    <rect x="33" y="23" width="84" height="226" rx="4" fill="url(#gLedDots)"/>
+    <ellipse cx="75" cy="60" rx="55" ry="34" fill="#3a80ff" opacity="0.22"/>
+    <!-- 街シルエット -->
+    <g opacity="0.5" fill="#0a2a5a">
+      <path d="M42 218 L46 218 L47 206 L41 206 Z"/><path d="M39 228 L49 228 L47 218 L41 218 Z"/><circle cx="44" cy="200" r="1.8" fill="#20e0d6" opacity="0.8"/>
+      <path d="M56 226 L78 226 L75 216 L70 216 L70 211 L64 211 L64 216 L59 216 Z"/><rect x="61" y="204" width="12" height="12"/>
+      <ellipse cx="98" cy="226" rx="15" ry="8"/><rect x="112" y="212" width="12" height="14"/>
+    </g>
+    <path d="M38 242 Q75 220 112 242" fill="none" stroke="#c8401a" stroke-width="8" stroke-linecap="round"/>
+    <path d="M38 242 Q75 222 112 242" fill="none" stroke="#e85a2a" stroke-width="4" stroke-linecap="round"/>
+    <path d="M38 242 Q75 221 112 242" fill="none" stroke="#fff" stroke-width="0.6" stroke-dasharray="4 4" opacity="0.6"/>
+    <!-- ランナー -->
+    <g transform="translate(75 178)" filter="url(#neonGlow)">
+      <ellipse cx="0" cy="26" rx="15" ry="3" fill="#0a1a4a" opacity="0.5"/>
+      <path d="M3 2 Q11 13 8 28" stroke="url(#gSkin)" stroke-width="6.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="9" cy="29" rx="5.5" ry="2.8" fill="#e01818"/><ellipse cx="10" cy="28" rx="4.5" ry="1.8" fill="#ff3030"/>
+      <path d="M-3 -30 Q7 -28 9 -13 L5 3 L-9 3 L-11 -13 Q-11 -26 -3 -30 Z" fill="#123f8a"/>
+      <path d="M-4 -30 Q6 -28 8 -15 L-10 -15 Q-10 -26 -4 -30 Z" fill="#f8f8f8"/>
+      <path d="M-10 -2 L6 -2 L7 6 L-11 6 Z" fill="#f8f8f8"/>
+      <path d="M-7 1 Q-15 12 -20 20" stroke="url(#gSkin)" stroke-width="6.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="-21" cy="21" rx="5.5" ry="2.8" fill="#e01818" transform="rotate(-18 -21 21)"/>
+      <path d="M-7 -25 Q-18 -29 -23 -44" stroke="url(#gSkin)" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M7 -25 Q18 -29 23 -44" stroke="url(#gSkin)" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <circle cx="-23" cy="-45" r="2.8" fill="url(#gSkin)"/><circle cx="23" cy="-45" r="2.8" fill="url(#gSkin)"/>
+      <circle cx="0" cy="-38" r="8" fill="url(#gSkin)"/>
+      <path d="M-8 -40 Q-6 -49 3 -48 Q9 -47 8 -38 Q4 -45 -2 -44 Q-7 -43 -8 -40 Z" fill="#1a1208"/>
+      <circle cx="-3" cy="-38" r="1" fill="#1a1208"/><circle cx="3" cy="-38" r="1" fill="#1a1208"/>
+      <path d="M-4 -35 Q0 -31 4 -35" stroke="#a01818" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    </g>
+    <rect x="33" y="23" width="84" height="25" rx="4" fill="url(#gRedGloss)"/>
+    <rect x="33" y="24" width="84" height="3" fill="#ff8080" opacity="0.6"/>
+    <text x="75" y="43" font-family="Arial Black,sans-serif" font-weight="900" font-size="20" fill="#fff" text-anchor="middle" letter-spacing="0.5">Glico</text>
+    <g>${litWindows(35,262,5,5,11,13,17,22,0.55)}</g>
+  </svg>`;
+}
+
+// かに道楽（最高品質・立体ズワイガニ）
+function bldKani(){
+  return `<svg width="150" height="350" viewBox="0 0 150 350"><defs>${COMMON_DEFS}
+    <linearGradient id="kBldg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#d8d0bc"/><stop offset="50%" stop-color="#f4efe2"/><stop offset="100%" stop-color="#cabfa6"/></linearGradient>
+    <radialGradient id="kaniShell" cx="42%" cy="30%" r="75%"><stop offset="0%" stop-color="#ff6838"/><stop offset="45%" stop-color="#e8401e"/><stop offset="100%" stop-color="#b82810"/></radialGradient>
+    <linearGradient id="kRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e83030"/><stop offset="100%" stop-color="#b01818"/></linearGradient>
+    </defs>
+    <rect x="15" y="26" width="120" height="324" fill="url(#kBldg)"/>
+    <rect x="15" y="26" width="120" height="324" fill="none" stroke="#c8bca0" stroke-width="1.5"/>
+    <!-- 上部の赤い店名（立体） -->
+    <rect x="20" y="34" width="110" height="34" rx="3" fill="url(#kRed)"/>
+    <rect x="20" y="35" width="110" height="3" fill="#ff6060" opacity="0.5"/>
+    <text x="75" y="58" font-family="'Hiragino Mincho','Yu Mincho',serif" font-weight="900" font-size="22" fill="#fff" text-anchor="middle" letter-spacing="2">かに道楽</text>
+    <!-- 巨大ズワイガニ（写実） -->
+    <g transform="translate(75 180)">
+      <ellipse cx="0" cy="30" rx="42" ry="6" fill="#000" opacity="0.15"/>
+      <!-- 脚（左右4本ずつ・関節付き）animate -->
+      <g class="kani-legs" stroke-linecap="round" fill="none">
+        <g stroke="#d83018" stroke-width="5"><path d="M-28 12 Q-46 16 -56 8"/><path d="M-26 18 Q-44 26 -52 24"/><path d="M-23 24 Q-38 34 -44 40"/><path d="M-19 28 Q-30 40 -32 50"/></g>
+        <g stroke="#e8401e" stroke-width="3"><path d="M-28 12 Q-46 16 -56 8"/><path d="M-26 18 Q-44 26 -52 24"/><path d="M-23 24 Q-38 34 -44 40"/><path d="M-19 28 Q-30 40 -32 50"/></g>
+        <g stroke="#d83018" stroke-width="5"><path d="M28 12 Q46 16 56 8"/><path d="M26 18 Q44 26 52 24"/><path d="M23 24 Q38 34 44 40"/><path d="M19 28 Q30 40 32 50"/></g>
+        <g stroke="#e8401e" stroke-width="3"><path d="M28 12 Q46 16 56 8"/><path d="M26 18 Q44 26 52 24"/><path d="M23 24 Q38 34 44 40"/><path d="M19 28 Q30 40 32 50"/></g>
+      </g>
+      <!-- 左ハサミ（大）animate -->
+      <g class="kani-claw-l">
+        <path d="M-30 4 Q-50 8 -60 22 Q-64 32 -58 40" stroke="#e8401e" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <path d="M-30 4 Q-50 8 -60 22 Q-64 32 -58 40" stroke="#ff6838" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M-58 36 Q-70 32 -72 44 Q-70 54 -60 50 Z" fill="url(#kaniShell)"/>
+        <path d="M-58 40 Q-65 44 -62 52" stroke="url(#kaniShell)" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <path d="M-70 42 L-62 46 M-69 46 L-61 49" stroke="#a01810" stroke-width="1"/>
+      </g>
+      <!-- 右ハサミ（小）animate -->
+      <g class="kani-claw-r">
+        <path d="M30 4 Q50 8 58 20 Q62 28 57 36" stroke="#e8401e" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <path d="M30 4 Q50 8 58 20 Q62 28 57 36" stroke="#ff6838" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M55 32 Q66 28 68 40 Q66 49 56 45 Z" fill="url(#kaniShell)"/>
+        <path d="M55 36 Q61 40 58 46" stroke="url(#kaniShell)" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+      </g>
+      <!-- 甲羅 -->
+      <ellipse cx="0" cy="0" rx="35" ry="27" fill="url(#kaniShell)"/>
+      <ellipse cx="0" cy="-4" rx="28" ry="18" fill="#ff5a30" opacity="0.5"/>
+      <!-- 甲羅の質感（斑点・凹凸） -->
+      <g fill="#fff" opacity="0.85"><circle cx="-13" cy="-7" r="2.2"/><circle cx="13" cy="-7" r="2.2"/><circle cx="0" cy="-11" r="2.5"/><circle cx="-7" cy="2" r="1.6"/><circle cx="7" cy="2" r="1.6"/><circle cx="0" cy="6" r="1.4"/></g>
+      <g fill="#a01810" opacity="0.4"><circle cx="-18" cy="4" r="2"/><circle cx="18" cy="4" r="2"/><circle cx="-10" cy="10" r="1.5"/><circle cx="10" cy="10" r="1.5"/></g>
+      <!-- 甲羅のギザ縁 -->
+      <path d="M-35 2 Q-31 -3 -28 2 Q-24 -3 -21 2 Q-17 -3 -14 2" stroke="#a01810" stroke-width="1.5" fill="none"/>
+      <path d="M14 2 Q17 -3 21 2 Q24 -3 28 2 Q31 -3 35 2" stroke="#a01810" stroke-width="1.5" fill="none"/>
+      <!-- 目（2本の柄） -->
+      <line x1="-9" y1="-23" x2="-11" y2="-32" stroke="#d83018" stroke-width="3.5"/><circle cx="-11" cy="-33" r="3.5" fill="#1a1a1a"/><circle cx="-12" cy="-34" r="1.2" fill="#fff"/>
+      <line x1="9" y1="-23" x2="11" y2="-32" stroke="#d83018" stroke-width="3.5"/><circle cx="11" cy="-33" r="3.5" fill="#1a1a1a"/><circle cx="10" cy="-34" r="1.2" fill="#fff"/>
+      <!-- 口の部分 -->
+      <path d="M-6 18 Q0 24 6 18" stroke="#a01810" stroke-width="2" fill="none"/>
+    </g>
+    <!-- 店舗入口 -->
+    <rect x="28" y="278" width="94" height="72" fill="#2a1e12"/>
+    <rect x="34" y="288" width="36" height="62" fill="#f0d888" opacity="0.75"/>
+    <rect x="80" y="288" width="36" height="62" fill="#f0d888" opacity="0.75"/>
+    <rect x="30" y="278" width="90" height="14" fill="url(#kRed)"/>
+    <text x="75" y="289" font-family="serif" font-size="9" fill="#fff" text-anchor="middle">かに料理</text>
+    <!-- 赤提灯 -->
+    <g><ellipse cx="44" cy="266" rx="7" ry="10" fill="url(#kRed)"/><rect x="41" y="257" width="6" height="3" fill="#8a1010"/><line x1="38" y1="264" x2="50" y2="264" stroke="#8a1010" stroke-width="0.5"/><line x1="38" y1="268" x2="50" y2="268" stroke="#8a1010" stroke-width="0.5"/></g>
+    <g><ellipse cx="106" cy="266" rx="7" ry="10" fill="url(#kRed)"/><rect x="103" y="257" width="6" height="3" fill="#8a1010"/><line x1="100" y1="264" x2="112" y2="264" stroke="#8a1010" stroke-width="0.5"/></g>
+  </svg>`;
+}
+
+// 道頓堀のギラギラネオンビル（縦看板だらけ）
+function bldDotonNeon(){
+  const neonColors=['#ff2d95','#20e0d6','#ffde3a','#ff6a20'];
+  return `<svg width="130" height="360" viewBox="0 0 130 360"><defs>${COMMON_DEFS}
+    <linearGradient id="dnBldg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a1228"/><stop offset="50%" stop-color="#2a1a3a"/><stop offset="100%" stop-color="#150e22"/></linearGradient>
+    </defs>
+    <rect x="12" y="12" width="106" height="348" fill="url(#dnBldg)" stroke="#0a0518" stroke-width="2"/>
+    <!-- 縦看板1（ピンク） -->
+    <rect x="18" y="22" width="38" height="170" rx="3" fill="#0a0518" stroke="#ff2d95" stroke-width="2" filter="url(#neonGlow)"/>
+    <rect x="22" y="27" width="30" height="160" fill="#12081f"/>
+    <text x="37" y="55" font-family="serif" font-size="19" fill="#ff2d95" text-anchor="middle" font-weight="bold" filter="url(#neonGlow)" style="writing-mode:vertical-rl">道頓堀</text>
+    <circle cx="37" cy="120" r="9" fill="#ffde3a" filter="url(#neonGlow)"/><path d="M32 115 L42 125 M42 115 L32 125" stroke="#ff2d95" stroke-width="2"/>
+    <rect x="27" y="145" width="20" height="30" rx="2" fill="none" stroke="#20e0d6" stroke-width="1.5"/>
+    <!-- 縦看板2（シアン） -->
+    <rect x="64" y="22" width="40" height="130" rx="3" fill="#0a0518" stroke="#20e0d6" stroke-width="2" filter="url(#neonGlow)"/>
+    <rect x="68" y="27" width="32" height="120" fill="#08161a"/>
+    <text x="84" y="52" font-family="sans-serif" font-size="16" fill="#20e0d6" text-anchor="middle" font-weight="bold" filter="url(#neonGlow)">大阪</text>
+    <text x="84" y="76" font-family="sans-serif" font-size="16" fill="#ffde3a" text-anchor="middle" font-weight="bold" filter="url(#neonGlow)">名物</text>
+    <g stroke="#20e0d6" stroke-width="1.2" opacity="0.7"><line x1="72" y1="92" x2="96" y2="92"/><line x1="72" y1="100" x2="96" y2="100"/><line x1="72" y1="108" x2="96" y2="108"/></g>
+    <circle cx="84" cy="128" r="8" fill="#ff6a20" opacity="0.8" filter="url(#neonGlow)"/>
+    <!-- 下部の窓と提灯 -->
+    <g>${litWindows(20,200,4,6,14,10,22,18,0.5)}</g>
+    <g>${[0,1,2,3].map(i=>`<ellipse cx="${28+i*22}" cy="196" rx="6" ry="8" fill="${i%2?'#ffde3a':'#e02020'}" filter="url(#neonGlow)"/>`).join('')}</g>
+  </svg>`;
+}
+
+// 道頓堀のたこ焼き・食い倒れ系ビル
+function bldKuidaore(){
+  return `<svg width="120" height="330" viewBox="0 0 120 330"><defs>${COMMON_DEFS}
+    <linearGradient id="kdBldg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3a2a1a"/><stop offset="100%" stop-color="#251a10"/></linearGradient>
+    </defs>
+    <rect x="12" y="20" width="96" height="310" fill="url(#kdBldg)" stroke="#1a1208" stroke-width="2"/>
+    <!-- 赤白ストライプの看板（食い倒れ太郎風） -->
+    <rect x="18" y="28" width="84" height="120" rx="4" fill="#fff" stroke="#c01818" stroke-width="2"/>
+    <g fill="#e02020">${[0,1,2,3,4,5].map(i=>`<rect x="18" y="${28+i*20}" width="84" height="10"/>`).join('')}</g>
+    <!-- 太郎の顔（丸い赤白帽の人形） -->
+    <g transform="translate(60 90)">
+      <ellipse cx="0" cy="0" rx="20" ry="22" fill="#f0d0a8"/>
+      <circle cx="-8" cy="-2" r="3.5" fill="#fff"/><circle cx="8" cy="-2" r="3.5" fill="#fff"/>
+      <circle cx="-8" cy="-2" r="1.8" fill="#1a1a1a"/><circle cx="8" cy="-2" r="1.8" fill="#1a1a1a"/>
+      <ellipse cx="0" cy="6" rx="6" ry="4" fill="#e05050"/>
+      <path d="M-10 12 Q0 18 10 12" stroke="#a03030" stroke-width="1.5" fill="none"/>
+      <!-- とんがり帽 -->
+      <path d="M-18 -14 L18 -14 L12 -30 L-12 -30 Z" fill="#e02020"/>
+      <g fill="#fff">${[0,1,2].map(i=>`<rect x="-16" y="${-18-i*5}" width="32" height="2.5"/>`).join('')}</g>
+      <circle cx="0" cy="-32" r="3" fill="#ffde3a"/>
+    </g>
+    <text x="60" y="140" font-family="serif" font-size="10" fill="#c01818" text-anchor="middle" font-weight="bold">くいだおれ</text>
+    <!-- 下部の店舗窓 -->
+    <g>${litWindows(20,160,4,7,14,12,22,20,0.55)}</g>
+    <!-- のれん -->
+    <rect x="16" y="300" width="88" height="30" fill="#1a3a6a"/>
+    <text x="60" y="320" font-family="serif" font-size="11" fill="#ffde3a" text-anchor="middle">たこ焼き</text>
+  </svg>`;
+}
+
+/* =========================================================
+   新世界
+   ========================================================= */
+
+// 通天閣（最高品質・夜景）
+function bldTsutenkaku(){
+  return `<svg width="150" height="450" viewBox="0 0 150 450"><defs>${COMMON_DEFS}
+    <linearGradient id="tSteel" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#6a5f45"/><stop offset="20%" stop-color="#c8b888"/><stop offset="45%" stop-color="#e8dcb0"/><stop offset="60%" stop-color="#d8c898"/><stop offset="82%" stop-color="#a89868"/><stop offset="100%" stop-color="#5a4f35"/></linearGradient>
+    <linearGradient id="tGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff0a0"/><stop offset="40%" stop-color="#ffd040"/><stop offset="100%" stop-color="#d89818"/></linearGradient>
+    <radialGradient id="tWeather" cx="40%" cy="35%" r="65%"><stop offset="0%" stop-color="#a0fff8"/><stop offset="50%" stop-color="#20e0d6"/><stop offset="100%" stop-color="#0a9088"/></radialGradient>
+    <linearGradient id="tBase" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e02020"/><stop offset="100%" stop-color="#a01010"/></linearGradient>
+    </defs>
+    <g stroke="#ffcf3a" stroke-width="1.5" opacity="0.45" filter="url(#softGlow)"><path d="M40 200 L26 288 L18 344" fill="none"/><path d="M110 200 L124 288 L132 344" fill="none"/></g>
+    <!-- 天気予報ネオン -->
+    <circle cx="75" cy="28" r="13" fill="url(#tWeather)" filter="url(#softGlow)"/>
+    <circle cx="75" cy="28" r="13" fill="none" stroke="#fff" stroke-width="1.5"/><circle cx="71" cy="24" r="4" fill="#fff" opacity="0.7"/>
+    <line x1="75" y1="15" x2="75" y2="3" stroke="#999" stroke-width="1.5"/><circle cx="75" cy="3" r="1.5" fill="#ff4040"/>
+    <!-- 展望台 -->
+    <path d="M56 42 L94 42 L88 52 L62 52 Z" fill="url(#tGold)"/>
+    <rect x="60" y="52" width="30" height="30" fill="url(#tGold)"/>
+    <path d="M60 52 L62 82 M90 52 L88 82 M75 52 L75 82" stroke="#c89818" stroke-width="0.6" opacity="0.6"/>
+    <g fill="#2a1e08"><rect x="63" y="58" width="6" height="10" rx="1"/><rect x="72" y="58" width="6" height="10" rx="1"/><rect x="81" y="58" width="6" height="10" rx="1"/></g>
+    <g fill="#88f0ff" opacity="0.5"><rect x="63" y="58" width="6" height="3"/><rect x="72" y="58" width="6" height="3"/><rect x="81" y="58" width="6" height="3"/></g>
+    <text x="75" y="78" font-family="sans-serif" font-size="5" fill="#3a2a08" text-anchor="middle" font-weight="bold">展望台</text>
+    <path d="M60 82 L90 82 L86 94 L64 94 Z" fill="url(#tSteel)"/>
+    <path d="M52 94 L98 94 L102 110 L48 110 Z" fill="url(#tSteel)"/>
+    <rect x="54" y="96" width="42" height="11" fill="#0a1428"/>
+    <text x="75" y="105" font-family="Arial,sans-serif" font-size="8" fill="#ff4a4a" text-anchor="middle" font-weight="bold" letter-spacing="0.5" filter="url(#neonGlow)">HITACHI</text>
+    <path d="M48 110 L102 110 L116 238 L34 238 Z" fill="url(#tSteel)"/>
+    <path d="M62 110 L52 238 M88 110 L98 238 M75 110 L75 238" stroke="#7a6f4a" stroke-width="0.8" opacity="0.5"/>
+    <g stroke="#5a4f30" stroke-width="1" opacity="0.6"><line x1="52" y1="128" x2="98" y2="128"/><line x1="50" y1="150" x2="100" y2="150"/><line x1="46" y1="178" x2="104" y2="178"/><line x1="42" y1="210" x2="108" y2="210"/></g>
+    <g stroke="#6a5f3a" stroke-width="0.6" opacity="0.45"><path d="M56 110 L94 150 M94 110 L56 150 M52 150 L98 210 M98 150 L52 210"/></g>
+    <rect x="58" y="130" width="34" height="60" fill="#0a1428" opacity="0.9"/>
+    <text x="75" y="144" font-family="sans-serif" font-size="6.5" fill="#e8e8e8" text-anchor="middle">社会</text>
+    <text x="75" y="155" font-family="sans-serif" font-size="6.5" fill="#e8e8e8" text-anchor="middle">イノベー</text>
+    <text x="75" y="166" font-family="sans-serif" font-size="6.5" fill="#e8e8e8" text-anchor="middle">ションの</text>
+    <text x="75" y="180" font-family="sans-serif" font-size="9" fill="#ff4a4a" text-anchor="middle" font-weight="bold" filter="url(#neonGlow)">日立</text>
+    <path d="M34 238 L48 238 L40 288 L20 288 Z" fill="url(#tSteel)"/>
+    <path d="M102 238 L116 238 L130 288 L110 288 Z" fill="url(#tSteel)"/>
+    <rect x="48" y="238" width="54" height="50" fill="#c8b888"/><path d="M48 238 L102 238" stroke="#7a6f4a" stroke-width="1"/>
+    <g stroke="#6a5f3a" stroke-width="0.6" opacity="0.4"><path d="M24 288 L44 248 M44 288 L24 248 M106 288 L126 248 M126 288 L106 248"/></g>
+    <rect x="18" y="288" width="114" height="62" fill="url(#tBase)"/>
+    <rect x="18" y="289" width="114" height="3" fill="#ff5050" opacity="0.5"/>
+    <text x="75" y="314" font-family="'Hiragino Mincho',serif" font-size="15" fill="#ffde3a" text-anchor="middle" font-weight="bold" letter-spacing="2">通天閣</text>
+    <!-- ビリケンさん -->
+    <g transform="translate(75 334)">
+      <ellipse cx="0" cy="0" rx="9" ry="10" fill="#f0c060"/><path d="M-5 -7 Q0 -14 5 -7" fill="#f0c060"/><path d="M-2 -9 L0 -13 L2 -9" fill="#f0c060"/>
+      <ellipse cx="0" cy="8" rx="6" ry="3" fill="#e0b050"/>
+      <circle cx="-3" cy="-1" r="1.2" fill="#000"/><circle cx="3" cy="-1" r="1.2" fill="#000"/><path d="M-2 3 Q0 5 2 3" stroke="#a06020" stroke-width="0.8" fill="none"/>
+      <path d="M-9 0 Q-13 4 -11 8 M9 0 Q13 4 11 8" stroke="#f0c060" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </g>
+  </svg>`;
+}
+
+// 新世界の串カツ・ふぐ看板ビル（最高品質）
+function bldShinsekai(){
+  return `<svg width="140" height="350" viewBox="0 0 140 350"><defs>${COMMON_DEFS}
+    <linearGradient id="ssBldg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e8dcc0"/><stop offset="100%" stop-color="#d0c0a0"/></linearGradient>
+    <radialGradient id="fuguBody" cx="45%" cy="35%" r="70%"><stop offset="0%" stop-color="#fff8ec"/><stop offset="100%" stop-color="#e8dcc4"/></radialGradient>
+    <linearGradient id="ssRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e82020"/><stop offset="100%" stop-color="#b01414"/></linearGradient>
+    <radialGradient id="katsu" cx="45%" cy="35%" r="70%"><stop offset="0%" stop-color="#f0b858"/><stop offset="100%" stop-color="#c88828"/></radialGradient>
+    </defs>
+    <rect x="15" y="30" width="110" height="320" fill="url(#ssBldg)" stroke="#c0b090" stroke-width="1.5"/>
+    <!-- 上部の赤い店名 -->
+    <rect x="20" y="38" width="100" height="26" rx="2" fill="url(#ssRed)"/>
+    <rect x="20" y="39" width="100" height="3" fill="#ff5050" opacity="0.5"/>
+    <text x="70" y="58" font-family="'Hiragino Mincho',serif" font-size="16" fill="#ffde3a" text-anchor="middle" font-weight="bold" letter-spacing="1">新世界 串カツ</text>
+    <!-- 立体ふぐ提灯（づぼらや） -->
+    <g transform="translate(44 96)">
+      <ellipse cx="0" cy="2" rx="27" ry="21" fill="#000" opacity="0.1"/>
+      <ellipse cx="0" cy="0" rx="27" ry="21" fill="url(#fuguBody)" stroke="#d8c8a8" stroke-width="1.5"/>
+      <ellipse cx="-3" cy="-4" rx="19" ry="13" fill="#f4e8d4" opacity="0.6"/>
+      <g fill="#c8a860" opacity="0.5"><circle cx="-8" cy="-2" r="2.2"/><circle cx="0" cy="-6" r="2.2"/><circle cx="6" cy="0" r="2.2"/><circle cx="-4" cy="4" r="1.6"/><circle cx="8" cy="6" r="1.6"/></g>
+      <circle cx="-12" cy="-6" r="4.5" fill="#fff" stroke="#333" stroke-width="0.6"/><circle cx="-12" cy="-6" r="2.2" fill="#1a1a1a"/><circle cx="-13" cy="-7" r="0.7" fill="#fff"/>
+      <path d="M-25 2 Q-30 5 -25 9 Q-20 7 -22 2" fill="#e88888"/>
+      <path d="M20 -9 Q31 -13 29 -2 Q25 -5 20 -3 Z" fill="#f0e4d0" stroke="#d8c8a8" stroke-width="0.6"/>
+      <path d="M22 9 Q33 13 29 17 Q25 13 20 13 Z" fill="#f0e4d0" stroke="#d8c8a8" stroke-width="0.6"/>
+      <path d="M24 0 Q39 -6 41 0 Q39 6 24 4 Z" fill="#f0e4d0" stroke="#d8c8a8" stroke-width="0.6"/>
+    </g>
+    <text x="44" y="130" font-family="serif" font-size="11" fill="#c01818" text-anchor="middle" font-weight="bold">づぼらや</text>
+    <!-- 立体串カツ -->
+    <g transform="translate(100 98)">
+      <line x1="0" y1="-32" x2="0" y2="38" stroke="#c8a860" stroke-width="3"/>
+      <ellipse cx="0" cy="-17" rx="12" ry="10" fill="url(#katsu)" stroke="#b87820" stroke-width="1"/>
+      <ellipse cx="0" cy="0" rx="13" ry="10" fill="url(#katsu)" stroke="#b87820" stroke-width="1"/>
+      <ellipse cx="0" cy="17" rx="12" ry="10" fill="url(#katsu)" stroke="#b87820" stroke-width="1"/>
+      <g fill="#a86818" opacity="0.6"><circle cx="-4" cy="-17" r="1.2"/><circle cx="4" cy="-15" r="1.2"/><circle cx="-5" cy="0" r="1.2"/><circle cx="5" cy="2" r="1.2"/><circle cx="-3" cy="17" r="1.2"/><circle cx="4" cy="19" r="1.2"/></g>
+      <g fill="#fff" opacity="0.4"><ellipse cx="-4" cy="-19" rx="3" ry="1.5"/><ellipse cx="-4" cy="-2" rx="3" ry="1.5"/></g>
+    </g>
+    <!-- 二度づけ禁止札 -->
+    <rect x="40" y="150" width="60" height="18" rx="2" fill="#ffde3a" stroke="#c01818" stroke-width="1.5"/>
+    <text x="70" y="163" font-family="serif" font-size="9" fill="#c01818" text-anchor="middle" font-weight="bold">二度づけ禁止</text>
+    <!-- 提灯 -->
+    <g>${[0,1,2,3].map(i=>`<g><ellipse cx="${30+i*25}" cy="185" rx="7" ry="10" fill="${i%2?'#ffde3a':'#e02020'}" filter="url(#neonGlow)"/><rect x="${27+i*25}" y="176" width="6" height="3" fill="#8a1010"/></g>`).join('')}</g>
+    <!-- 店舗入口 -->
+    <rect x="25" y="205" width="90" height="145" fill="#2a1e12"/>
+    <rect x="32" y="217" width="34" height="133" fill="#f0d888" opacity="0.8"/>
+    <rect x="74" y="217" width="34" height="133" fill="#f0d888" opacity="0.8"/>
+    <rect x="30" y="205" width="80" height="16" fill="url(#ssRed)"/>
+    <text x="70" y="217" font-family="serif" font-size="10" fill="#fff" text-anchor="middle">串カツ</text>
+  </svg>`;
+}
+
+// スパワールド風・新世界の大型施設
+function bldSpaworld(){
+  return `<svg width="140" height="340" viewBox="0 0 140 340"><defs>${COMMON_DEFS}
+    <linearGradient id="spBldg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2a3a5a"/><stop offset="100%" stop-color="#1a2540"/></linearGradient>
+    </defs>
+    <rect x="12" y="20" width="116" height="320" fill="url(#spBldg)" stroke="#0f1830" stroke-width="2"/>
+    <!-- ローマ風の柱・アーチ（スパワールドっぽく） -->
+    <g fill="#c8b888">
+      <rect x="20" y="60" width="10" height="120"/><rect x="110" y="60" width="10" height="120"/>
+      <rect x="16" y="56" width="18" height="6"/><rect x="106" y="56" width="18" height="6"/>
+      <path d="M30 60 Q70 40 110 60 L110 70 Q70 52 30 70 Z" fill="#d8c898"/>
+    </g>
+    <rect x="34" y="30" width="72" height="24" rx="3" fill="#1a4a8a"/>
+    <text x="70" y="48" font-family="Arial,sans-serif" font-size="13" fill="#fff" text-anchor="middle" font-weight="bold" filter="url(#neonGlow)">SPA WORLD</text>
+    <text x="70" y="100" font-family="serif" font-size="12" fill="#ffde3a" text-anchor="middle" font-weight="bold">世界の大温泉</text>
+    <!-- 湯気 -->
+    <g fill="#fff" opacity="0.25"><ellipse cx="45" cy="120" rx="8" ry="14"/><ellipse cx="70" cy="110" rx="7" ry="12"/><ellipse cx="95" cy="120" rx="8" ry="14"/></g>
+    <g>${litWindows(22,150,5,7,15,12,20,22,0.5)}</g>
+  </svg>`;
+}
+
+
+/* =========================================================
+   鶴橋（コリアタウン）
+   ========================================================= */
+function bldTsuruhashi(){
+  return `<svg width="175" height="330" viewBox="0 0 175 330"><defs>${COMMON_DEFS}
+    <linearGradient id="thArcade" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4a3520"/><stop offset="100%" stop-color="#251a10"/></linearGradient>
+    <linearGradient id="thRoof" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#d03838"/><stop offset="100%" stop-color="#a02020"/></linearGradient>
+    </defs>
+    <!-- アーケードの湾曲屋根 -->
+    <path d="M5 60 Q87 28 170 60 L170 80 Q87 48 5 80 Z" fill="url(#thRoof)" stroke="#801818" stroke-width="2"/>
+    <g stroke="#801818" stroke-width="1" opacity="0.5"><path d="M5 70 Q87 38 170 70"/></g>
+    <!-- 鶴橋商店街の看板 -->
+    <rect x="47" y="42" width="82" height="20" rx="2" fill="#0a1a4a"/>
+    <rect x="47" y="43" width="82" height="2" fill="#3a5a9a" opacity="0.6"/>
+    <text x="88" y="57" font-family="'Hiragino Mincho',serif" font-size="13" fill="#ffde3a" text-anchor="middle" font-weight="bold" letter-spacing="1">鶴橋商店街</text>
+    <!-- アーケード内部（薄暗い） -->
+    <rect x="10" y="76" width="155" height="254" fill="url(#thArcade)"/>
+    <!-- トタン天井 -->
+    <rect x="10" y="76" width="155" height="16" fill="#5a4530"/>
+    <g stroke="#3a2a1a" stroke-width="0.6">${[...Array(20)].map((_,i)=>`<line x1="${14+i*8}" y1="76" x2="${14+i*8}" y2="92"/>`).join('')}</g>
+    <!-- 提灯の列 -->
+    <g>${[0,1,2,3,4,5].map(i=>`<g><ellipse cx="${28+i*24}" cy="104" rx="8" ry="11" fill="${i%2?'#ffde3a':'#e02020'}" filter="url(#neonGlow)"/><rect x="${25+i*24}" y="94" width="6" height="3" fill="#8a6020"/></g>`).join('')}</g>
+    <!-- 店舗1: キムチ屋 -->
+    <rect x="16" y="128" width="47" height="202" fill="#6a4a2a"/>
+    <rect x="20" y="150" width="39" height="62" fill="#8a3020"/>
+    <rect x="18" y="132" width="43" height="16" fill="#c01818"/>
+    <text x="39" y="144" font-family="serif" font-size="11" fill="#ffde3a" text-anchor="middle" font-weight="bold">キムチ</text>
+    <!-- キムチの赤い山 -->
+    <ellipse cx="29" cy="208" rx="8" ry="5" fill="#c83018"/><ellipse cx="49" cy="208" rx="8" ry="5" fill="#d84020"/>
+    <ellipse cx="29" cy="202" rx="7" ry="4" fill="#e05028"/><ellipse cx="49" cy="202" rx="7" ry="4" fill="#e85830"/>
+    <g fill="#f07040" opacity="0.6"><circle cx="27" cy="201" r="1.5"/><circle cx="31" cy="203" r="1.5"/><circle cx="47" cy="201" r="1.5"/></g>
+    <rect x="22" y="218" width="34" height="12" fill="#0a1a4a"/>
+    <text x="39" y="227" font-family="sans-serif" font-size="8" fill="#fff" text-anchor="middle">김치</text>
+    <!-- 店舗2: 焼肉屋 -->
+    <rect x="65" y="128" width="47" height="202" fill="#5a3828"/>
+    <rect x="69" y="152" width="39" height="55" fill="#3a2418"/>
+    <rect x="67" y="132" width="43" height="16" fill="#c01818"/>
+    <text x="88" y="144" font-family="serif" font-size="11" fill="#ffde3a" text-anchor="middle" font-weight="bold">焼肉</text>
+    <g fill="#ddd" opacity="0.3"><ellipse cx="81" cy="166" rx="6" ry="9"/><ellipse cx="94" cy="158" rx="5" ry="8"/></g>
+    <!-- 焼肉の網 -->
+    <rect x="76" y="180" width="24" height="16" rx="2" fill="#2a2a2a"/>
+    <g stroke="#e05020" stroke-width="1" opacity="0.7"><line x1="79" y1="184" x2="97" y2="184"/><line x1="79" y1="188" x2="97" y2="188"/><line x1="79" y1="192" x2="97" y2="192"/></g>
+    <g fill="#8a4020"><rect x="80" y="182" width="5" height="4" rx="1"/><rect x="88" y="182" width="5" height="4" rx="1"/></g>
+    <!-- 店舗3: チマチョゴリ -->
+    <rect x="114" y="128" width="47" height="202" fill="#4a3a5a"/>
+    <rect x="118" y="150" width="39" height="62" fill="#2a2038"/>
+    <rect x="116" y="132" width="43" height="16" fill="#1a4a8a"/>
+    <text x="137" y="144" font-family="serif" font-size="9" fill="#ffde3a" text-anchor="middle" font-weight="bold">韓国衣装</text>
+    <!-- チマチョゴリ（色鮮やか） -->
+    <g transform="translate(125 175)"><path d="M0 0 L9 0 L11 9 L-2 9 Z" fill="#e85088"/><path d="M-3 9 L12 9 L15 32 L-6 32 Z" fill="#f090b0"/><path d="M-3 9 L12 9 L11 13 L-2 13 Z" fill="#fff" opacity="0.3"/></g>
+    <g transform="translate(144 175)"><path d="M0 0 L9 0 L11 9 L-2 9 Z" fill="#5088e8"/><path d="M-3 9 L12 9 L15 32 L-6 32 Z" fill="#80b0f0"/></g>
+    <rect x="10" y="315" width="155" height="15" fill="#1a1208"/>
+  </svg>`;
+}
+
+// 鶴橋の焼肉ビル（煙・赤ちょうちん）
+function bldYakiniku(){
+  return `<svg width="120" height="320" viewBox="0 0 120 320"><defs>${COMMON_DEFS}
+    <linearGradient id="ykBldg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3a2a1a"/><stop offset="100%" stop-color="#251810"/></linearGradient>
+    </defs>
+    <rect x="12" y="20" width="96" height="300" fill="url(#ykBldg)" stroke="#1a1008" stroke-width="2"/>
+    <rect x="18" y="28" width="84" height="30" rx="3" fill="#c01818"/>
+    <text x="60" y="50" font-family="'Hiragino Mincho',serif" font-size="18" fill="#ffde3a" text-anchor="middle" font-weight="bold" letter-spacing="2">焼肉 鶴一</text>
+    <!-- ハングル -->
+    <rect x="30" y="66" width="60" height="16" fill="#0a1a4a"/>
+    <text x="60" y="78" font-family="sans-serif" font-size="10" fill="#fff" text-anchor="middle">불고기</text>
+    <!-- 大きな煙 -->
+    <g fill="#ddd" opacity="0.25"><ellipse cx="40" cy="110" rx="10" ry="16"/><ellipse cx="65" cy="98" rx="8" ry="13"/><ellipse cx="80" cy="115" rx="9" ry="14"/></g>
+    <!-- 肉の絵 -->
+    <text x="60" y="130" font-size="22" text-anchor="middle">🥩</text>
+    <!-- 窓 -->
+    <g>${litWindows(20,150,4,6,15,12,22,20,0.6,'#e8a030')}</g>
+    <!-- 赤提灯の連なり -->
+    <g>${[0,1,2,3].map(i=>`<ellipse cx="${28+i*22}" cy="290" rx="7" ry="10" fill="#e02020" filter="url(#neonGlow)"/>`).join('')}</g>
+  </svg>`;
+}
+
+/* =========================================================
+   梅田（キタ・高層ビル群）
+   ========================================================= */
+// 梅田スカイビル（空中庭園）
+function bldUmedaSky(){
+  return `<svg width="160" height="440" viewBox="0 0 160 440"><defs>${COMMON_DEFS}
+    <linearGradient id="uSkyGlass" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#2a4a6a"/><stop offset="30%" stop-color="#4a7aa8"/><stop offset="50%" stop-color="#6a9ac8"/><stop offset="70%" stop-color="#3a6a98"/><stop offset="100%" stop-color="#1a3a5a"/></linearGradient>
+    </defs>
+    <!-- 2本のタワー -->
+    <rect x="20" y="60" width="45" height="380" fill="url(#uSkyGlass)" stroke="#1a2a3a" stroke-width="2"/>
+    <rect x="95" y="60" width="45" height="380" fill="url(#uSkyGlass)" stroke="#1a2a3a" stroke-width="2"/>
+    <!-- 空中庭園（上部の連結リング） -->
+    <path d="M15 60 L145 60 L145 90 L15 90 Z" fill="#3a5a7a" stroke="#1a2a3a" stroke-width="2"/>
+    <circle cx="80" cy="75" r="16" fill="#1a2a3a"/><circle cx="80" cy="75" r="12" fill="#2a4a6a"/>
+    <!-- 空中庭園の丸い穴 -->
+    <ellipse cx="80" cy="75" rx="10" ry="8" fill="#0a1a2a" stroke="#4a7aa8" stroke-width="1.5"/>
+    <text x="80" y="52" font-family="Arial,sans-serif" font-size="8" fill="#fff" text-anchor="middle" font-weight="bold">空中庭園</text>
+    <!-- ガラス窓の格子 -->
+    <g stroke="#1a3a5a" stroke-width="0.8" opacity="0.6">
+      ${[...Array(18)].map((_,r)=>`<line x1="20" y1="${95+r*19}" x2="65" y2="${95+r*19}"/><line x1="95" y1="${95+r*19}" x2="140" y2="${95+r*19}"/>`).join('')}
+      ${[0,1,2].map(c=>`<line x1="${33+c*15}" y1="95" x2="${33+c*15}" y2="440"/><line x1="${108+c*15}" y1="95" x2="${108+c*15}" y2="440"/>`).join('')}
+    </g>
+    <!-- 灯りのついた窓（ランダム） -->
+    <g>${(()=>{let s='';for(let r=0;r<17;r++)for(let c=0;c<3;c++){if(Math.random()<0.4)s+=`<rect x="${22+c*15}" y="${97+r*19}" width="12" height="15" fill="#ffdc6a" opacity="0.7"/>`;if(Math.random()<0.4)s+=`<rect x="${97+c*15}" y="${97+r*19}" width="12" height="15" fill="#ffdc6a" opacity="0.7"/>`;}return s;})()}</g>
+    <!-- 頂部の赤いライト -->
+    <circle cx="42" cy="60" r="2" fill="#ff4040"/><circle cx="118" cy="60" r="2" fill="#ff4040"/>
+  </svg>`;
+}
+
+// 梅田の観覧車（HEP FIVE風・赤い観覧車）
+function bldFerrisWheel(){
+  return `<svg width="150" height="420" viewBox="0 0 150 420"><defs>${COMMON_DEFS}
+    <radialGradient id="wheelRed" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ff4040"/><stop offset="100%" stop-color="#c01818"/></radialGradient>
+    <linearGradient id="fwBldg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2a2a3a"/><stop offset="100%" stop-color="#1a1a28"/></linearGradient>
+    </defs>
+    <!-- 下のビル -->
+    <rect x="20" y="230" width="110" height="190" fill="url(#fwBldg)" stroke="#0f0f1a" stroke-width="2"/>
+    <g>${litWindows(28,250,5,7,14,12,20,22,0.5)}</g>
+    <!-- 赤い観覧車（ビルの屋上を貫く） -->
+    <g transform="translate(75 150)">
+      <!-- 外周リング -->
+      <circle cx="0" cy="0" r="90" fill="none" stroke="url(#wheelRed)" stroke-width="7" filter="url(#neonGlow)"/>
+      <circle cx="0" cy="0" r="90" fill="none" stroke="#ff8080" stroke-width="2" opacity="0.6"/>
+      <circle cx="0" cy="0" r="78" fill="none" stroke="#e02020" stroke-width="2" opacity="0.5"/>
+      <!-- スポーク -->
+      <g stroke="#e05050" stroke-width="1.5" opacity="0.7">${[...Array(16)].map((_,i)=>{const a=i*Math.PI/8;return `<line x1="0" y1="0" x2="${Math.cos(a)*88}" y2="${Math.sin(a)*88}"/>`;}).join('')}</g>
+      <!-- ゴンドラ -->
+      <g>${[...Array(16)].map((_,i)=>{const a=i*Math.PI/8;const x=Math.cos(a)*90,y=Math.sin(a)*90;const col=['#ffde3a','#20e0d6','#ff2d95','#5ac850'][i%4];return `<circle cx="${x}" cy="${y}" r="5" fill="${col}" stroke="#fff" stroke-width="0.8" opacity="0.9"/>`;}).join('')}</g>
+      <!-- 中心 -->
+      <circle cx="0" cy="0" r="8" fill="#c01818" stroke="#fff" stroke-width="1.5"/>
+      <circle cx="0" cy="0" r="3" fill="#ffde3a"/>
+    </g>
+    <!-- 支柱 -->
+    <path d="M55 235 L72 150 M95 235 L78 150" stroke="#888" stroke-width="4" opacity="0.7"/>
+  </svg>`;
+}
+
+// 梅田のオフィス高層ビル
+function bldUmedaTower(){
+  return `<svg width="110" height="440" viewBox="0 0 110 440"><defs>${COMMON_DEFS}
+    <linearGradient id="utGlass" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a2a4a"/><stop offset="35%" stop-color="#3a5a8a"/><stop offset="55%" stop-color="#4a6a9a"/><stop offset="100%" stop-color="#0f1a30"/></linearGradient>
+    </defs>
+    <rect x="15" y="20" width="80" height="420" fill="url(#utGlass)" stroke="#0a1220" stroke-width="2"/>
+    <!-- 頂部 -->
+    <rect x="25" y="8" width="60" height="14" fill="#2a3a5a"/>
+    <rect x="45" y="0" width="20" height="10" fill="#1a2a4a"/>
+    <circle cx="55" cy="2" r="2" fill="#ff4040"/>
+    <!-- ガラスの格子 -->
+    <g stroke="#0f1a30" stroke-width="0.8" opacity="0.7">
+      ${[...Array(22)].map((_,r)=>`<line x1="15" y1="${30+r*18}" x2="95" y2="${30+r*18}"/>`).join('')}
+      ${[0,1,2,3].map(c=>`<line x1="${31+c*16}" y1="20" x2="${31+c*16}" y2="440"/>`).join('')}
+    </g>
+    <g>${(()=>{let s='';for(let r=0;r<22;r++)for(let c=0;c<4;c++){if(Math.random()<0.35)s+=`<rect x="${17+c*16}" y="${32+r*18}" width="13" height="14" fill="#ffdc6a" opacity="0.65"/>`;}return s;})()}</g>
+  </svg>`;
+}
+
+/* =========================================================
+   難波（ミナミ・戎橋）
+   ========================================================= */
+function bldNamba(){
+  return `<svg width="150" height="360" viewBox="0 0 150 360"><defs>${COMMON_DEFS}
+    <linearGradient id="nbBldg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3a2a4a"/><stop offset="100%" stop-color="#201830"/></linearGradient>
+    <linearGradient id="nbLed" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ff2d95"/><stop offset="50%" stop-color="#8a2aa8"/><stop offset="100%" stop-color="#20a0d8"/></linearGradient>
+    </defs>
+    <rect x="15" y="20" width="120" height="340" fill="url(#nbBldg)" stroke="#150e22" stroke-width="2"/>
+    <!-- 大型LEDビジョン -->
+    <rect x="24" y="32" width="102" height="72" rx="3" fill="#0a0a1a" stroke="#4a4a5a" stroke-width="2"/>
+    <rect x="28" y="36" width="94" height="64" fill="url(#nbLed)" opacity="0.85"/>
+    <circle cx="75" cy="62" r="18" fill="#fff" opacity="0.7" filter="url(#softGlow)"/><circle cx="75" cy="62" r="10" fill="#ffde3a"/>
+    <g fill="#fff" opacity="0.5"><rect x="35" y="42" width="16" height="4" rx="1"/><rect x="35" y="50" width="24" height="4" rx="1"/><rect x="98" y="82" width="18" height="4" rx="1"/></g>
+    <!-- 店名帯 -->
+    <rect x="24" y="110" width="102" height="24" rx="3" fill="#c01858"/>
+    <rect x="24" y="111" width="102" height="3" fill="#ff5090" opacity="0.5"/>
+    <text x="75" y="128" font-family="Arial Black,sans-serif" font-size="17" fill="#fff" text-anchor="middle" font-weight="900" letter-spacing="1" filter="url(#neonGlow)">NAMBA</text>
+    <!-- 縦ネオン -->
+    <rect x="24" y="140" width="24" height="120" rx="2" fill="#0a0518" stroke="#20e0d6" stroke-width="1.5" filter="url(#neonGlow)"/>
+    <text x="36" y="166" font-family="serif" font-size="14" fill="#20e0d6" text-anchor="middle" filter="url(#neonGlow)" style="writing-mode:vertical-rl">戎橋</text>
+    <g>${litWindows(56,145,3,6,16,12,24,20,0.5)}</g>
+    <!-- 道頓堀川の照り返し -->
+    <rect x="0" y="330" width="150" height="30" fill="#1a5a6a" opacity="0.4"/>
+    <g stroke="#20e0d6" stroke-width="1" opacity="0.4">${[...Array(15)].map((_,i)=>`<line x1="${i*10}" y1="332" x2="${i*10+6}" y2="342"/>`).join('')}</g>
+    <!-- 戎橋の欄干 -->
+    <rect x="10" y="322" width="130" height="8" fill="#8a3030"/>
+    <g fill="#8a3030">${[0,1,2,3,4,5,6].map(i=>`<rect x="${16+i*18}" y="314" width="4" height="10"/>`).join('')}</g>
+  </svg>`;
+}
+
+// 難波グランド花月・なんばの劇場ビル
+function bldNGK(){
+  return `<svg width="130" height="340" viewBox="0 0 130 340"><defs>${COMMON_DEFS}
+    <linearGradient id="ngkBldg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8a2020"/><stop offset="100%" stop-color="#601010"/></linearGradient>
+    </defs>
+    <rect x="12" y="20" width="106" height="320" fill="url(#ngkBldg)" stroke="#400808" stroke-width="2"/>
+    <!-- 黄色い派手な看板 -->
+    <rect x="18" y="28" width="94" height="40" rx="4" fill="#ffde3a" stroke="#c01818" stroke-width="2"/>
+    <text x="65" y="46" font-family="'Hiragino Mincho',serif" font-size="14" fill="#c01818" text-anchor="middle" font-weight="bold">なんば</text>
+    <text x="65" y="62" font-family="'Hiragino Mincho',serif" font-size="14" fill="#c01818" text-anchor="middle" font-weight="bold">グランド花月</text>
+    <!-- 電飾の縁取り -->
+    <g fill="#ffde3a">${[...Array(12)].map((_,i)=>`<circle cx="${22+i*8}" cy="74" r="2.5" filter="url(#neonGlow)"/>`).join('')}</g>
+    <!-- 幕（赤白の垂れ幕） -->
+    <g>${[...Array(8)].map((_,i)=>`<path d="M${18+i*12} 82 L${30+i*12} 82 L${24+i*12} 96 Z" fill="${i%2?'#fff':'#e02020'}"/>`).join('')}</g>
+    <text x="65" y="120" font-family="serif" font-size="11" fill="#ffde3a" text-anchor="middle">🎭 吉本新喜劇</text>
+    <!-- 窓 -->
+    <g>${litWindows(22,140,4,7,15,12,22,20,0.55,'#ffdc6a')}</g>
+    <!-- 入口 -->
+    <rect x="20" y="300" width="90" height="40" fill="#400808"/>
+    <rect x="30" y="308" width="70" height="32" fill="#ffde3a" opacity="0.3"/>
+  </svg>`;
+}
+
+/* =========================================================
+   駅（電車に乗る場所）
+   ========================================================= */
+function bldStation(lineColor, lineName){
+  return `<svg width="180" height="300" viewBox="0 0 180 300"><defs>${COMMON_DEFS}
+    <linearGradient id="stnBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e8e4dc"/><stop offset="100%" stop-color="#c8c4bc"/></linearGradient>
+    </defs>
+    <!-- 駅舎 -->
+    <rect x="10" y="70" width="160" height="230" fill="url(#stnBody)" stroke="#a8a49c" stroke-width="2"/>
+    <!-- 屋根 -->
+    <path d="M2 70 L178 70 L170 54 L10 54 Z" fill="#4a5560" stroke="#3a4550" stroke-width="1.5"/>
+    <!-- 路線カラーの帯 -->
+    <rect x="10" y="74" width="160" height="12" fill="${lineColor}"/>
+    <!-- 駅名標 -->
+    <rect x="40" y="92" width="100" height="34" rx="4" fill="#fff" stroke="${lineColor}" stroke-width="3"/>
+    <rect x="40" y="92" width="100" height="8" fill="${lineColor}"/>
+    <text x="90" y="118" font-family="'Hiragino Mincho',serif" font-size="15" fill="#333" text-anchor="middle" font-weight="bold">${lineName}</text>
+    <!-- 改札口 -->
+    <rect x="30" y="200" width="120" height="100" fill="#2a2a30"/>
+    <rect x="38" y="210" width="30" height="90" fill="#3a5a7a" opacity="0.8"/>
+    <rect x="75" y="210" width="30" height="90" fill="#3a5a7a" opacity="0.8"/>
+    <rect x="112" y="210" width="30" height="90" fill="#3a5a7a" opacity="0.8"/>
+    <!-- 改札機 -->
+    <g fill="#4a5560">${[0,1,2].map(i=>`<rect x="${52+i*38}" y="270" width="10" height="30" rx="2"/>`).join('')}</g>
+    <!-- 🚇マークとのりば案内 -->
+    <rect x="55" y="140" width="70" height="24" rx="12" fill="${lineColor}"/>
+    <text x="90" y="157" font-family="sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">🚇 のりば</text>
+    <!-- 窓 -->
+    <g fill="#ffdc6a" opacity="0.6"><rect x="20" y="140" width="24" height="18"/><rect x="136" y="140" width="24" height="18"/></g>
+  </svg>`;
+}
+
+/* =========================================================
+   遠景ビル（多層シルエット）
+   ========================================================= */
+function farBuildingSVG(h, color, litColor){
+  return `<svg width="90" height="${h}" viewBox="0 0 90 ${h}">
+    <rect x="5" y="0" width="80" height="${h}" fill="${color}" opacity="0.9" rx="2"/>
+    <rect x="5" y="0" width="80" height="4" fill="${color}"/>
+    <g fill="${litColor||'#ffde3a'}" opacity="0.3">${(()=>{let s='';const rows=Math.floor(h/22);for(let r=0;r<rows;r++)for(let c=0;c<4;c++){if(Math.random()<0.5)s+=`<rect x="${12+c*18}" y="${10+r*22}" width="10" height="12"/>`;}return s;})()}</g>
+  </svg>`;
+}
+
+/* =========================================================
+   街路設備
+   ========================================================= */
+function propSignal(){return `<svg width="60" height="150" viewBox="0 0 60 150"><rect x="27" y="20" width="6" height="130" fill="#4a5560"/><rect x="10" y="18" width="44" height="4" fill="#4a5560"/><rect x="6" y="12" width="34" height="14" rx="3" fill="#2a3038"/><circle cx="13" cy="19" r="4" fill="#1a3a1a"/><circle cx="23" cy="19" r="4" fill="#3a3a10"/><circle cx="33" cy="19" r="4.5" fill="#20e030" filter="url(#neonGlow)"/></svg>`;}
+function propPole(){return `<svg width="30" height="180" viewBox="0 0 30 180"><rect x="12" y="0" width="6" height="180" fill="#8a8578"/><rect x="2" y="14" width="26" height="3" fill="#5a5548"/><rect x="4" y="26" width="22" height="3" fill="#5a5548"/><rect x="16" y="34" width="10" height="14" rx="2" fill="#6a6558"/><path d="M2 15 Q0 20 2 27" stroke="#333" stroke-width="0.8" fill="none"/></svg>`;}
+function propVending(){return `<svg width="60" height="110" viewBox="0 0 60 110"><rect x="8" y="10" width="44" height="100" rx="3" fill="#d02020" stroke="#a01010" stroke-width="1.5"/><rect x="12" y="14" width="36" height="40" rx="2" fill="#1a2a4a"/><g>${[0,1,2,3].map(c=>[0,1].map(r=>`<rect x="${15+c*8}" y="${18+r*18}" width="6" height="14" rx="1" fill="${['#e8a020','#20a0e8','#e02040','#20c060'][c]}"/>`).join('')).join('')}</g><rect x="12" y="58" width="36" height="10" fill="#f0d040"/><text x="30" y="66" font-size="6" text-anchor="middle" fill="#a01010" font-weight="bold">つめたい</text><rect x="14" y="90" width="32" height="14" rx="2" fill="#2a2a2a"/></svg>`;}
+function propGuardrail(){return `<svg width="120" height="50" viewBox="0 0 120 50"><rect x="8" y="34" width="5" height="16" fill="#c8c8c0"/><rect x="107" y="34" width="5" height="16" fill="#c8c8c0"/><rect x="56" y="34" width="5" height="16" fill="#c8c8c0"/><path d="M4 24 Q60 20 116 24 L116 30 Q60 26 4 30 Z" fill="#e0e0d8" stroke="#b0b0a8" stroke-width="0.5"/></svg>`;}
+function propTakoyaki(){return `<svg width="90" height="130" viewBox="0 0 90 130"><path d="M5 40 L85 40 L78 24 L12 24 Z" fill="#d43030" stroke="#a02020" stroke-width="1.5"/><path d="M5 40 L85 40 L85 46 L5 46 Z" fill="#fff"/><g stroke="#d43030" stroke-width="3">${[0,1,2,3,4,5].map(i=>`<line x1="${12+i*13}" y1="40" x2="${12+i*13}" y2="46"/>`).join('')}</g><text x="45" y="37" font-family="serif" font-size="11" fill="#ffde3a" text-anchor="middle" font-weight="bold">たこ焼</text><rect x="14" y="46" width="4" height="80" fill="#8a7a5a"/><rect x="72" y="46" width="4" height="80" fill="#8a7a5a"/><rect x="10" y="90" width="70" height="36" fill="#7a5a3a" stroke="#5a4028" stroke-width="1"/><rect x="18" y="86" width="54" height="8" rx="2" fill="#2a2a2a"/><g fill="#d89840">${[0,1,2,3,4,5,6].map(c=>`<circle cx="${24+c*7}" cy="88" r="3"/>`).join('')}</g><g fill="#b87820">${[0,1,2,3,4,5,6].map(c=>`<circle cx="${24+c*7}" cy="88" r="1"/>`).join('')}</g><rect x="10" y="46" width="70" height="12" fill="#1a3a6a"/><text x="45" y="55" font-size="7" text-anchor="middle" fill="#fff">大阪名物</text></svg>`;}
+function propTree(){return `<svg width="60" height="120" viewBox="0 0 60 120"><rect x="26" y="70" width="8" height="50" fill="#5a4028"/><circle cx="30" cy="50" r="24" fill="#2a5a2a"/><circle cx="18" cy="58" r="16" fill="#357535"/><circle cx="42" cy="58" r="16" fill="#357535"/><circle cx="30" cy="38" r="18" fill="#3a6a3a"/></svg>`;}
+
+
+/* =========================================================
+   エリア定義（実際の大阪の地理・配置順に忠実）
+   御堂筋線: 梅田→(淀屋橋・本町・心斎橋)→難波→動物園前(新世界)
+   鶴橋: JR大阪環状線／難波から千日前線
+   ゲーム内の並び（左→右 = 北→南のイメージ）:
+   梅田 ── 難波 ── 道頓堀 ── 新世界 ── 鶴橋
+   ========================================================= */
+const LINE = {
+  midosuji:{color:'#e5171f', name:'御堂筋線'},
+  loop:{color:'#f68b1e', name:'大阪環状線'},
+  sennichi:{color:'#e44d93', name:'千日前線'},
+};
+
+const areas = [
+  { id:'umeda', name:'梅田（キタ）',
+    sky:['#0a1435','#1a2a5a','#3a4a7a'],
+    station:'梅田', line:'midosuji',
+    buildings:[bldUmedaSky, bldFerrisWheel, bldUmedaTower, bldUmedaTower],
+    far:['#1a2648','#243458','#141e3a'] },
+  { id:'namba', name:'難波（ミナミ）',
+    sky:['#1a1038','#3a1a5a','#5a2a7a'],
+    station:'なんば', line:'midosuji',
+    buildings:[bldNamba, bldNGK, bldNamba],
+    far:['#2a1848','#3a2858','#201638'] },
+  { id:'dotonbori', name:'道頓堀',
+    sky:['#0a1030','#1a2050','#2a3060'],
+    station:'なんば', line:'midosuji',
+    buildings:[bldGlico, bldKani, bldKuidaore, bldDotonNeon],
+    far:['#141a3a','#1e2a4a','#0e142e'] },
+  { id:'shinsekai', name:'新世界',
+    sky:['#0a1230','#2a1a4a','#4a2a5a'],
+    station:'動物園前', line:'midosuji',
+    buildings:[bldTsutenkaku, bldShinsekai, bldSpaworld],
+    far:['#1a1840','#2a2450','#141230'] },
+  { id:'tsuruhashi', name:'鶴橋（コリアタウン）',
+    sky:['#1a1230','#3a2450','#5a3a4a'],
+    station:'鶴橋', line:'loop',
+    buildings:[bldTsuruhashi, bldYakiniku, bldTsuruhashi],
+    far:['#241a38','#342848','#1e1630'] },
+];
+
+const AREA_W = 1000;
+function areaIndexAt(worldX){
+  let idx=Math.floor(worldX/AREA_W);
+  return Math.max(0,Math.min(areas.length-1,idx));
+}
+
+/* ===== 状態 ===== */
+const state = {
+  candy:30, score:0, worldX:0, facing:1, walking:false, running:false,
+  npcs:[], nextNpcAt:400, areaIdx:-1, builtAreas:new Set(),
+  stationWorld:{}, atStation:false, traveling:false,
+};
+const SPEED = 3.6;
+
+const sky=document.getElementById('sky'), skyGlow=document.getElementById('skyGlow');
+const farLayer=document.getElementById('farLayer'), midLayer=document.getElementById('midLayer'), propLayer=document.getElementById('propLayer');
+const ground=document.getElementById('ground'), streetDeco=document.getElementById('streetDeco');
+const obachan=document.getElementById('obachan'), bubble=document.getElementById('bubble');
+const candyCountEl=document.getElementById('candyCount'), scoreCountEl=document.getElementById('scoreCount');
+const placeNameEl=document.getElementById('placeName'), candyBtn=document.getElementById('candyBtn'), toast=document.getElementById('toast');
+const trainBtn=document.getElementById('trainBtn'), trainBtnSub=document.getElementById('trainBtnSub');
+const trainScreen=document.getElementById('trainScreen');
+
+obachan.innerHTML=obachanSVG();
+document.getElementById('titleGirl').innerHTML=obachanSVG();
+
+/* ===== 背景の下ごしらえ ===== */
+function buildGround(){
+  ground.innerHTML=`
+    <div style="position:absolute;inset:0;background:linear-gradient(#3a2e20,#241a10);"></div>
+    <div style="position:absolute;top:0;left:0;width:100%;height:5px;background:linear-gradient(90deg,#f5c542,#e8b830);box-shadow:0 0 8px rgba(245,197,66,.5);"></div>
+    <div style="position:absolute;top:5px;left:0;width:100%;height:12px;background:repeating-linear-gradient(90deg,#4a3a24 0 30px,#5a4a30 30px 60px);opacity:0.6;"></div>
+    <div style="position:absolute;bottom:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(90deg,transparent 0 60px,rgba(0,0,0,.15) 60px 62px);"></div>`;
+}
+function buildStreetDeco(){
+  let html='';
+  for(let i=0;i<60;i++){
+    const x=i*140;
+    html+=`<div style="position:absolute;bottom:6px;left:${x}px;width:28px;height:9px;border-radius:50%;background:#1a1208;opacity:0.55;"></div>`;
+    html+=`<div style="position:absolute;bottom:28px;left:${x+70}px;width:44px;height:5px;background:#f5c542;opacity:0.35;border-radius:2px;"></div>`;
+  }
+  streetDeco.innerHTML=html;
+  streetDeco.style.width=(60*140)+'px';
+}
+function buildSky(){
+  for(let i=0;i<40;i++){
+    const s=document.createElement('div');s.className='star';
+    const sz=1+Math.random()*2;s.style.width=sz+'px';s.style.height=sz+'px';
+    s.style.left=(Math.random()*100)+'%';s.style.top=(Math.random()*45)+'%';
+    s.style.animationDelay=(Math.random()*3)+'s';
+    sky.appendChild(s);
+  }
+  const moon=document.createElement('div');moon.className='celestial';
+  moon.style.cssText='right:12%;top:8%;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#fff8e0,#f0e0a0);box-shadow:0 0 30px rgba(255,240,180,.5);';
+  sky.appendChild(moon);
+  skyGlow.style.background='radial-gradient(ellipse at 50% 100%, rgba(255,45,149,.15), transparent 60%)';
+}
+
+/* ===== エリア構築 ===== */
+function buildArea(idx){
+  if(idx<0||idx>=areas.length||state.builtAreas.has(idx))return;
+  state.builtAreas.add(idx);
+  const area=areas[idx];
+  const baseX=idx*AREA_W;
+
+  for(let i=0;i<7;i++){
+    const fh=130+Math.random()*110;
+    const wrap=document.createElement('div');
+    wrap.innerHTML=farBuildingSVG(fh, area.far[i%3], '#ffdc6a');
+    const svg=wrap.firstChild;
+    svg.style.left=((baseX+i*150+Math.random()*40)*0.25)+'px';
+    farLayer.appendChild(svg);
+  }
+
+  const bldgs=area.buildings.slice();
+  const items=[...bldgs.map(b=>({fn:b,type:'bldg'}))];
+  const lineC=LINE[area.line];
+  items.push({fn:()=>bldStation(lineC.color, area.station+'駅'), type:'station'});
+
+  const gap=AREA_W/(items.length+0.3);
+  for(let i=0;i<items.length;i++){
+    const wrap=document.createElement('div');
+    wrap.innerHTML=items[i].fn();
+    const svg=wrap.firstChild;
+    const bw=parseFloat(svg.getAttribute('width'))||140;
+    const localCenter=gap*(i+0.65);
+    svg.style.left=(((baseX+localCenter)*0.62)-bw/2)+'px';
+    svg.dataset.centerWorld=baseX+localCenter;
+    if(items[i].type==='station'){svg.dataset.station='1';state.stationWorld[idx]=baseX+localCenter;}
+    midLayer.appendChild(svg);
+  }
+
+  const propPlan=[propTakoyaki];
+  const others=[propSignal,propPole,propVending,propGuardrail,propPole,propTree];
+  for(let k=0;k<3;k++)propPlan.push(others[Math.floor(Math.random()*others.length)]);
+  for(let i=propPlan.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[propPlan[i],propPlan[j]]=[propPlan[j],propPlan[i]];}
+  for(let i=0;i<propPlan.length;i++){
+    const wrap=document.createElement('div');wrap.innerHTML=propPlan[i]();const svg=wrap.firstChild;
+    svg.style.left=((baseX+100+i*(AREA_W/propPlan.length)+Math.random()*60)*0.85)+'px';
+    propLayer.appendChild(svg);
+  }
+}
+
+/* ===== 描画 ===== */
+function render(){
+  const wx=state.worldX;
+  farLayer.style.transform=`translateX(${-wx*0.25}px)`;
+  midLayer.style.transform=`translateX(${-wx*0.62}px)`;
+  propLayer.style.transform=`translateX(${-wx*0.85}px)`;
+  streetDeco.style.transform=`translateX(${-(wx*0.85 % (60*140))}px)`;
+  for(const n of state.npcs) n.el.style.left=(n.worldX-wx-40)+'px';
+}
+
+/* ===== NPC ===== */
+function spawnNpcIfNeeded(){
+  while(state.worldX+W()+220>state.nextNpcAt){
+    const type=npcTypes[Math.floor(Math.random()*npcTypes.length)];
+    const el=document.createElement('div');el.className='npc';
+    el.innerHTML=npcSVG(type)+`<div class="marker">❓</div>`;
+    const npc={el,worldX:state.nextNpcAt,type,given:false,marker:el.querySelector('.marker')};
+    gameEl.appendChild(el);state.npcs.push(npc);
+    state.nextNpcAt+=230+Math.random()*200;
+  }
+  state.npcs=state.npcs.filter(n=>{if(n.worldX-state.worldX<-170){n.el.remove();return false;}return true;});
+}
+function nearestNpc(){
+  const obX=state.worldX+W()/2;let best=null,bestD=9999;
+  for(const n of state.npcs){if(n.given)continue;const d=Math.abs(n.worldX-obX);if(d<bestD){bestD=d;best=n;}}
+  return (best&&bestD<115)?best:null;
+}
+
+/* ===== エリア切替＆駅判定 ===== */
+function updateArea(){
+  const centerWorld=state.worldX+W()/2;
+  const idx=areaIndexAt(centerWorld);
+  buildArea(idx);buildArea(idx+1);buildArea(idx-1);
+  if(idx!==state.areaIdx){
+    state.areaIdx=idx;const a=areas[idx];
+    placeNameEl.textContent=a.name;placeNameEl.style.opacity=0;
+    setTimeout(()=>placeNameEl.style.opacity=1,200);
+    sky.style.background=`linear-gradient(${a.sky[0]},${a.sky[1]} 55%,${a.sky[2]})`;
+    showToast(`📍 ${a.name} に来たで！`);
+  }
+  const stnWorld=state.stationWorld[idx];
+  let atStn=false;
+  if(stnWorld!=null && Math.abs(centerWorld-stnWorld)<130) atStn=true;
+  if(atStn!==state.atStation){
+    state.atStation=atStn;
+    if(atStn){
+      const nextIdx=idx+1<areas.length?idx+1:0;
+      trainBtnSub.textContent = idx+1<areas.length ? `次は ${areas[nextIdx].name.split('（')[0]}` : 'ぐるっと梅田へ';
+      trainBtn.classList.add('show');
+    } else trainBtn.classList.remove('show');
+  }
+}
+
+/* ===== 電車移動システム ===== */
+const routes = {
+  'umeda->namba':    {line:'midosuji', dir:'なかもず行', stations:['梅田','淀屋橋','本町','心斎橋','なんば'], mins:7},
+  'namba->dotonbori':{line:'walk',     dir:'徒歩', stations:['なんば','道頓堀'], mins:3},
+  'dotonbori->shinsekai':{line:'midosuji',dir:'なかもず行', stations:['なんば','動物園前'], mins:5},
+  'shinsekai->tsuruhashi':{line:'loop',dir:'環状線・外回り', stations:['新今宮','寺田町','桃谷','鶴橋'], mins:8},
+  'tsuruhashi->umeda':{line:'loop',    dir:'環状線・内回り', stations:['鶴橋','京橋','大阪城公園','大阪'], mins:12},
+};
+function routeKey(from,to){return `${areas[from].id}->${areas[to].id}`;}
+
+function trainScenerySVG(lineType){
+  const palettes={midosuji:['#2a3a5a','#3a4a6a','#1a2a4a'],loop:['#3a2a4a','#4a3a5a','#2a1a3a'],walk:['#3a2a1a','#4a3a2a','#2a1a10']};
+  const pal=palettes[lineType]||palettes.midosuji;
+  let bldgs='';
+  for(let i=0;i<30;i++){
+    const h=60+Math.random()*120,w=40+Math.random()*30,x=i*70,col=pal[i%3];
+    let win='';const rows=Math.floor(h/20);
+    for(let r=0;r<rows;r++)for(let c=0;c<3;c++){if(Math.random()<0.55)win+=`<rect x="${x+8+c*11}" y="${200-h+8+r*20}" width="7" height="10" fill="#ffdc6a" opacity="0.7"/>`;}
+    bldgs+=`<rect x="${x}" y="${200-h}" width="${w}" height="${h}" fill="${col}" rx="2"/>${win}`;
+  }
+  return `<svg width="2100" height="200" viewBox="0 0 2100 200" style="height:100%">
+    <defs><linearGradient id="trainSkyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0a1430"/><stop offset="100%" stop-color="#2a2050"/></linearGradient></defs>
+    <rect width="2100" height="200" fill="url(#trainSkyG)"/>
+    ${bldgs}
+    <g stroke="#555" stroke-width="2" opacity="0.5">${[...Array(15)].map((_,i)=>`<line x1="${i*140+40}" y1="30" x2="${i*140+40}" y2="200"/>`).join('')}</g>
+  </svg>`;
+}
+
+function doTravel(fromIdx,toIdx){
+  if(state.traveling)return;
+  state.traveling=true;moveDir=0;setWalking(false);trainBtn.classList.remove('show');
+  const rk=routeKey(fromIdx,toIdx);
+  const route=routes[rk]||{line:'midosuji',dir:'なかもず行',stations:[areas[fromIdx].station,areas[toIdx].station],mins:5};
+  const isWalk=route.line==='walk';
+  const lineInfo=LINE[route.line]||{color:'#888',name:'徒歩'};
+
+  document.getElementById('trainRoute').textContent=isWalk?`🚶 ${route.dir}で移動中…`:`🚇 ${lineInfo.name}・${route.dir}`;
+  document.getElementById('trainCar').textContent=isWalk?'🚶‍♀️💨':'🚃🚃🚃';
+  document.getElementById('trainScenery').innerHTML=trainScenerySVG(route.line);
+  document.getElementById('trainHint').textContent=isWalk?'すぐそこやで…':'まもなく発車します…';
+
+  const stnEl=document.getElementById('trainStations');
+  stnEl.querySelectorAll('.stationDot').forEach(e=>e.remove());
+  route.stations.forEach((nm,i)=>{
+    const d=document.createElement('div');d.className='stationDot';
+    d.innerHTML=`<div class="dot"></div><div class="nm">${nm}</div>`;
+    if(i===0)d.classList.add('passed');
+    stnEl.appendChild(d);
+  });
+
+  trainScreen.classList.add('show');
+
+  const scenery=document.getElementById('trainScenery');
+  const bar=document.getElementById('trainProgressBar');
+  const dots=[...stnEl.querySelectorAll('.stationDot')];
+  const duration=isWalk?2000:3600;
+  const sceneryDist=1400;
+  let start=null;
+  function step(ts){
+    if(!start)start=ts;
+    const t=Math.min(1,(ts-start)/duration);
+    scenery.style.transform=`translateX(${-sceneryDist*t}px)`;
+    bar.style.width=(t*100)+'%';
+    const stnProgress=t*(route.stations.length-1);
+    dots.forEach((d,i)=>{
+      if(i<=stnProgress)d.classList.add('passed');
+      if(Math.abs(i-stnProgress)<0.5)d.classList.add('active');else d.classList.remove('active');
+    });
+    if(t<1)requestAnimationFrame(step);
+    else{
+      dots.forEach(d=>{d.classList.remove('active');d.classList.add('passed');});
+      dots[dots.length-1].classList.add('active');
+      document.getElementById('trainHint').textContent=`まもなく ${route.stations[route.stations.length-1]} に到着します`;
+      setTimeout(()=>{
+        state.worldX=toIdx*AREA_W+120;
+        state.npcs.forEach(n=>n.el.remove());state.npcs=[];
+        state.nextNpcAt=state.worldX+400;
+        state.areaIdx=-1;
+        buildArea(toIdx);buildArea(toIdx+1);
+        render();updateArea();
+        trainScreen.classList.remove('show');
+        state.traveling=false;state.atStation=false;
+        const a=areas[toIdx];
+        speak(`${a.name.split('（')[0]}に着いたで！`);
+      },700);
+    }
+  }
+  setTimeout(()=>requestAnimationFrame(step),500);
+}
+
+trainBtn.addEventListener('click',e=>{
+  e.preventDefault();
+  if(state.traveling)return;
+  const from=state.areaIdx;
+  const to=from+1<areas.length?from+1:0;
+  doTravel(from,to);
+});
+
+/* ===== 路線マップ ===== */
+function buildMap(){
+  const mc=document.getElementById('mapContent');
+  const nodes={
+    umeda:{x:90,y:50,label:'梅田',line:'midosuji'},
+    namba:{x:90,y:170,label:'なんば',line:'midosuji'},
+    dotonbori:{x:90,y:230,label:'道頓堀',line:'midosuji'},
+    shinsekai:{x:90,y:320,label:'新世界',line:'midosuji'},
+    tsuruhashi:{x:230,y:230,label:'鶴橋',line:'loop'},
+  };
+  let html=`<svg width="320" height="410" viewBox="0 0 320 410">
+    <defs><filter id="mapGlow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+  html+=`<path d="M90 50 L90 320" stroke="${LINE.midosuji.color}" stroke-width="6" fill="none" opacity="0.85"/>`;
+  html+=`<path d="M90 320 Q170 360 230 300 L230 230 L230 130 Q230 60 90 50" stroke="${LINE.loop.color}" stroke-width="6" fill="none" opacity="0.85"/>`;
+  html+=`<rect x="12" y="384" width="14" height="6" fill="${LINE.midosuji.color}"/><text x="30" y="390" font-size="11" fill="#ccc">御堂筋線</text>`;
+  html+=`<rect x="120" y="384" width="14" height="6" fill="${LINE.loop.color}"/><text x="138" y="390" font-size="11" fill="#ccc">大阪環状線</text>`;
+  Object.entries(nodes).forEach(([id,n],i)=>{
+    const isCur=areas[state.areaIdx]&&areas[state.areaIdx].id===id;
+    html+=`<g class="mapNode" data-area="${i}" style="cursor:pointer">
+      <circle cx="${n.x}" cy="${n.y}" r="${isCur?11:8}" fill="${isCur?'#f5c542':'#fff'}" stroke="${LINE[n.line].color}" stroke-width="3" ${isCur?'filter="url(#mapGlow)"':''}/>
+      ${isCur?`<circle cx="${n.x}" cy="${n.y}" r="16" fill="none" stroke="#f5c542" stroke-width="1.5" opacity="0.6"/>`:''}
+      <text x="${n.x+18}" y="${n.y+4}" font-size="14" fill="${isCur?'#f5c542':'#fff'}" font-weight="bold">${n.label}${isCur?' ●いまここ':''}</text>
+    </g>`;
+  });
+  html+=`</svg>`;
+  mc.innerHTML=html;
+  mc.querySelectorAll('.mapNode').forEach(node=>{
+    node.addEventListener('click',()=>{
+      const to=parseInt(node.dataset.area);
+      if(to===state.areaIdx){closeMap();return;}
+      closeMap();doTravel(state.areaIdx,to);
+    });
+  });
+}
+function openMap(){buildMap();document.getElementById('mapOverlay').classList.add('show');}
+function closeMap(){document.getElementById('mapOverlay').classList.remove('show');}
+document.getElementById('mapBtn').addEventListener('click',openMap);
+document.getElementById('mapClose').addEventListener('click',closeMap);
+
+/* ===== あめちゃんを配る ===== */
+const reactions=['おおきに！','ありがとうな〜','うれしいわ！','元気でるわ〜','いただきます！','めっちゃ嬉しい！','あめちゃん大好き！','おおきに、おばちゃん！','ごちそうさん！','ええ人やな〜','たすかるわ〜'];
+const obaLines=['あめちゃん、いる？','はい、あめちゃん！','食べや〜','元気出しや！','持ってき〜','ええ子やね〜','遠慮せんと！','ぎょうさん食べや！'];
+function giveCandy(){
+  if(!state.running||state.traveling)return;
+  const target=nearestNpc();
+  if(!target){speak('だれもおらんな…もっと歩こか');return;}
+  if(state.candy<=0){speak('あめちゃん、もう無いわ！');showToast('🍬 歩いてたらまた湧いてくるで');return;}
+  state.candy--;candyCountEl.textContent=state.candy;target.given=true;
+  const obX=state.worldX+W()/2;state.facing=(target.worldX>obX)?1:-1;applyFacing();
+  const fly=document.createElement('div');fly.className='candy-fly';fly.textContent='🍬';
+  const startX=W()/2+(state.facing>0?18:-18),startY=gameEl.clientHeight*0.56;
+  const endX=target.worldX-state.worldX,endY=gameEl.clientHeight*0.62;
+  fly.style.left=startX+'px';fly.style.top=startY+'px';gameEl.appendChild(fly);
+  fly.animate([{left:startX+'px',top:startY+'px',transform:'rotate(0) scale(1)'},{left:(startX+endX)/2+'px',top:(startY-64)+'px',transform:'rotate(360deg) scale(1.3)',offset:.5},{left:endX+'px',top:endY+'px',transform:'rotate(720deg) scale(.8)'}],{duration:580,easing:'ease-in-out'}).onfinish=()=>{
+    fly.remove();target.marker.textContent='💛';
+    const m=target.el.querySelector('.mouth');if(m)m.setAttribute('d','M33 48 q7 8 14 0');
+    popText(endX,endY,['💛','✨','❤️','🌸'][Math.floor(Math.random()*4)]);
+    npcSpeak(endX,reactions[Math.floor(Math.random()*reactions.length)]);
+    state.score++;scoreCountEl.textContent=state.score;
+    if(state.score%5===0)showToast(`🎉 ${state.score}人をよろこばせた！`);
+    setTimeout(()=>{target.marker.style.opacity=0;},900);
+  };
+  speak(obaLines[Math.floor(Math.random()*obaLines.length)]);
+}
+
+/* ===== セリフ・エフェクト ===== */
+let bubbleTimer;
+function speak(txt){bubble.textContent=txt;bubble.classList.add('show');clearTimeout(bubbleTimer);bubbleTimer=setTimeout(()=>bubble.classList.remove('show'),1400);}
+function npcSpeak(x,txt){const b=document.createElement('div');b.className='pop';b.style.left=x+'px';b.style.top=(gameEl.clientHeight*0.44)+'px';b.style.color='#fff';b.style.background='rgba(91,42,134,.92)';b.style.padding='4px 10px';b.style.borderRadius='12px';b.style.fontSize='13px';b.style.whiteSpace='nowrap';b.textContent=txt;gameEl.appendChild(b);setTimeout(()=>b.remove(),1100);}
+function popText(x,y,txt){const p=document.createElement('div');p.className='pop';p.textContent=txt;p.style.left=x+'px';p.style.top=y+'px';p.style.fontSize='26px';gameEl.appendChild(p);setTimeout(()=>p.remove(),1100);}
+let toastTimer;
+function showToast(txt){toast.textContent=txt;toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('show'),1800);}
+
+function applyFacing(){obachan.classList.toggle('facing-left',state.facing<0);}
+let moveDir=0;
+function setWalking(on){state.walking=on;obachan.classList.toggle('walking',on);}
+
+/* ===== メインループ ===== */
+function loop(){
+  if(state.running&&!state.traveling){
+    if(moveDir!==0){
+      state.facing=moveDir;applyFacing();
+      const maxX=(areas.length-1)*AREA_W+AREA_W-W()*0.4;
+      state.worldX=Math.max(0,Math.min(maxX,state.worldX+moveDir*SPEED));
+      if(!state.walking)setWalking(true);
+    } else if(state.walking)setWalking(false);
+    spawnNpcIfNeeded();updateArea();render();
+    candyBtn.classList.toggle('pulse',!!nearestNpc()&&state.candy>0);
+    if(state.walking&&Math.random()<0.004&&state.candy<99){state.candy++;candyCountEl.textContent=state.candy;}
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ===== 入力 ===== */
+function bindHold(btn,dir){
+  const s=e=>{e.preventDefault();moveDir=dir;};
+  const en=e=>{e.preventDefault();if(moveDir===dir)moveDir=0;};
+  btn.addEventListener('touchstart',s,{passive:false});btn.addEventListener('touchend',en);btn.addEventListener('touchcancel',en);
+  btn.addEventListener('mousedown',s);btn.addEventListener('mouseup',en);btn.addEventListener('mouseleave',en);
+}
+bindHold(document.getElementById('leftBtn'),-1);
+bindHold(document.getElementById('rightBtn'),1);
+candyBtn.addEventListener('click',e=>{e.preventDefault();giveCandy();});
+document.addEventListener('keydown',e=>{if(e.repeat)return;if(e.key==='ArrowLeft'||e.key==='a')moveDir=-1;if(e.key==='ArrowRight'||e.key==='d')moveDir=1;if(e.key===' '||e.key==='ArrowUp'||e.key==='Enter'){e.preventDefault();giveCandy();}});
+document.addEventListener('keyup',e=>{if((e.key==='ArrowLeft'||e.key==='a')&&moveDir===-1)moveDir=0;if((e.key==='ArrowRight'||e.key==='d')&&moveDir===1)moveDir=0;});
+
+document.getElementById('startBtn').addEventListener('click',()=>{
+  document.getElementById('title').classList.add('fade-hidden');
+  setTimeout(()=>document.getElementById('title').style.display='none',400);
+  state.running=true;
+  speak('さぁ、あめちゃん配りにいこか！');
+});
+
+/* ===== かにアニメCSS ===== */
+const kaniStyle=document.createElement('style');
+kaniStyle.textContent=`
+  .kani-claw-l{animation:clawL 1.6s ease-in-out infinite;transform-origin:-30px 4px;}
+  .kani-claw-r{animation:clawR 1.9s ease-in-out infinite;transform-origin:30px 4px;}
+  .kani-legs{animation:legWave 1.2s ease-in-out infinite;}
+  @keyframes clawL{0%,100%{transform:rotate(0)}50%{transform:rotate(-13deg)}}
+  @keyframes clawR{0%,100%{transform:rotate(0)}50%{transform:rotate(11deg)}}
+  @keyframes legWave{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+`;
+document.head.appendChild(kaniStyle);
+
+/* ===== 初期化 ===== */
+buildGround();buildStreetDeco();buildSky();
+sky.style.background=`linear-gradient(${areas[0].sky[0]},${areas[0].sky[1]} 55%,${areas[0].sky[2]})`;
+buildArea(0);buildArea(1);
+applyFacing();render();loop();
+
+</script>
+</body>
+</html>
